@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Users, Trophy, FileText, Edit, Award } from 'lucide-react';
+import { RubricsTab } from './rubrics';
+import { JudgingTab } from './judging';
+import { ResultsTab } from './results';
 
 export default function CompetitionManagementPage() {
   const params = useParams();
@@ -174,39 +177,15 @@ export default function CompetitionManagementPage() {
         </TabsContent>
 
         <TabsContent value="rubrics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Judging Rubrics</CardTitle>
-              <CardDescription>Define criteria for judging teams</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Rubric management interface coming soon...</p>
-            </CardContent>
-          </Card>
+          <RubricsTab competitionId={competitionId} />
         </TabsContent>
 
         <TabsContent value="judging">
-          <Card>
-            <CardHeader>
-              <CardTitle>Judging Interface</CardTitle>
-              <CardDescription>Score and evaluate team submissions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Judging interface coming soon...</p>
-            </CardContent>
-          </Card>
+          <JudgingTab competitionId={competitionId} />
         </TabsContent>
 
         <TabsContent value="results">
-          <Card>
-            <CardHeader>
-              <CardTitle>Competition Results</CardTitle>
-              <CardDescription>View and publish competition results</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Results view coming soon...</p>
-            </CardContent>
-          </Card>
+          <ResultsTab competitionId={competitionId} />
         </TabsContent>
 
         <TabsContent value="settings">
