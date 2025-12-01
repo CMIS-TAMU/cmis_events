@@ -9,7 +9,7 @@ import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Calendar, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Users, CalendarDays } from 'lucide-react';
 import { EventCard } from '@/components/events/event-card';
 
 export default function AdminEventsPage() {
@@ -137,8 +137,13 @@ export default function AdminEventsPage() {
             {upcomingEvents.map((event) => (
               <Card key={event.id} className="relative">
                 <div className="absolute top-4 right-4 flex gap-2 z-10">
+                  <Link href={`/admin/events/${event.id}/sessions`}>
+                    <Button variant="outline" size="icon" className="h-8 w-8" title="Manage Sessions">
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href={`/admin/events/${event.id}/edit`}>
-                    <Button variant="outline" size="icon" className="h-8 w-8">
+                    <Button variant="outline" size="icon" className="h-8 w-8" title="Edit Event">
                       <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
@@ -148,6 +153,7 @@ export default function AdminEventsPage() {
                     className="h-8 w-8"
                     onClick={() => handleDelete(event.id, event.title)}
                     disabled={deleteMutation.isPending}
+                    title="Delete Event"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -169,8 +175,13 @@ export default function AdminEventsPage() {
             {pastEvents.map((event) => (
               <Card key={event.id} className="relative opacity-75">
                 <div className="absolute top-4 right-4 flex gap-2 z-10">
+                  <Link href={`/admin/events/${event.id}/sessions`}>
+                    <Button variant="outline" size="icon" className="h-8 w-8" title="Manage Sessions">
+                      <CalendarDays className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href={`/admin/events/${event.id}/edit`}>
-                    <Button variant="outline" size="icon" className="h-8 w-8">
+                    <Button variant="outline" size="icon" className="h-8 w-8" title="Edit Event">
                       <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
@@ -180,6 +191,7 @@ export default function AdminEventsPage() {
                     className="h-8 w-8"
                     onClick={() => handleDelete(event.id, event.title)}
                     disabled={deleteMutation.isPending}
+                    title="Delete Event"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

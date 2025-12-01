@@ -58,6 +58,7 @@ export function Header() {
     ...(user ? [
       { href: '/dashboard', label: 'Dashboard' },
       { href: '/registrations', label: 'My Registrations' },
+      { href: '/sessions', label: 'My Sessions' },
       ...(userRole === 'admin' ? [{ href: '/admin/dashboard', label: 'Admin' }] : [])
     ] : []),
   ];

@@ -3,6 +3,7 @@ import { authRouter } from './auth.router';
 import { eventsRouter } from './events.router';
 import { registrationsRouter } from './registrations.router';
 import { resumesRouter } from './resumes.router';
+import { sessionsRouter } from './sessions.router';
 
 // Main app router that combines all routers
 export const appRouter = router({
@@ -10,6 +11,7 @@ export const appRouter = router({
   events: eventsRouter,
   registrations: registrationsRouter,
   resumes: resumesRouter,
+  sessions: sessionsRouter,
 });
 
 // Export type for use in client

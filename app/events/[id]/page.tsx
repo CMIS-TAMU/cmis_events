@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { RegisterButton } from '@/components/registrations/register-button';
 import { CancelButton } from '@/components/registrations/cancel-button';
+import { SessionCard } from '@/components/sessions/session-card';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -45,6 +46,11 @@ export default function EventDetailPage() {
   const { data: registrationStatus } = trpc.registrations.getStatus.useQuery(
     { event_id: eventId },
     { enabled: !!eventId && !!user }
+  );
+
+  const { data: sessions } = trpc.sessions.getByEvent.useQuery(
+    { event_id: eventId },
+    { enabled: !!eventId }
   );
 
   const deleteMutation = trpc.events.delete.useMutation({
@@ -266,7 +272,78 @@ export default function EventDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Sessions Section */}
+      {sessions && sessions.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-6">Event Sessions</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {sessions.map((session: any) => (
+              <SessionCardWithActions
+                key={session.id}
+                session={session}
+                eventId={eventId}
+                userId={user?.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Component to handle session card with dynamic actions
+function SessionCardWithActions({ session, eventId, userId }: { session: any; eventId: string; userId?: string }) {
+  const utils = trpc.useUtils();
+  const { data: registrationStatus } = trpc.sessions.getRegistrationStatus.useQuery(
+    { session_id: session.id },
+    { enabled: !!userId }
+  );
+  const { data: capacity } = trpc.sessions.getCapacity.useQuery(
+    { session_id: session.id },
+    { enabled: !!session.id }
+  );
+
+  const registerMutation = trpc.sessions.register.useMutation({
+    onSuccess: () => {
+      utils.sessions.getRegistrationStatus.invalidate({ session_id: session.id });
+      utils.sessions.getCapacity.invalidate({ session_id: session.id });
+    },
+  });
+
+  const cancelMutation = trpc.sessions.cancel.useMutation({
+    onSuccess: () => {
+      utils.sessions.getRegistrationStatus.invalidate({ session_id: session.id });
+      utils.sessions.getCapacity.invalidate({ session_id: session.id });
+    },
+  });
+
+  const handleRegister = () => {
+    if (confirm('Register for this session?')) {
+      registerMutation.mutate({ session_id: session.id });
+    }
+  };
+
+  const handleCancel = () => {
+    if (confirm('Cancel your registration for this session?')) {
+      cancelMutation.mutate({ session_id: session.id });
+    }
+  };
+
+  const remaining = capacity && typeof capacity === 'object' && 'remaining' in capacity
+    ? capacity.remaining as number
+    : undefined;
+
+  return (
+    <SessionCard
+      session={session}
+      registered={!!registrationStatus}
+      remaining={remaining}
+      onRegister={handleRegister}
+      onCancel={handleCancel}
+      showActions={!!userId}
+    />
   );
 }
 
