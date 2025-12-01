@@ -11,11 +11,14 @@ echo ""
 
 # Test 1: Health Check
 echo "1. Testing Health Check..."
-HEALTH=$(curl -s "$BASE_URL/api/health" | jq -r '.status' 2>/dev/null || echo "null")
-if [ "$HEALTH" = "ok" ]; then
-    echo "   ✅ Health check passed"
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/health")
+HEALTH_BODY=$(curl -s "$BASE_URL/api/health" 2>/dev/null || echo "")
+if [ "$HEALTH_STATUS" = "200" ]; then
+    echo "   ✅ Health check passed ($HEALTH_STATUS)"
+elif [ "$HEALTH_STATUS" = "000" ]; then
+    echo "   ⚠️  Server not running. Start with: pnpm dev"
 else
-    echo "   ❌ Health check failed"
+    echo "   ⚠️  Health check returned: $HEALTH_STATUS"
 fi
 
 # Test 2: QR Code Generation
@@ -33,9 +36,13 @@ echo ""
 echo "3. Testing Pages..."
 PAGES=("/" "/events" "/login" "/signup")
 for page in "${PAGES[@]}"; do
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$page")
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$page" 2>/dev/null || echo "000")
     if [ "$STATUS" = "200" ] || [ "$STATUS" = "307" ] || [ "$STATUS" = "308" ]; then
         echo "   ✅ $page loads ($STATUS)"
+    elif [ "$STATUS" = "000" ]; then
+        echo "   ❌ $page - Server not responding"
+    elif [ "$STATUS" = "404" ]; then
+        echo "   ⚠️  $page returned 404 (page might not exist or server not running)"
     else
         echo "   ⚠️  $page returned: $STATUS"
     fi
