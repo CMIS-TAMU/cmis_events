@@ -39,7 +39,10 @@ export function Header() {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/events', label: 'Events' },
-    ...(user ? [{ href: '/dashboard', label: 'Dashboard' }] : []),
+    ...(user ? [
+      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/registrations', label: 'My Registrations' }
+    ] : []),
   ];
 
   return (

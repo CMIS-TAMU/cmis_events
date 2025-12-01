@@ -39,6 +39,46 @@ export const registrationsRouter = router({
         throw new Error(`Registration failed: ${error.message}`);
       }
 
+      // Send confirmation email (async, don't wait for it)
+      if (data && typeof data === 'object' && 'ok' in data && data.ok) {
+        // Get event details and user email for email
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', input.event_id)
+          .single();
+
+        const { data: userData } = await supabase.auth.getUser();
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('full_name, email')
+          .eq('id', user?.id)
+          .single();
+
+        if (eventData && userData?.user && userProfile) {
+          // Send email in background (don't await)
+          fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'registration_confirmation',
+              userName: userProfile.full_name || userData.user.email?.split('@')[0] || 'User',
+              userEmail: userProfile.email || userData.user.email || '',
+              event: {
+                title: eventData.title,
+                description: eventData.description,
+                starts_at: eventData.starts_at,
+                ends_at: eventData.ends_at,
+                capacity: eventData.capacity,
+              },
+              registrationId: data.registration_id || data.waitlist_id || 'N/A',
+              isWaitlisted: data.status === 'waitlisted',
+              waitlistPosition: data.position,
+            }),
+          }).catch((err) => console.error('Failed to send registration email:', err));
+        }
+      }
+
       return data;
     }),
 
@@ -67,6 +107,39 @@ export const registrationsRouter = router({
       await supabase.rpc('promote_waitlist', {
         p_event_id: input.event_id,
       });
+
+      // Send cancellation email (async, don't wait for it)
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', input.event_id)
+        .single();
+
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('full_name, email')
+        .eq('id', user?.id)
+        .single();
+
+      if (eventData && userData?.user && userProfile) {
+        // Send email in background (don't await)
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'cancellation',
+            userName: userProfile.full_name || userData.user.email?.split('@')[0] || 'User',
+            userEmail: userProfile.email || userData.user.email || '',
+            event: {
+              title: eventData.title,
+              description: eventData.description,
+              starts_at: eventData.starts_at,
+              ends_at: eventData.ends_at,
+            },
+          }),
+        }).catch((err) => console.error('Failed to send cancellation email:', err));
+      }
 
       return { success: true };
     }),

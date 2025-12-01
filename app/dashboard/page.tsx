@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,9 +73,14 @@ export default function DashboardPage() {
             <CardDescription>Events you&apos;re registered for</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No events registered yet. Check out available events!
+            <p className="text-sm text-muted-foreground mb-4">
+              View and manage your event registrations
             </p>
+            <Link href="/registrations">
+              <Button variant="outline" className="w-full">
+                View My Registrations
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -84,12 +90,16 @@ export default function DashboardPage() {
             <CardDescription>Common tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full" disabled>
-              Browse Events
-            </Button>
-            <Button variant="outline" className="w-full" disabled>
-              My Profile
-            </Button>
+            <Link href="/events" className="block">
+              <Button variant="outline" className="w-full">
+                Browse Events
+              </Button>
+            </Link>
+            <Link href="/registrations" className="block">
+              <Button variant="outline" className="w-full">
+                My Registrations
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
