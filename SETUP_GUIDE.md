@@ -1,6 +1,7 @@
 # CMIS Event Management System - Complete Setup Guide
 
 ## 📋 Table of Contents
+
 1. [Prerequisites](#prerequisites)
 2. [System Requirements](#system-requirements)
 3. [Account Setup](#account-setup)
@@ -16,6 +17,7 @@
 ## Prerequisites
 
 ### Required Knowledge
+
 - Basic understanding of JavaScript/TypeScript
 - Familiarity with React/Next.js (helpful but not required)
 - Git version control basics
@@ -26,6 +28,7 @@
 Before starting, ensure you have the following installed:
 
 #### 1. **Node.js (v20 LTS or higher)**
+
 - **Download:** https://nodejs.org/
 - **Verify installation:**
   ```bash
@@ -34,16 +37,54 @@ Before starting, ensure you have the following installed:
   ```
 
 #### 2. **Package Manager: pnpm**
+
 - **Installation:**
+
+  **Option A: Fix npm permissions (Recommended - avoids sudo)**
+
   ```bash
+  # Create directory for global packages in home directory
+  mkdir -p ~/.npm-global
+
+  # Configure npm to use the new directory
+  npm config set prefix '~/.npm-global'
+
+  # Add to PATH (for Zsh - macOS default)
+  echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+  source ~/.zshrc
+
+  # Now install pnpm without sudo
   npm install -g pnpm
   ```
+
+  **Option B: Use Corepack (Node.js 16.9+)**
+
+  ```bash
+  # Enable corepack (built into Node.js)
+  corepack enable
+  corepack prepare pnpm@latest --activate
+  ```
+
+  **Option C: Use sudo (Quick but not ideal)**
+
+  ```bash
+  sudo npm install -g pnpm
+  ```
+
 - **Verify:**
+
   ```bash
   pnpm --version  # Should show 8.x.x or higher
   ```
 
+  **Note:** If you get "command not found", make sure to reload your shell or run:
+
+  ```bash
+  export PATH=~/.npm-global/bin:$PATH  # For current session
+  ```
+
 #### 3. **Git**
+
 - **Download:** https://git-scm.com/downloads
 - **Verify installation:**
   ```bash
@@ -56,6 +97,7 @@ Before starting, ensure you have the following installed:
   ```
 
 #### 4. **Code Editor: VS Code (Recommended)**
+
 - **Download:** https://code.visualstudio.com/
 - **Recommended Extensions:**
   - ESLint
@@ -66,6 +108,7 @@ Before starting, ensure you have the following installed:
   - TypeScript Vue Plugin (Volar) (if using Vue)
 
 #### 5. **PostgreSQL Client (Optional, for direct DB access)**
+
 - **pgAdmin:** https://www.pgadmin.org/download/
 - Or use Supabase's built-in SQL editor
 
@@ -74,12 +117,14 @@ Before starting, ensure you have the following installed:
 ## System Requirements
 
 ### Minimum Requirements
+
 - **OS:** macOS 10.15+, Windows 10+, or Linux (Ubuntu 20.04+)
 - **RAM:** 8GB (16GB recommended)
 - **Storage:** 10GB free space
 - **Internet:** Stable connection for package downloads and API access
 
 ### Recommended
+
 - **RAM:** 16GB+
 - **CPU:** Multi-core processor (4+ cores)
 - **Storage:** SSD with 20GB+ free space
@@ -91,44 +136,53 @@ Before starting, ensure you have the following installed:
 You'll need accounts for the following services (all offer free tiers):
 
 ### 1. GitHub Account
+
 - **Sign up:** https://github.com/signup
 - **Benefits:** Repository hosting, CI/CD, project management
 - **Free tier:** Unlimited public/private repos
 
 ### 2. Vercel Account (Frontend Hosting)
+
 - **Sign up:** https://vercel.com/signup
 - **Connect:** Use GitHub to sign in
 - **Free tier:** Unlimited projects, 100GB bandwidth/month
 
 ### 3. Supabase Account (Database + Auth + Storage)
+
 - **Sign up:** https://supabase.com/dashboard/sign-up
-- **Free tier:** 
+- **Free tier:**
   - 500MB database
   - 1GB file storage
   - 50,000 monthly active users
   - 2GB bandwidth
 
 ### 4. Railway Account (N8N Hosting)
+
 - **Sign up:** https://railway.app/
 - **Free tier:** $5 credit/month (usually enough for N8N)
 
 ### 5. Resend Account (Email Service)
+
 - **Sign up:** https://resend.com/signup
 - **Free tier:** 100 emails/day, 3,000 emails/month
 
 ### 6. Upstash Redis
+
 - **Sign up:** https://console.upstash.com/
 - **Free tier:** 10,000 commands/day
 
 ### 7. Cloudinary (Image Storage)
+
 - **Sign up:** https://cloudinary.com/users/register/free
 - **Free tier:** 25GB storage, 25GB bandwidth/month
 
 ### 8. Sentry (Error Tracking)
+
 - **Sign up:** https://sentry.io/signup/
 - **Free tier:** 5,000 errors/month
 
 ### 9. AI Service (Choose one)
+
 - **OpenAI:** https://platform.openai.com/signup
   - Free tier: $5 credit (limited time)
   - Pay-as-you-go after
@@ -136,6 +190,7 @@ You'll need accounts for the following services (all offer free tiers):
   - Free tier: 60 requests/minute
 
 ### 10. GitHub Student Developer Pack (Optional but Recommended)
+
 - **Apply:** https://education.github.com/pack
 - **Benefits:** Additional credits and free tiers for students
 
@@ -566,6 +621,7 @@ ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 ### Step 3: Set Up Database Functions
 
 Create helper functions for:
+
 - User registration
 - Event capacity checking
 - Waitlist management
@@ -642,17 +698,17 @@ Visit http://localhost:3000 - you should see the Next.js welcome page.
 Create a test file `lib/test-db.ts`:
 
 ```typescript
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function testConnection() {
-  const { data, error } = await supabase.from('users').select('count')
-  console.log('Database connection:', error ? 'FAILED' : 'SUCCESS')
-  return { data, error }
+  const { data, error } = await supabase.from('users').select('count');
+  console.log('Database connection:', error ? 'FAILED' : 'SUCCESS');
+  return { data, error };
 }
 ```
 
@@ -685,11 +741,72 @@ Create a checklist:
 ### Common Issues
 
 #### 1. **pnpm command not found**
+
+**If PATH is not set:**
+
 ```bash
+# Add to PATH for current session
+export PATH=~/.npm-global/bin:$PATH
+
+# Or reload your shell
+source ~/.zshrc  # For Zsh
+# OR
+source ~/.bashrc  # For Bash
+```
+
+**If pnpm is not installed:**
+
+**Option A: Fix npm permissions (Recommended)**
+
+```bash
+# Create npm global directory
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+
+# Add to PATH
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+source ~/.zshrc
+
+# Install pnpm
+npm install -g pnpm
+```
+
+**Option B: Use Corepack**
+
+```bash
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+**Option C: Use sudo**
+
+```bash
+sudo npm install -g pnpm
+```
+
+#### 1a. **EACCES: permission denied when installing pnpm**
+
+This happens when npm tries to install to system directories. Fix npm permissions:
+
+```bash
+# Create directory for global packages
+mkdir -p ~/.npm-global
+
+# Configure npm to use home directory
+npm config set prefix '~/.npm-global'
+
+# Add to PATH permanently
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+
+# Reload shell
+source ~/.zshrc
+
+# Now install pnpm (no sudo needed!)
 npm install -g pnpm
 ```
 
 #### 2. **Port 3000 already in use**
+
 ```bash
 # Kill process on port 3000
 # Mac/Linux:
@@ -704,11 +821,13 @@ pnpm dev -- -p 3001
 ```
 
 #### 3. **Supabase connection errors**
+
 - Verify environment variables are set correctly
 - Check that Supabase project is active
 - Verify API keys in Supabase dashboard
 
 #### 4. **Module not found errors**
+
 ```bash
 # Delete node_modules and reinstall
 rm -rf node_modules pnpm-lock.yaml
@@ -716,17 +835,47 @@ pnpm install
 ```
 
 #### 5. **TypeScript errors**
+
 ```bash
 # Restart TypeScript server in VS Code
 # Cmd+Shift+P → "TypeScript: Restart TS Server"
 ```
 
-#### 6. **Database migration errors**
+#### 6. **create-next-app naming restrictions error**
+
+If you get: `Could not create a project called "CMIS-Cursor" because of npm naming restrictions: name can no longer contain capital letters`
+
+**Solutions:**
+
+**Option A: Project structure already exists (Recommended)**
+
+- The Next.js structure has already been created manually
+- Skip the `create-next-app` step and proceed with installing dependencies
+
+**Option B: Create package.json first**
+
+```bash
+# Create package.json with valid name (lowercase)
+cat > package.json << 'EOF'
+{
+  "name": "cmis-event-management-system",
+  "version": "0.1.0",
+  "private": true
+}
+EOF
+
+# Then run create-next-app
+npx create-next-app@latest . --typescript --tailwind --app --use-pnpm --no-src-dir
+```
+
+#### 7. **Database migration errors**
+
 - Check SQL syntax in Supabase SQL Editor
 - Verify table names match exactly
 - Check for foreign key constraints
 
 #### 7. **N8N webhook not working**
+
 - Verify N8N instance is running
 - Check webhook URL is correct
 - Test webhook with curl:
@@ -795,4 +944,3 @@ pnpm type-check
 ---
 
 **Setup completed? Great! Now you're ready to start building. 🚀**
-
