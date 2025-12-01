@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Calendar, User, LogOut } from 'lucide-react';
+import { Menu, X, Calendar, User, LogOut, Shield } from 'lucide-react';
 
 export function Header() {
   const router = useRouter();
@@ -36,12 +36,29 @@ export function Header() {
 
   const isActive = (path: string) => pathname === path;
 
+  const [userRole, setUserRole] = useState<string>('');
+
+  useEffect(() => {
+    async function getUserRole() {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        setUserRole(profile?.role || 'user');
+      }
+    }
+    getUserRole();
+  }, [user]);
+
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/events', label: 'Events' },
     ...(user ? [
       { href: '/dashboard', label: 'Dashboard' },
-      { href: '/registrations', label: 'My Registrations' }
+      { href: '/registrations', label: 'My Registrations' },
+      ...(userRole === 'admin' ? [{ href: '/admin/dashboard', label: 'Admin' }] : [])
     ] : []),
   ];
 
@@ -74,6 +91,14 @@ export function Header() {
         <div className="hidden md:flex items-center gap-4">
           {user ? (
             <>
+              {userRole === 'admin' && (
+                <Link href="/admin/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
               <Link href="/profile">
                 <Button variant="ghost" size="sm">
                   <User className="h-4 w-4 mr-2" />
