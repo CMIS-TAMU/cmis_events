@@ -12,7 +12,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const redirectParam = searchParams.get('redirect');
+  // Decode redirect URL if it's URL-encoded (e.g., %2Fdashboard -> /dashboard)
+  const redirect = redirectParam ? decodeURIComponent(redirectParam) : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
