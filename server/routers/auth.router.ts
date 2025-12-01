@@ -64,5 +64,30 @@ export const authRouter = router({
 
       return data;
     }),
+
+  // Search users by email or name (for team formation)
+  searchUsers: protectedProcedure
+    .input(
+      z.object({
+        query: z.string().min(1),
+        limit: z.number().default(10),
+      })
+    )
+    .query(async ({ input }) => {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      // Search by email or full_name
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, role')
+        .or(`email.ilike.%${input.query}%,full_name.ilike.%${input.query}%`)
+        .limit(input.limit);
+
+      if (error) {
+        throw new Error(`Failed to search users: ${error.message}`);
+      }
+
+      return data || [];
+    }),
 });
 

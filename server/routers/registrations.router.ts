@@ -291,5 +291,55 @@ export const registrationsRouter = router({
 
       return data || [];
     }),
+
+  // Get user's waitlist entries
+  getMyWaitlist: protectedProcedure.query(async ({ ctx }) => {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data, error } = await supabase
+      .from('waitlist')
+      .select(`
+        *,
+        events (*)
+      `)
+      .eq('user_id', user.id)
+      .order('position', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch waitlist: ${error.message}`);
+    }
+
+    return data || [];
+  }),
+
+  // Get waitlist status for a specific event
+  getWaitlistStatus: protectedProcedure
+    .input(z.object({ event_id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase
+        .from('waitlist')
+        .select('*')
+        .eq('event_id', input.event_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        throw new Error(`Failed to check waitlist: ${error.message}`);
+      }
+
+      return data || null;
+    }),
 });
 

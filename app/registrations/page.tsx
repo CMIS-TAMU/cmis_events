@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Clock as ClockIcon, QrCode } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Clock as ClockIcon, QrCode, Hourglass } from 'lucide-react';
 import { trpc } from '@/lib/trpc/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,11 +31,22 @@ interface Registration {
   events: Event;
 }
 
+interface WaitlistEntry {
+  id: string;
+  event_id: string;
+  user_id: string;
+  position: number;
+  created_at: string;
+  events: Event;
+}
+
 export default function MyRegistrationsPage() {
   const { data: registrations, isLoading, error, refetch } = trpc.registrations.getMyRegistrations.useQuery();
+  const { data: waitlistEntries, refetch: refetchWaitlist } = trpc.registrations.getMyWaitlist.useQuery();
 
   const handleCancel = () => {
     refetch();
+    refetchWaitlist();
   };
 
   if (isLoading) {
@@ -169,6 +180,60 @@ export default function MyRegistrationsPage() {
           </div>
         )}
       </section>
+
+      {/* Waitlist */}
+      {waitlistEntries && waitlistEntries.length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Waitlist</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {waitlistEntries.map((entry: WaitlistEntry) => {
+              const event = entry.events;
+              const startDate = new Date(event.starts_at);
+
+              return (
+                <Card key={entry.id} className="border-yellow-300 bg-yellow-50/50">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-xl line-clamp-2">{event.title}</CardTitle>
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        Waitlist
+                      </Badge>
+                    </div>
+                    {event.description && (
+                      <CardDescription className="line-clamp-2">
+                        {event.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>{format(startDate, 'MMM d, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-yellow-800">
+                      <Hourglass className="h-4 w-4" />
+                      <span>Position #{entry.position} on waitlist</span>
+                    </div>
+                    <div className="bg-yellow-100 rounded-md p-3 text-sm text-yellow-900">
+                      <p className="font-medium mb-1">You&apos;re on the waitlist</p>
+                      <p className="text-xs">
+                        You&apos;ll be automatically registered if a spot opens up. We&apos;ll notify you by email.
+                      </p>
+                    </div>
+                  </CardContent>
+                  <CardContent className="pt-0">
+                    <Link href={`/events/${event.id}`}>
+                      <Button variant="outline" className="w-full">
+                        View Event
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Cancelled Registrations */}
       {cancelledRegistrations.length > 0 && (

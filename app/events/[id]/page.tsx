@@ -48,6 +48,11 @@ export default function EventDetailPage() {
     { enabled: !!eventId && !!user }
   );
 
+  const { data: waitlistStatus } = trpc.registrations.getWaitlistStatus.useQuery(
+    { event_id: eventId },
+    { enabled: !!eventId && !!user }
+  );
+
   const { data: sessions } = trpc.sessions.getByEvent.useQuery(
     { event_id: eventId },
     { enabled: !!eventId }
@@ -241,6 +246,19 @@ export default function EventDetailPage() {
                       size="default"
                     />
                   </>
+                ) : waitlistStatus ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-yellow-600 mb-2">
+                      <Clock className="h-5 w-5" />
+                      <span className="font-medium">You&apos;re on the waitlist</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Position: <strong>#{waitlistStatus.position}</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      You&apos;ll be automatically registered if a spot opens up. We&apos;ll notify you by email.
+                    </p>
+                  </div>
                 ) : (
                   <RegisterButton
                     eventId={eventId}

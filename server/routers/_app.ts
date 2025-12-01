@@ -5,6 +5,7 @@ import { registrationsRouter } from './registrations.router';
 import { resumesRouter } from './resumes.router';
 import { sessionsRouter } from './sessions.router';
 import { sponsorsRouter } from './sponsors.router';
+import { competitionsRouter } from './competitions.router';
 
 // Main app router that combines all routers
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
   resumes: resumesRouter,
   sessions: sessionsRouter,
   sponsors: sponsorsRouter,
+  competitions: competitionsRouter,
 });
 
 // Export type for use in client
