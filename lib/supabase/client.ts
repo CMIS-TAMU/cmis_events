@@ -1,10 +1,10 @@
 'use client';
 
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 /**
  * Client-side Supabase client for use in React components
- * This client is safe to use in client components
+ * Uses @supabase/ssr for proper cookie handling
  */
 export function createClientSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,12 +14,7 @@ export function createClientSupabase() {
     throw new Error('Missing Supabase environment variables');
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  });
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
 /**

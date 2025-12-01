@@ -31,15 +31,30 @@ function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        // Check if it's an email verification error
+        if (signInError.message.includes('Email not confirmed') || signInError.message.includes('not confirmed')) {
+          setError('Please verify your email before signing in. Check your inbox for the verification link.');
+        } else {
+          setError(signInError.message);
+        }
         setLoading(false);
         return;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
+        // Session exists, wait a moment for it to be saved
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         // Redirect to the intended page or dashboard
-        router.push(redirect);
-        router.refresh();
+        window.location.href = redirect; // Use window.location for full page reload
+        return; // Exit early to prevent loading state reset
+      } else if (data.user && !data.session) {
+        // User exists but no session - might need email verification
+        setError('Please verify your email before signing in. Check your inbox for the verification link.');
+        setLoading(false);
+      } else {
+        setError('Login failed. Please try again.');
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');

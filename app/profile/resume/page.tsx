@@ -31,18 +31,25 @@ export default function ResumePage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-      const role = profile?.role || 'user';
-      setUserRole(role);
-      setLoading(false);
+        const role = profile?.role || 'user';
+        setUserRole(role);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Still allow access even if profile fetch fails
+        setUserRole('user');
+        setLoading(false);
+      }
     }
     checkAuth();
-  });
+  }, [router]); // Add dependency array to prevent infinite loop
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete your resume? This action cannot be undone.')) {
