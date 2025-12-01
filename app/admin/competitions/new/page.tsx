@@ -14,18 +14,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 
-const competitionSchema = z.object({
+const competitionFormSchema = z.object({
   event_id: z.string().uuid('Please select an event'),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   rules: z.string().optional(),
   submission_instructions: z.string().optional(),
   deadline: z.string().optional(),
-  max_team_size: z.string().transform(Number),
-  min_team_size: z.string().transform(Number),
+  max_team_size: z.string(),
+  min_team_size: z.string(),
 });
 
-type CompetitionFormData = z.infer<typeof competitionSchema>;
+type CompetitionFormData = z.infer<typeof competitionFormSchema>;
 
 export default function NewCompetitionPage() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function NewCompetitionPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<CompetitionFormData>({
-    resolver: zodResolver(competitionSchema),
+    resolver: zodResolver(competitionFormSchema),
     defaultValues: {
       max_team_size: '4',
       min_team_size: '2',
@@ -87,8 +87,8 @@ export default function NewCompetitionPage() {
         rules: data.rules || undefined,
         submission_instructions: data.submission_instructions || undefined,
         deadline: data.deadline || undefined,
-        max_team_size: data.max_team_size,
-        min_team_size: data.min_team_size,
+        max_team_size: parseInt(data.max_team_size) || 4,
+        min_team_size: parseInt(data.min_team_size) || 2,
       });
     } catch (error: any) {
       console.error('Error creating competition:', error);

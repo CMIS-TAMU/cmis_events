@@ -32,7 +32,6 @@ export default function TeamRegistrationPage() {
     { enabled: !!competitionId }
   );
 
-  const searchUsersMutation = trpc.auth.searchUsers.useMutation();
   const createTeamMutation = trpc.competitions.createTeam.useMutation({
     onSuccess: () => {
       router.push(`/competitions/${competitionId}`);
@@ -50,6 +49,16 @@ export default function TeamRegistrationPage() {
     getUser();
   }, []);
 
+  const { refetch: searchUsers } = trpc.auth.searchUsers.useQuery(
+    {
+      query: searchQuery,
+      limit: 10,
+    },
+    {
+      enabled: false, // Don't run automatically
+    }
+  );
+
   const handleSearchUsers = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -58,17 +67,17 @@ export default function TeamRegistrationPage() {
 
     setSearching(true);
     try {
-      const results = await searchUsersMutation.mutateAsync({
-        query: searchQuery,
-        limit: 10,
-      });
-      // Filter out current user and already added members
-      const filtered = results.filter(
-        (u: any) => u.id !== user?.id && !members.includes(u.id)
-      );
-      setSearchResults(filtered);
+      const { data: results } = await searchUsers();
+      if (results) {
+        // Filter out current user and already added members
+        const filtered = results.filter(
+          (u: any) => u.id !== user?.id && !members.includes(u.id)
+        );
+        setSearchResults(filtered);
+      }
     } catch (error) {
       console.error('Error searching users:', error);
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -261,11 +270,6 @@ export default function TeamRegistrationPage() {
                     </div>
                   )}
 
-                  {searchUsersMutation.error && (
-                    <p className="text-sm text-red-600">
-                      {searchUsersMutation.error.message}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
