@@ -61,14 +61,17 @@ export default function SignupPage() {
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
-          // Don't fail signup if profile creation fails - it can be fixed later
+          setError(`Account created but profile setup failed: ${profileError.message}. Please contact support.`);
+          setLoading(false);
+          // Still show success message but log the error
+          // The user can try logging in and we can fix this manually
+        } else {
+          setSuccess(true);
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            router.push('/login?message=Account created successfully! Please verify your email.');
+          }, 2000);
         }
-
-        setSuccess(true);
-        // Redirect to login after a short delay
-        setTimeout(() => {
-          router.push('/login?message=Please check your email to verify your account');
-        }, 2000);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during signup');
