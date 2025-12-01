@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
 import { createClient } from '@supabase/supabase-js';
+import { generateQRToken } from '@/lib/qr/generate';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -39,6 +40,21 @@ export const registrationsRouter = router({
         throw new Error(`Registration failed: ${error.message}`);
       }
 
+      // Generate QR code token if registration was successful
+      if (data && typeof data === 'object' && 'ok' in data && data.ok && 'registration_id' in data) {
+        const qrToken = generateQRToken(
+          data.registration_id,
+          input.event_id,
+          user.id
+        );
+
+        // Update registration with QR code token
+        await supabase
+          .from('event_registrations')
+          .update({ qr_code_token: qrToken })
+          .eq('id', data.registration_id);
+      }
+
       // Send confirmation email (async, don't wait for it)
       if (data && typeof data === 'object' && 'ok' in data && data.ok) {
         // Get event details and user email for email
@@ -56,6 +72,17 @@ export const registrationsRouter = router({
           .single();
 
         if (eventData && userData?.user && userProfile) {
+          // Get QR code token if registration was successful
+          let qrToken = null;
+          if (data.registration_id) {
+            const { data: regData } = await supabase
+              .from('event_registrations')
+              .select('qr_code_token')
+              .eq('id', data.registration_id)
+              .single();
+            qrToken = regData?.qr_code_token || null;
+          }
+
           // Send email in background (don't await)
           fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
             method: 'POST',
@@ -74,6 +101,7 @@ export const registrationsRouter = router({
               registrationId: data.registration_id || data.waitlist_id || 'N/A',
               isWaitlisted: data.status === 'waitlisted',
               waitlistPosition: data.position,
+              qrCodeToken: qrToken,
             }),
           }).catch((err) => console.error('Failed to send registration email:', err));
         }

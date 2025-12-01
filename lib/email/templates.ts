@@ -14,6 +14,8 @@ interface RegistrationConfirmationEmailProps {
   registrationId: string;
   isWaitlisted?: boolean;
   waitlistPosition?: number;
+  qrCodeToken?: string;
+  appUrl?: string;
 }
 
 export function registrationConfirmationEmail({
@@ -22,6 +24,8 @@ export function registrationConfirmationEmail({
   registrationId,
   isWaitlisted = false,
   waitlistPosition,
+  qrCodeToken,
+  appUrl = 'http://localhost:3000',
 }: RegistrationConfirmationEmailProps): string {
   const startDate = new Date(event.starts_at);
   const endDate = event.ends_at ? new Date(event.ends_at) : null;
@@ -94,6 +98,17 @@ export function registrationConfirmationEmail({
       ${event.description ? `<p><strong>Description:</strong> ${event.description}</p>` : ''}
       <p><strong>Registration ID:</strong> ${registrationId}</p>
     </div>
+    
+    ${qrCodeToken ? `
+    <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center; border-left: 4px solid #667eea;">
+      <h3 style="margin-top: 0; color: #667eea;">Check-In QR Code</h3>
+      <p style="margin-bottom: 15px;">Show this QR code at the event for quick check-in:</p>
+      <div style="display: inline-block; padding: 15px; background: white; border: 2px solid #e0e0e0; border-radius: 5px;">
+        <img src="${appUrl}/api/qr/generate?data=${encodeURIComponent(qrCodeToken)}" alt="QR Code" style="max-width: 200px; height: auto;" />
+      </div>
+      <p style="margin-top: 15px; font-size: 12px; color: #666;">You can also view and download your QR code from your <a href="${appUrl}/registrations" style="color: #667eea;">registrations page</a>.</p>
+    </div>
+    ` : ''}
     
     <p>We look forward to seeing you at the event!</p>
     

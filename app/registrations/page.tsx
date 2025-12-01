@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Clock as ClockIcon } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Clock as ClockIcon, QrCode } from 'lucide-react';
 import { trpc } from '@/lib/trpc/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CancelButton } from '@/components/registrations/cancel-button';
+import { QRCodeDisplay } from '@/components/qr/qr-code-display';
 
 interface Event {
   id: string;
@@ -26,6 +27,7 @@ interface Registration {
   user_id: string;
   status: string;
   registered_at: string;
+  qr_code_token?: string;
   events: Event;
 }
 
@@ -132,6 +134,18 @@ export default function MyRegistrationsPage() {
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <span>Registered on {format(new Date(registration.registered_at), 'MMM d, yyyy')}</span>
                     </div>
+                    {isUpcoming && registration.status === 'registered' && registration.qr_code_token && (
+                      <div className="mt-4">
+                        <QRCodeDisplay
+                          data={registration.qr_code_token}
+                          title="Your QR Code"
+                          size={150}
+                        />
+                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                          Show this QR code at the event for check-in
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                   <CardContent className="pt-0 space-y-2">
                     <Link href={`/events/${event.id}`} className="block">

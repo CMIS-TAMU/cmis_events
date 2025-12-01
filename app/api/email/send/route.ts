@@ -17,13 +17,15 @@ export async function POST(request: NextRequest) {
 
     switch (type) {
       case 'registration_confirmation': {
-        const { userName, event, registrationId, isWaitlisted, waitlistPosition } = data;
+        const { userName, event, registrationId, isWaitlisted, waitlistPosition, qrCodeToken } = data;
         html = registrationConfirmationEmail({
           userName,
           event,
           registrationId,
           isWaitlisted,
           waitlistPosition,
+          qrCodeToken,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         });
         subject = isWaitlisted
           ? `Waitlist Confirmation: ${event.title}`
