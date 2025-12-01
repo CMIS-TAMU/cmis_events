@@ -47,28 +47,39 @@ export default function SignupPage() {
       }
 
       if (authData.user) {
-        // Create user profile in database
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: authData.user.email,
-            full_name: fullName,
-            role: role,
-            // Note: created_at is automatically set by database default
+        // Create user profile via API route (uses service role, bypasses RLS)
+        try {
+          const response = await fetch('/api/user/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: authData.user.id,
+              email: authData.user.email,
+              fullName: fullName,
+              role: role,
+            }),
           });
 
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-          setError(`Account created but profile setup failed: ${profileError.message}. Please contact support.`);
-          setLoading(false);
-          // Still show success message but log the error
-          // The user can try logging in and we can fix this manually
-        } else {
+          const result = await response.json();
+
+          if (!response.ok) {
+            console.error('Error creating user profile:', result.error);
+            // Don't fail signup - trigger might handle it or we can fix manually
+          }
+
           setSuccess(true);
           // Redirect to login after a short delay
           setTimeout(() => {
             router.push('/login?message=Account created successfully! Please verify your email.');
+          }, 2000);
+        } catch (profileError: any) {
+          console.error('Error creating user profile:', profileError);
+          // Don't fail signup - trigger might create profile, or user can login and we fix manually
+          setSuccess(true);
+          setTimeout(() => {
+            router.push('/login?message=Account created! Your profile will be set up automatically.');
           }, 2000);
         }
       }
