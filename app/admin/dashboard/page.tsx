@@ -159,12 +159,15 @@ export default function AdminDashboardPage() {
             <CardTitle>Registrations</CardTitle>
             <CardDescription>Manage event registrations</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Link href="/admin/registrations" className="block">
               <Button variant="outline" className="w-full">
-                View Registrations
+                View All Registrations
               </Button>
             </Link>
+            <p className="text-xs text-muted-foreground">
+              Export, filter, and manage all registrations
+            </p>
           </CardContent>
         </Card>
 

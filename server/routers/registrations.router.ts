@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc';
+import { router, protectedProcedure, adminProcedure } from '../trpc';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -192,6 +192,76 @@ export const registrationsRouter = router({
       }
 
       return data || null;
+    }),
+
+  // Get all registrations (admin only)
+  getAll: adminProcedure
+    .input(
+      z.object({
+        event_id: z.string().uuid().optional(),
+        status: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      let query = supabase
+        .from('event_registrations')
+        .select(`
+          *,
+          events (*),
+          users:user_id (
+            id,
+            email,
+            full_name,
+            role
+          )
+        `)
+        .order('registered_at', { ascending: false });
+
+      if (input?.event_id) {
+        query = query.eq('event_id', input.event_id);
+      }
+
+      if (input?.status) {
+        query = query.eq('status', input.status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Failed to fetch registrations: ${error.message}`);
+      }
+
+      return data || [];
+    }),
+
+  // Get registrations for a specific event (admin only)
+  getByEvent: adminProcedure
+    .input(z.object({ event_id: z.string().uuid() }))
+    .query(async ({ input }) => {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      const { data, error } = await supabase
+        .from('event_registrations')
+        .select(`
+          *,
+          events (*),
+          users:user_id (
+            id,
+            email,
+            full_name,
+            role
+          )
+        `)
+        .eq('event_id', input.event_id)
+        .order('registered_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch registrations: ${error.message}`);
+      }
+
+      return data || [];
     }),
 });
 
