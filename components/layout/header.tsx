@@ -47,14 +47,24 @@ export function Header() {
           .eq('id', user.id)
           .single();
         setUserRole(profile?.role || 'user');
+      } else {
+        setUserRole(''); // Clear role when logged out
       }
     }
     getUserRole();
+    
+    // Also listen for auth state changes to refresh role
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      getUserRole();
+    });
+    
+    return () => subscription.unsubscribe();
   }, [user]);
 
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/events', label: 'Events' },
+    { href: '/competitions', label: 'Competitions' },
     ...(user ? [
       { href: '/dashboard', label: 'Dashboard' },
       { href: '/registrations', label: 'My Registrations' },
