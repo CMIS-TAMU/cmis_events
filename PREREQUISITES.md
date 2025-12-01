@@ -50,7 +50,7 @@ Create accounts for these services (all have free tiers):
 - [ ] **GitHub Account**
   - Sign up: https://github.com/signup
   - Organization: `CMIS-TAMU` (already created)
-  - Repository: `cmis-event-management-system` (already created at https://github.com/CMIS-TAMU/cmis-event-management-system)
+  - Repository: `cmis_events` (already created at https://github.com/CMIS-TAMU/cmis_events)
 
 - [ ] **Vercel Account**
   - Sign up: https://vercel.com/signup

@@ -24,8 +24,8 @@ cd ~/Documents/Projects
 
 # Create and enter project directory
 # Clone the existing repository
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git
+cd cmis_events
 
 # Initialize Git
 git init

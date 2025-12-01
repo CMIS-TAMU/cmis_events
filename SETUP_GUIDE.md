@@ -150,8 +150,8 @@ You'll need accounts for the following services (all offer free tiers):
 cd ~/Documents/Projects
 
 # Clone the repository
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git
+cd cmis_events
 ```
 
 > **Note:** If repository doesn't exist yet, we'll create it in the next section.
@@ -199,7 +199,7 @@ pnpm --version
 ```bash
 # If repository doesn't exist, initialize it first
 git init
-git remote add origin https://github.com/CMIS-TAMU/cmis-event-management-system.git
+git remote add origin https://github.com/CMIS-TAMU/cmis_events.git
 
 # Create Next.js project with TypeScript and Tailwind
 npx create-next-app@latest . --typescript --tailwind --app --use-pnpm --no-src-dir
@@ -588,7 +588,7 @@ Create helper functions for:
 After setup, your project should look like:
 
 ```
-cmis-event-management-system/
+cmis_events/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Authentication routes
 │   ├── (dashboard)/       # Dashboard routes

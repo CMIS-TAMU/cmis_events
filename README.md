@@ -4,10 +4,10 @@ A comprehensive event management platform for the Center for Management Informat
 
 ## 🔗 Repository
 
-**GitHub:** [https://github.com/CMIS-TAMU/cmis-event-management-system](https://github.com/CMIS-TAMU/cmis-event-management-system)
+**GitHub:** [https://github.com/CMIS-TAMU/cmis_events](https://github.com/CMIS-TAMU/cmis_events)
 
 Organization: `CMIS-TAMU`  
-Repository: `cmis-event-management-system`
+Repository: `cmis_events`
 
 ## 🎯 Project Overview
 
@@ -38,8 +38,8 @@ Before you begin, ensure you have:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-   cd cmis-event-management-system
+   git clone https://github.com/CMIS-TAMU/cmis_events.git
+   cd cmis_events
    ```
 
 2. **Install dependencies:**
@@ -65,10 +65,10 @@ For detailed setup instructions, see the [Complete Setup Guide](./SETUP_GUIDE.md
 
 ## 🔗 Repository
 
-**GitHub:** [https://github.com/CMIS-TAMU/cmis-event-management-system](https://github.com/CMIS-TAMU/cmis-event-management-system)
+**GitHub:** [https://github.com/CMIS-TAMU/cmis_events](https://github.com/CMIS-TAMU/cmis_events)
 
 - **Organization:** CMIS-TAMU
-- **Repository:** cmis-event-management-system
+- **Repository:** cmis_events
 
 ## 📚 Documentation
 
@@ -123,7 +123,7 @@ For detailed setup instructions, see the [Complete Setup Guide](./SETUP_GUIDE.md
 ## 📁 Project Structure
 
 ```
-cmis-event-management-system/
+cmis_events/
 ├── app/                    # Next.js App Router pages
 │   ├── (auth)/            # Authentication routes
 │   ├── (dashboard)/       # Protected dashboard routes

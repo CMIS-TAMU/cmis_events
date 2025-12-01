@@ -138,7 +138,7 @@ I've created a complete documentation package for the CMIS Event Management Syst
 - Use different keys for dev/prod
 
 ### Git Setup
-- Repository: `CMIS-TAMU/cmis-event-management-system` (https://github.com/CMIS-TAMU/cmis-event-management-system)
+- Repository: `CMIS-TAMU/cmis_events` (https://github.com/CMIS-TAMU/cmis_events)
 - Branch strategy: `main` → `develop` → `feature/*`
 - Use pull requests for all changes
 

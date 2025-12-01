@@ -25,7 +25,7 @@ For the fastest path to a running application:
 ```bash
 # 1. Clone or create project
 cd ~/Documents/Projects
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git && cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git && cd cmis_events
 
 # 2. Initialize Next.js
 npx create-next-app@latest . --typescript --tailwind --app --use-pnpm
@@ -72,8 +72,8 @@ See [PREREQUISITES.md](./PREREQUISITES.md) for complete checklist.
 # Navigate to project directory
 cd ~/Documents/Projects
 # Clone the repository
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git
+cd cmis_events
 
 # Initialize Next.js with TypeScript and Tailwind
 npx create-next-app@latest . \
@@ -180,7 +180,7 @@ See [SETUP_GUIDE.md](./SETUP_GUIDE.md#database-setup) for complete RLS policies.
 Create the following directory structure:
 
 ```
-cmis-event-management-system/
+cmis_events/
 ├── app/
 │   ├── (auth)/
 │   ├── (dashboard)/

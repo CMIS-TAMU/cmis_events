@@ -4,9 +4,9 @@ Instructions for connecting your local project to the GitHub repository.
 
 ## Repository Information
 
-- **GitHub URL:** https://github.com/CMIS-TAMU/cmis-event-management-system
+- **GitHub URL:** https://github.com/CMIS-TAMU/cmis_events
 - **Organization:** CMIS-TAMU
-- **Repository Name:** cmis-event-management-system
+- **Repository Name:** cmis_events
 
 ## Initial Setup
 
@@ -19,8 +19,8 @@ If you're starting fresh and need to connect this local directory to the GitHub 
 cd ~/Documents/Projects
 
 # Clone the repository
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git
+cd cmis_events
 
 # The repository is now cloned with all documentation
 ```
@@ -37,13 +37,13 @@ cd ~/Documents/Projects/CMIS-Cursor  # or wherever your project is
 git init
 
 # Add the remote repository
-git remote add origin https://github.com/CMIS-TAMU/cmis-event-management-system.git
+git remote add origin https://github.com/CMIS-TAMU/cmis_events.git
 
 # Verify the remote
 git remote -v
 # Should show:
-# origin  https://github.com/CMIS-TAMU/cmis-event-management-system.git (fetch)
-# origin  https://github.com/CMIS-TAMU/cmis-event-management-system.git (push)
+# origin  https://github.com/CMIS-TAMU/cmis_events.git (fetch)
+# origin  https://github.com/CMIS-TAMU/cmis_events.git (push)
 
 # Create .gitignore if it doesn't exist
 cat > .gitignore << 'EOF'
@@ -116,7 +116,7 @@ The project uses the following branch strategy:
 
 ### Setting Up Branch Protection (One-time setup on GitHub)
 
-1. Go to repository settings: https://github.com/CMIS-TAMU/cmis-event-management-system/settings
+1. Go to repository settings: https://github.com/CMIS-TAMU/cmis_events/settings
 2. Navigate to "Branches"
 3. Add rule for `main` branch:
    - ✅ Require pull request reviews before merging
@@ -151,7 +151,7 @@ git push origin feature/event-registration
 ### Creating a Pull Request
 
 1. Push your feature branch to GitHub
-2. Go to: https://github.com/CMIS-TAMU/cmis-event-management-system
+2. Go to: https://github.com/CMIS-TAMU/cmis_events
 3. Click "Compare & pull request"
 4. Fill in PR description
 5. Request review from team members
@@ -177,8 +177,8 @@ If you're a new team member:
 
 ```bash
 # Clone the repository
-git clone https://github.com/CMIS-TAMU/cmis-event-management-system.git
-cd cmis-event-management-system
+git clone https://github.com/CMIS-TAMU/cmis_events.git
+cd cmis_events
 
 # Install dependencies
 pnpm install
@@ -228,7 +228,7 @@ git remote -v
 git remote remove origin
 
 # Add correct remote
-git remote add origin https://github.com/CMIS-TAMU/cmis-event-management-system.git
+git remote add origin https://github.com/CMIS-TAMU/cmis_events.git
 ```
 
 ### Authentication Issues
@@ -240,7 +240,7 @@ If you get authentication errors:
 # Generate token: https://github.com/settings/tokens
 
 # Or use SSH instead
-git remote set-url origin git@github.com:CMIS-TAMU/cmis-event-management-system.git
+git remote set-url origin git@github.com:CMIS-TAMU/cmis_events.git
 ```
 
 ### Merge Conflicts

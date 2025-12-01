@@ -24,7 +24,7 @@ Complete development and deployment roadmap for the CMIS Event Management System
 #### Day 1: Account Creation & Access
 - [ ] **GitHub Setup**
   - Organization: `CMIS-TAMU` ✅ (already created)
-  - Repository: `cmis-event-management-system` ✅ (already created at https://github.com/CMIS-TAMU/cmis-event-management-system)
+  - Repository: `cmis_events` ✅ (already created at https://github.com/CMIS-TAMU/cmis_events)
   - Invite all team members
   - Set up branch protection rules
   - Apply for GitHub Student Developer Pack (https://education.github.com/pack)
@@ -82,8 +82,8 @@ Complete development and deployment roadmap for the CMIS Event Management System
 - [ ] **Initialize Project**
   ```bash
   # Clone repository
-  git clone https://github.com/CMIS-TAMU/cmis-event-management-system
-  cd cmis-event-management-system
+  git clone https://github.com/CMIS-TAMU/cmis_events
+  cd cmis_events
   
   # Create Next.js project with TypeScript
   npx create-next-app@latest . --typescript --tailwind --app --use-pnpm
