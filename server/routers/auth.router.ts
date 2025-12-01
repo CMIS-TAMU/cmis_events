@@ -52,7 +52,7 @@ export const authRouter = router({
         .update({
           full_name: input.full_name,
           metadata: input.metadata,
-          updated_at: new Date().toISOString(),
+          // Note: updated_at will be auto-updated by database trigger if column exists
         })
         .eq('id', user.id)
         .select()

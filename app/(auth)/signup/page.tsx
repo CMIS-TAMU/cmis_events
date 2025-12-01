@@ -55,8 +55,7 @@ export default function SignupPage() {
             email: authData.user.email,
             full_name: fullName,
             role: role,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            // Note: created_at is automatically set by database default
           });
 
         if (profileError) {
