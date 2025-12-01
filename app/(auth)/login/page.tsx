@@ -43,10 +43,17 @@ function LoginForm() {
 
       if (data.user && data.session) {
         // Session exists, wait a moment for it to be saved
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 800));
         
-        // Redirect to the intended page or dashboard
-        window.location.href = redirect; // Use window.location for full page reload
+        // Verify redirect URL is safe (starts with /)
+        let safeRedirect = redirect || '/dashboard';
+        if (!safeRedirect.startsWith('/')) {
+          safeRedirect = '/dashboard';
+        }
+        
+        // Redirect using Next.js router instead of window.location for better compatibility
+        router.push(safeRedirect);
+        router.refresh();
         return; // Exit early to prevent loading state reset
       } else if (data.user && !data.session) {
         // User exists but no session - might need email verification
