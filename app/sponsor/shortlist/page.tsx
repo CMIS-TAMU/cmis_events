@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase/client';
-import { getResumeSignedUrl } from '@/lib/storage/resume';
 
 export default function SponsorShortlistPage() {
   const router = useRouter();
@@ -58,9 +57,21 @@ export default function SponsorShortlistPage() {
 
   const handleViewResume = async (userId: string, resumeFilename: string) => {
     await trackViewMutation.mutateAsync({ userId });
-    const signedUrl = await getResumeSignedUrl(resumeFilename);
-    if (signedUrl) {
-      window.open(signedUrl, '_blank');
+    
+    // Get signed URL from API route and open in new tab
+    try {
+      const response = await fetch(`/api/resume/signed-url?path=${encodeURIComponent(resumeFilename)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.signedUrl) {
+          window.open(data.signedUrl, '_blank');
+        }
+      } else {
+        alert('Failed to load resume');
+      }
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      alert('Failed to load resume');
     }
   };
 

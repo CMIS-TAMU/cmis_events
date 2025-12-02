@@ -1,7 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { createServerSupabase } from '@/lib/supabase/server';
 
 export interface ResumeUploadResult {
   success: boolean;
@@ -12,6 +9,8 @@ export interface ResumeUploadResult {
 
 /**
  * Upload resume to Supabase Storage
+ * Note: This function should be called from a server context (API route) where
+ * authentication cookies are available
  */
 export async function uploadResume(
   file: File,
@@ -35,14 +34,16 @@ export async function uploadResume(
       };
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use server-side Supabase client that handles authentication
+    const supabase = await createServerSupabase();
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== userId) {
+    // Verify user is authenticated and matches userId
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user || user.id !== userId) {
+      console.error('Auth error in uploadResume:', authError);
       return {
         success: false,
-        error: 'Unauthorized',
+        error: 'Unauthorized - Authentication required',
       };
     }
 
@@ -93,7 +94,7 @@ export async function getResumeSignedUrl(
   expiresIn: number = 3600
 ): Promise<string | null> {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = await createServerSupabase();
 
     const { data, error } = await supabase.storage
       .from('resumes')
@@ -116,7 +117,7 @@ export async function getResumeSignedUrl(
  */
 export async function deleteResume(resumePath: string): Promise<boolean> {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = await createServerSupabase();
 
     const { error } = await supabase.storage
       .from('resumes')
