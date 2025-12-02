@@ -151,7 +151,7 @@ export default function DebugRolePage() {
                 {profile?.role === 'admin' ? (
                   <span className="text-green-600 font-bold">✅ YES</span>
                 ) : (
-                  <span className="text-red-600 font-bold">❌ NO - Need to set role to "admin"</span>
+                  <span className="text-red-600 font-bold">❌ NO - Need to set role to &quot;admin&quot;</span>
                 )}
               </p>
             </div>
