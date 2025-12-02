@@ -10,18 +10,64 @@ export default function DebugRolePage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [queryDetails, setQueryDetails] = useState<any>(null);
+
   useEffect(() => {
     async function getDebugInfo() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       setAuthUser(user);
+      
+      if (authError) {
+        setQueryError(`Auth error: ${authError.message}`);
+        setLoading(false);
+        return;
+      }
 
       if (user) {
-        const { data: profileData } = await supabase
+        // Try querying by ID first
+        const { data: profileById, error: errorById } = await supabase
           .from('users')
           .select('*')
           .eq('id', user.id)
           .single();
-        setProfile(profileData);
+        
+        // Also try querying by email as fallback
+        const { data: profileByEmail, error: errorByEmail } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', user.email || '')
+          .maybeSingle();
+
+        // Store query details for debugging
+        setQueryDetails({
+          queryById: {
+            userId: user.id,
+            result: profileById,
+            error: errorById?.message || null,
+          },
+          queryByEmail: {
+            email: user.email,
+            result: profileByEmail,
+            error: errorByEmail?.message || null,
+          },
+        });
+
+        // Use whichever query worked, or show error
+        if (profileById) {
+          setProfile(profileById);
+          setQueryError(null);
+        } else if (profileByEmail) {
+          setProfile(profileByEmail);
+          setQueryError(errorById?.message || 'Query by ID failed, but found by email');
+        } else {
+          setProfile(null);
+          setQueryError(
+            `Failed to find profile. ID query error: ${errorById?.message || 'No result'}. Email query error: ${errorByEmail?.message || 'No result'}`
+          );
+        }
+      } else {
+        setProfile(null);
       }
 
       setLoading(false);
@@ -58,9 +104,25 @@ export default function DebugRolePage() {
             <CardTitle>User Profile (Database)</CardTitle>
           </CardHeader>
           <CardContent>
+            {queryError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-800 font-semibold">Query Error:</p>
+                <p className="text-red-700 text-sm">{queryError}</p>
+              </div>
+            )}
             <pre className="bg-muted p-4 rounded-md overflow-auto">
-              {JSON.stringify(profile, null, 2)}
+              {JSON.stringify(profile, null, 2) || 'null'}
             </pre>
+            {queryDetails && (
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                  Show Query Details
+                </summary>
+                <pre className="mt-2 bg-muted p-4 rounded-md overflow-auto text-xs">
+                  {JSON.stringify(queryDetails, null, 2)}
+                </pre>
+              </details>
+            )}
           </CardContent>
         </Card>
 
