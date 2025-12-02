@@ -3,7 +3,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Calendar, Clock, Users, MapPin, ArrowLeft, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, ArrowLeft, Edit, Trash2, CheckCircle2, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -285,6 +286,28 @@ export default function EventDetailPage() {
                 >
                   Sign In to Register
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Feedback Card - Show for past events if user was registered */}
+          {isPast && user && registrationStatus?.status === 'registered' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your experience at this event
+                </p>
+                <Link href={`/feedback/${eventId}`}>
+                  <Button className="w-full">
+                    Leave Feedback
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           )}
