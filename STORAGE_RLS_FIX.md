@@ -110,3 +110,4 @@ Using admin client is safe here because:
 **Result:** Both storage and database operations bypass RLS  
 **Next:** Test the upload functionality
 
+

@@ -173,17 +173,17 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Manage user accounts</CardDescription>
+            <CardTitle>Demo Data</CardTitle>
+            <CardDescription>Generate fake data for demos</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Link href="/admin/users" className="block">
-              <Button variant="outline" className="w-full" disabled>
-                Manage Users
+          <CardContent className="space-y-2">
+            <Link href="/admin/demo-data" className="block">
+              <Button variant="outline" className="w-full">
+                Generate Leaderboard Data
               </Button>
             </Link>
-            <p className="text-xs text-muted-foreground mt-2">
-              Coming soon
+            <p className="text-xs text-muted-foreground">
+              Create fake student ratings for demo purposes
             </p>
           </CardContent>
         </Card>

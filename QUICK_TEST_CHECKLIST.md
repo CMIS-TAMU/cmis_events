@@ -1,50 +1,98 @@
-# Quick Test Checklist
+# ⚡ Quick Test Checklist - Phase 1 & 2
 
-Use this checklist for rapid feature verification.
+## 🚀 Server Status
+✅ **Running at:** `http://localhost:3000`
 
-## ✅ Core Features (5 minutes)
+---
 
-- [ ] **Login/Signup** - Create account and login
-- [ ] **Events List** - View events at `/events`
-- [ ] **Event Registration** - Register for an event
-- [ ] **My Registrations** - View at `/registrations`
-- [ ] **QR Code** - See QR code on registrations page
+## 🧪 Quick Test Steps (5 minutes)
 
-## ✅ Admin Features (5 minutes)
+### 1. Authentication Setup
+- [ ] Login as a user with `sponsor` role
+- [ ] If no sponsor account, update role in Supabase:
+  ```sql
+  UPDATE users SET role = 'sponsor' WHERE email = 'your-email@example.com';
+  ```
 
-- [ ] **Admin Dashboard** - Access at `/admin/dashboard`
-- [ ] **Create Event** - Create event at `/admin/events/new`
-- [ ] **Edit Event** - Edit existing event
-- [ ] **Manage Sessions** - Add session to event
-- [ ] **Check-In** - Scan QR code at `/admin/checkin`
+### 2. Test Mission Dashboard
+**URL:** `http://localhost:3000/sponsor/missions`
 
-## ✅ Resume Features (3 minutes)
+- [ ] Page loads without errors
+- [ ] Stats cards display (Total, Active, Draft, Submissions)
+- [ ] "Create Mission" button visible
+- [ ] Search bar works
+- [ ] Status filters work
 
-- [ ] **Upload Resume** - Upload at `/profile/resume`
-- [ ] **View Resume** - Download/view uploaded resume
-- [ ] **Sponsor Search** - Search resumes at `/sponsor/resumes`
-- [ ] **Shortlist** - Add candidate to shortlist
+### 3. Test Mission Creation
+**URL:** `http://localhost:3000/sponsor/missions/create`
 
-## ✅ Session Features (3 minutes)
+- [ ] Form loads correctly
+- [ ] Fill out required fields:
+  - Title: "Test Mission"
+  - Description: "Testing mission creation"
+  - Difficulty: Select "Beginner"
+  - Max Points: 100
+- [ ] Add a tag (e.g., "React")
+- [ ] Click "Create Mission (Draft)"
+- [ ] Should redirect to mission management page
 
-- [ ] **View Sessions** - See sessions on event page
-- [ ] **Register for Session** - Register from event page
-- [ ] **My Sessions** - View at `/sessions`
-- [ ] **Cancel Session** - Cancel session registration
+### 4. Test Mission Management
+**URL:** `http://localhost:3000/sponsor/missions/[missionId]`
 
-## 🚀 Quick Start Test
+- [ ] Overview tab shows mission details
+- [ ] Submissions tab loads (may be empty)
+- [ ] Analytics tab loads
+- [ ] Settings tab shows mission status
+- [ ] Click "Publish Mission" (if draft)
+- [ ] Mission status changes to "active"
 
-1. Register 3 users (admin, sponsor, student)
-2. Admin creates event with capacity 5
-3. Student registers for event
-4. Check QR code generated
-5. Admin checks in student
-6. Student uploads resume
-7. Sponsor searches and views resume
-8. Sponsor adds to shortlist
-9. Admin creates session in event
-10. Student registers for session
+### 5. Test API Endpoints (Optional)
+**Using Browser Console:**
 
-**Time:** ~10 minutes
-**Result:** All core features working ✅
+```javascript
+// Test browse missions
+fetch('/api/trpc/missions.browseMissions?input={"json":{"limit":10,"offset":0}}')
+  .then(r => r.json())
+  .then(console.log);
+```
 
+---
+
+## ✅ Success Indicators
+
+- ✅ No console errors
+- ✅ Pages load in < 2 seconds
+- ✅ Forms submit successfully
+- ✅ Navigation works smoothly
+- ✅ No 404 errors
+- ✅ No authentication errors
+
+---
+
+## 🐛 Common Issues
+
+### "Access denied. Sponsor role required"
+**Fix:** Update user role in database
+
+### "Mission not found"
+**Fix:** Check mission ID in URL matches database
+
+### Form submission fails
+**Fix:** Check browser console for errors, verify tRPC endpoint
+
+---
+
+## 📊 Test Results
+
+**Date:** ___________
+
+- [ ] Mission Dashboard: ✅ / ❌
+- [ ] Mission Creation: ✅ / ❌
+- [ ] Mission Management: ✅ / ❌
+- [ ] API Endpoints: ✅ / ❌
+
+**Status:** ✅ READY / ❌ NEEDS FIXES
+
+---
+
+**Quick Test Complete!** 🎉

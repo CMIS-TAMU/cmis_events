@@ -135,3 +135,4 @@ The admin client bypasses RLS, but it's safe here because:
 **Next Step:** Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` if not already present  
 **Test:** Try uploading a resume again
 
+

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Calendar, Users, FileText, CheckCircle2, ArrowRight, Target } from 'lucide-react';
 import { trpc } from '@/lib/trpc/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +115,24 @@ export default function SponsorDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 mb-8">
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Technical Missions</CardTitle>
+            <CardDescription>
+              Create and manage technical challenges for students
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/sponsor/missions">
+              <Button className="w-full">
+                Manage Missions
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Resume Search</CardTitle>
@@ -125,7 +142,7 @@ export default function SponsorDashboardPage() {
           </CardHeader>
           <CardContent>
             <Link href="/sponsor/resumes">
-              <Button className="w-full">
+              <Button variant="outline" className="w-full">
                 Search Resumes
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -157,7 +174,13 @@ export default function SponsorDashboardPage() {
           <CardTitle>Quick Links</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-2 md:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-4">
+            <Link href="/sponsor/missions">
+              <Button variant="outline" className="w-full justify-start">
+                <Target className="h-4 w-4 mr-2" />
+                Missions
+              </Button>
+            </Link>
             <Link href="/events">
               <Button variant="outline" className="w-full justify-start">
                 <Calendar className="h-4 w-4 mr-2" />
