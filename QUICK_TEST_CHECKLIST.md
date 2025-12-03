@@ -1,3 +1,125 @@
+# ⚡ Quick Test Checklist - Phase 1 & 2 (Technical Missions)
+
+## 🚀 Server Status
+✅ **Running at:** `http://localhost:3000`
+
+---
+
+## 🧪 Quick Test Steps (5 minutes)
+
+### 1. Authentication Setup
+- [ ] Login as a user with `sponsor` role
+- [ ] If no sponsor account, update role in Supabase:
+  ```sql
+  UPDATE users SET role = 'sponsor' WHERE email = 'your-email@example.com';
+  ```
+
+### 2. Test Mission Dashboard
+**URL:** `http://localhost:3000/sponsor/missions`
+
+- [ ] Page loads without errors
+- [ ] Stats cards display (Total, Active, Draft, Submissions)
+- [ ] "Create Mission" button visible
+- [ ] Search bar works
+- [ ] Status filters work
+
+### 3. Test Mission Creation
+**URL:** `http://localhost:3000/sponsor/missions/create`
+
+- [ ] Form loads correctly
+- [ ] Fill out required fields:
+  - Title: "Test Mission"
+  - Description: "Testing mission creation"
+  - Difficulty: Select "Beginner"
+  - Max Points: 100
+- [ ] Add a tag (e.g., "React")
+- [ ] Click "Create Mission (Draft)" or "Create & Publish Mission"
+- [ ] Should redirect to mission management page
+
+### 4. Test Mission Management
+**URL:** `http://localhost:3000/sponsor/missions/[missionId]`
+
+- [ ] Overview tab shows mission details
+- [ ] Submissions tab loads (may be empty)
+- [ ] Analytics tab loads
+- [ ] Settings tab shows mission status
+- [ ] Click "Publish Mission" (if draft)
+- [ ] Mission status changes to "active"
+
+### 5. Test Student View
+**URL:** `http://localhost:3000/missions`
+
+- [ ] Browse page loads
+- [ ] Active missions are visible
+- [ ] Filters work (difficulty, category, sort)
+- [ ] Search works
+- [ ] Click on a mission to view details
+
+### 6. Test Submission Flow
+**URL:** `http://localhost:3000/missions/[missionId]`
+
+- [ ] Mission details load
+- [ ] Click "Start Mission"
+- [ ] Submission form appears
+- [ ] Submit solution (URL, text, or file)
+- [ ] Submission status updates
+
+### 7. Test Leaderboard
+**URL:** `http://localhost:3000/leaderboard`
+
+- [ ] Leaderboard page loads
+- [ ] Shows rankings (demo data if no real data)
+- [ ] My rank card displays
+- [ ] Pagination works
+
+---
+
+## ✅ Success Indicators
+
+- ✅ No console errors
+- ✅ Pages load in < 2 seconds
+- ✅ Forms submit successfully
+- ✅ Navigation works smoothly
+- ✅ No 404 errors
+- ✅ No authentication errors
+
+---
+
+## 🐛 Common Issues
+
+### "Access denied. Sponsor role required"
+**Fix:** Update user role in database
+
+### "Mission not found"
+**Fix:** Check mission ID in URL matches database
+
+### Form submission fails
+**Fix:** Check browser console for errors, verify tRPC endpoint
+
+### Starter file upload fails
+**Fix:** Check storage bucket exists and is public
+
+---
+
+## 📊 Test Results
+
+**Date:** ___________
+
+- [ ] Mission Dashboard: ✅ / ❌
+- [ ] Mission Creation: ✅ / ❌
+- [ ] Mission Management: ✅ / ❌
+- [ ] Student Browse: ✅ / ❌
+- [ ] Submission Flow: ✅ / ❌
+- [ ] Leaderboard: ✅ / ❌
+
+**Status:** ✅ READY / ❌ NEEDS FIXES
+
+---
+
+**Quick Test Complete!** 🎉
+
+---
+
 # ✅ Quick Testing Checklist - Mentorship System
 
 **Fast checklist for testing the mentorship pages**

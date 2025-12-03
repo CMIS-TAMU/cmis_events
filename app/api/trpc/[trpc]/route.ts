@@ -1,39 +1,48 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter } from '@/server/routers/_app';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 async function createContext(req: NextRequest) {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  // Create Supabase client with cookie handling
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll().map(cookie => ({
+          name: cookie.name,
+          value: cookie.value,
+        }));
+      },
+      setAll(cookiesToSet) {
+        // In tRPC context, we can't set cookies directly
+        // This is handled by middleware
+      },
+    },
+  });
+
+  // Get authenticated user
+  const { data: { user: authUser } } = await supabase.auth.getUser();
   
-  // Get auth token from request
-  const authHeader = req.headers.get('authorization');
-  let user = null;
-
-  if (authHeader) {
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: authUser } } = await supabase.auth.getUser(token);
-    user = authUser;
-  }
-
-  // If no token in header, try to get from cookies
-  if (!user) {
-    const token = req.cookies.get('sb-access-token')?.value;
-    if (token) {
-      const { data: { user: authUser } } = await supabase.auth.getUser(token);
-      user = authUser;
-    }
+  // Get user role from database if authenticated
+  let role = 'user';
+  if (authUser) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', authUser.id)
+      .single();
+    role = profile?.role || 'user';
   }
 
   return {
     req,
-    user: user ? {
-      id: user.id,
-      email: user.email || '',
-      role: user.user_metadata?.role || 'user',
+    user: authUser ? {
+      id: authUser.id,
+      email: authUser.email || '',
+      role,
     } : undefined,
   };
 }
