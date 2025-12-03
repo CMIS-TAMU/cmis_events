@@ -32,6 +32,7 @@ export default function RequestMentorPage() {
     if (!batchLoading && !matchBatch && !activeMatch) {
       requestMentor.mutate({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchLoading, matchBatch, activeMatch]);
 
   if (batchLoading || requestMentor.isPending) {
