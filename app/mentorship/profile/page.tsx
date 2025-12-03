@@ -216,7 +216,7 @@ export default function MentorshipProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile Type</CardTitle>
-          <CardDescription>Choose whether you're a student or mentor</CardDescription>
+          <CardDescription>Choose whether you&apos;re a student or mentor</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
