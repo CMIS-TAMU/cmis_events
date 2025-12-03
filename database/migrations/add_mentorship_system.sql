@@ -163,11 +163,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_unique_active_student
 ON matches(student_id) 
 WHERE status = 'active';
 
--- Partial unique index: Ensure a mentor can only have one active match per student
-CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_unique_active_mentor 
-ON matches(mentor_id, student_id) 
-WHERE status = 'active';
-
 -- ============================================================================
 -- 4. Mentorship Feedback
 -- ============================================================================
