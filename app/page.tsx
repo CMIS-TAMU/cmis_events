@@ -23,10 +23,22 @@ export default function Home() {
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
           Discover and register for events at the Center for Management and Information Systems
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <Link href="/events">
             <Button size="lg">
               Browse All Events
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/be-a-sponsor">
+            <Button size="lg" variant="outline">
+              Be a Sponsor
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/be-a-mentor">
+            <Button size="lg" variant="outline">
+              Be a Mentor
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>

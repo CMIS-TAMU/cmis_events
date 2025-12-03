@@ -6,7 +6,8 @@ import { EventCard } from '@/components/events/event-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Filter, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Filter, Calendar as CalendarIcon, LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
 
 export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +38,7 @@ export default function EventsPage() {
 
       {/* Search and Filters */}
       <div className="mb-8 space-y-4">
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -48,6 +49,12 @@ export default function EventsPage() {
               className="pl-10"
             />
           </div>
+          <Link href="/seating">
+            <Button variant="outline">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              View Seating Layout
+            </Button>
+          </Link>
           <Button
             variant={showUpcomingOnly ? 'default' : 'outline'}
             onClick={() => {
