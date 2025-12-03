@@ -148,7 +148,6 @@ CREATE TABLE IF NOT EXISTS matches (
   updated_at timestamptz DEFAULT now(),
   
   -- Constraints
-  UNIQUE (student_id, mentor_id, status) WHERE status = 'active',
   CHECK (student_id != mentor_id)
 );
 
@@ -158,6 +157,16 @@ CREATE INDEX IF NOT EXISTS idx_matches_mentor ON matches(mentor_id);
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
 CREATE INDEX IF NOT EXISTS idx_matches_at_risk ON matches(is_at_risk) WHERE is_at_risk = true;
 CREATE INDEX IF NOT EXISTS idx_matches_last_meeting ON matches(last_meeting_at);
+
+-- Partial unique index: Ensure a student can only have one active match at a time
+CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_unique_active_student 
+ON matches(student_id) 
+WHERE status = 'active';
+
+-- Partial unique index: Ensure a mentor can only have one active match per student
+CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_unique_active_mentor 
+ON matches(mentor_id, student_id) 
+WHERE status = 'active';
 
 -- ============================================================================
 -- 4. Mentorship Feedback
