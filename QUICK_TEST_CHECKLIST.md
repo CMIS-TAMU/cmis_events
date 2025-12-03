@@ -1,50 +1,229 @@
-# Quick Test Checklist
+# ✅ Quick Testing Checklist - Mentorship System
 
-Use this checklist for rapid feature verification.
+**Fast checklist for testing the mentorship pages**
 
-## ✅ Core Features (5 minutes)
+---
 
-- [ ] **Login/Signup** - Create account and login
-- [ ] **Events List** - View events at `/events`
-- [ ] **Event Registration** - Register for an event
-- [ ] **My Registrations** - View at `/registrations`
-- [ ] **QR Code** - See QR code on registrations page
+## 🔧 **PRE-TEST SETUP (5 minutes)**
 
-## ✅ Admin Features (5 minutes)
+### **Step 1: Verify Server is Running**
+```bash
+# Check if server is running on port 3000
+curl http://localhost:3000/api/health
+# Should return: {"status":"ok",...}
+```
 
-- [ ] **Admin Dashboard** - Access at `/admin/dashboard`
-- [ ] **Create Event** - Create event at `/admin/events/new`
-- [ ] **Edit Event** - Edit existing event
-- [ ] **Manage Sessions** - Add session to event
-- [ ] **Check-In** - Scan QR code at `/admin/checkin`
+**If not running:**
+```bash
+cd /Users/abhishekpatil/Documents/Projects/CMIS-Cursor
+pnpm dev
+```
 
-## ✅ Resume Features (3 minutes)
+### **Step 2: Check Database Migrations**
 
-- [ ] **Upload Resume** - Upload at `/profile/resume`
-- [ ] **View Resume** - Download/view uploaded resume
-- [ ] **Sponsor Search** - Search resumes at `/sponsor/resumes`
-- [ ] **Shortlist** - Add candidate to shortlist
+**⚠️ IMPORTANT:** Before testing, you MUST run the database migrations!
 
-## ✅ Session Features (3 minutes)
+1. **Open Supabase Dashboard:**
+   - Go to your Supabase project
+   - Click "SQL Editor" in left sidebar
 
-- [ ] **View Sessions** - See sessions on event page
-- [ ] **Register for Session** - Register from event page
-- [ ] **My Sessions** - View at `/sessions`
-- [ ] **Cancel Session** - Cancel session registration
+2. **Run Migrations in Order:**
+   ```sql
+   -- 1. Run schema migration
+   -- Copy/paste entire contents of:
+   -- database/migrations/add_mentorship_system.sql
+   
+   -- 2. Run RLS policies
+   -- Copy/paste entire contents of:
+   -- database/migrations/add_mentorship_rls_policies.sql
+   
+   -- 3. Run matching functions
+   -- Copy/paste entire contents of:
+   -- database/migrations/add_mentorship_matching_functions.sql
+   ```
 
-## 🚀 Quick Start Test
+3. **Verify Tables Created:**
+   ```sql
+   SELECT table_name FROM information_schema.tables 
+   WHERE table_schema = 'public' 
+   AND (table_name LIKE '%mentorship%' OR table_name LIKE 'match%')
+   ORDER BY table_name;
+   
+   -- Should show:
+   -- match_batches
+   -- matches
+   -- meeting_logs
+   -- mentorship_feedback
+   -- mentorship_profiles
+   -- mentorship_requests
+   -- quick_questions
+   ```
 
-1. Register 3 users (admin, sponsor, student)
-2. Admin creates event with capacity 5
-3. Student registers for event
-4. Check QR code generated
-5. Admin checks in student
-6. Student uploads resume
-7. Sponsor searches and views resume
-8. Sponsor adds to shortlist
-9. Admin creates session in event
-10. Student registers for session
+---
 
-**Time:** ~10 minutes
-**Result:** All core features working ✅
+## 🧪 **TESTING STEPS (15 minutes)**
 
+### **Test 1: Create Student Profile** ⏱️ 3 minutes
+
+1. **Navigate to:** `http://localhost:3000/mentorship/profile`
+2. **Expected:** Profile creation form appears
+3. **Actions:**
+   - Select "Student"
+   - Fill in Major: `Computer Science`
+   - Fill in Graduation Year: `2025`
+   - Add Research Interests: `Machine Learning, Data Science`
+   - Add Technical Skills: `Python, React`
+   - Add Career Goals: `Become a software engineer`
+   - Select communication preferences (email, zoom)
+   - Select meeting frequency: `monthly`
+   - Click "Save Profile"
+
+4. **Expected Result:**
+   - ✅ Success message appears
+   - ✅ Redirects to `/mentorship/dashboard`
+   - ✅ Dashboard shows profile info
+
+**✅ Pass / ❌ Fail:** ________________
+
+---
+
+### **Test 2: View Dashboard** ⏱️ 2 minutes
+
+1. **Navigate to:** `http://localhost:3000/mentorship/dashboard`
+2. **Expected:**
+   - ✅ Shows "Profile Status" card with your info
+   - ✅ Shows "Current Match" card (no active match)
+   - ✅ Shows "Request a Mentor" button
+   - ✅ Shows Quick Actions section
+
+**✅ Pass / ❌ Fail:** ________________
+
+---
+
+### **Test 3: Request a Mentor** ⏱️ 3 minutes
+
+1. **On Dashboard, click:** "Request a Mentor" button
+2. **Expected:**
+   - ✅ Loading state appears
+   - ✅ Redirects to `/mentorship/request`
+   - ✅ Shows "Finding Mentors..." message
+   - ⚠️ **Note:** If no mentors exist, you'll see an error - this is expected!
+
+**⚠️ Expected Behavior:**
+- If mentors exist: Shows up to 3 recommendations
+- If no mentors: Shows error message (need to create mentor profiles first)
+
+**✅ Pass / ❌ Fail:** ________________
+
+---
+
+### **Test 4: Edit Profile** ⏱️ 2 minutes
+
+1. **Navigate to:** `http://localhost:3000/mentorship/profile`
+2. **Expected:** Form is pre-filled with existing data
+3. **Actions:**
+   - Update Bio field
+   - Click "Save Profile"
+4. **Expected Result:**
+   - ✅ Success message
+   - ✅ Changes saved
+   - ✅ Redirects to dashboard
+
+**✅ Pass / ❌ Fail:** ________________
+
+---
+
+### **Test 5: Test Error Handling** ⏱️ 2 minutes
+
+1. **Create Profile Without Required Field:**
+   - Go to `/mentorship/profile`
+   - Select "Student"
+   - Leave Major empty
+   - Click "Save Profile"
+2. **Expected:**
+   - ✅ Error message appears
+   - ✅ Form doesn't submit
+
+**✅ Pass / ❌ Fail:** ________________
+
+---
+
+## 🔍 **QUICK VERIFICATION**
+
+### **Check Database After Testing:**
+
+```sql
+-- Check if profile was created
+SELECT * FROM mentorship_profiles 
+WHERE profile_type = 'student' 
+ORDER BY created_at DESC 
+LIMIT 1;
+
+-- Check if match batch was created (if mentor request worked)
+SELECT * FROM match_batches 
+ORDER BY created_at DESC 
+LIMIT 1;
+```
+
+---
+
+## 🐛 **COMMON ISSUES & QUICK FIXES**
+
+### **Issue: "Profile not found" error**
+**Fix:** Make sure you're logged in and refresh the page
+
+### **Issue: "Failed to create match batch"**
+**Fix:** 
+- Check if matching functions exist: `SELECT routine_name FROM information_schema.routines WHERE routine_name LIKE '%match%';`
+- Verify mentors exist in matching pool (need to create mentor profiles)
+
+### **Issue: Page shows 404**
+**Fix:** 
+- Verify server is running
+- Check URL is correct: `/mentorship/profile`, `/mentorship/dashboard`, `/mentorship/request`
+
+### **Issue: Build errors**
+**Fix:** Already fixed! Build should pass now. If errors persist, run:
+```bash
+pnpm build
+```
+
+---
+
+## 📊 **TEST RESULTS SUMMARY**
+
+| Test | Status | Notes |
+|------|--------|-------|
+| Create Profile | ⬜ Pass / ⬜ Fail | |
+| View Dashboard | ⬜ Pass / ⬜ Fail | |
+| Request Mentor | ⬜ Pass / ⬜ Fail | |
+| Edit Profile | ⬜ Pass / ⬜ Fail | |
+| Error Handling | ⬜ Pass / ⬜ Fail | |
+
+**Overall:** ⬜ **PASS** / ⬜ **FAIL**
+
+**Issues Found:**
+- _________________________________
+- _________________________________
+- _________________________________
+
+---
+
+## ✅ **NEXT STEPS**
+
+If all tests pass:
+- ✅ Ready to build mentor UI
+- ✅ Ready to build admin dashboard
+- ✅ Ready to test matching algorithm
+
+If tests fail:
+- ⚠️ Check database migrations are run
+- ⚠️ Verify server is running
+- ⚠️ Check browser console for errors
+- ⚠️ Review error messages carefully
+
+---
+
+**Happy Testing!** 🚀
+
+For detailed testing guide, see: `MENTORSHIP_TESTING_GUIDE.md`
