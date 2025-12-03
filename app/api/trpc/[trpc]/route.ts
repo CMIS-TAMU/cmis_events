@@ -11,11 +11,14 @@ async function createContext(req: NextRequest) {
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return req.cookies.getAll();
+        return req.cookies.getAll().map(cookie => ({
+          name: cookie.name,
+          value: cookie.value,
+        }));
       },
       setAll(cookiesToSet) {
-        // In API routes, we can't set cookies in context creation
-        // Cookies will be handled by middleware
+        // In tRPC context, we can't set cookies directly
+        // This is handled by middleware
         cookiesToSet.forEach(({ name, value }) => {
           req.cookies.set(name, value);
         });

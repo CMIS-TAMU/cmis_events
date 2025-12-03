@@ -121,9 +121,24 @@ export default function DashboardPage() {
                 Browse Events
               </Button>
             </Link>
+            <Link href="/missions" className="block">
+              <Button variant="outline" className="w-full">
+                Browse Missions
+              </Button>
+            </Link>
+            <Link href="/leaderboard" className="block">
+              <Button variant="outline" className="w-full">
+                View Leaderboard
+              </Button>
+            </Link>
             <Link href="/registrations" className="block">
               <Button variant="outline" className="w-full">
                 My Registrations
+              </Button>
+            </Link>
+            <Link href="/profile/missions" className="block">
+              <Button variant="outline" className="w-full">
+                My Mission Submissions
               </Button>
             </Link>
           </CardContent>

@@ -66,6 +66,8 @@ export function Header() {
     { href: '/events', label: 'Events' },
     { href: '/competitions', label: 'Competitions' },
     ...(user ? [
+      { href: '/missions', label: 'Missions' },
+      { href: '/leaderboard', label: 'Leaderboard' },
       { href: '/dashboard', label: 'Dashboard' },
       { href: '/mentorship/dashboard', label: 'Mentorship' },
       { href: '/registrations', label: 'My Registrations' },

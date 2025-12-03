@@ -6,6 +6,12 @@ import {
   adminRegistrationNotificationEmail,
   mentorNotificationEmail,
 } from '@/lib/email/templates';
+import {
+  missionPublishedEmail,
+  submissionReceivedEmail,
+  submissionReviewedEmail,
+  perfectScoreEmail,
+} from '@/lib/emails/missions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,6 +79,64 @@ export async function POST(request: NextRequest) {
         });
         subject = `New Mentorship Request - Match Score: ${matchScore}/100`;
         to = data.mentorEmail;
+        break;
+      }
+
+      case 'mission_published': {
+        const { studentName, mission } = data;
+        html = missionPublishedEmail({
+          studentName,
+          mission,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `New Technical Challenge: ${mission.title}`;
+        to = data.studentEmail;
+        break;
+      }
+
+      case 'submission_received': {
+        const { sponsorName, mission, student, submissionId } = data;
+        html = submissionReceivedEmail({
+          sponsorName,
+          mission,
+          student,
+          submissionId,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `New submission for ${mission.title}`;
+        to = data.sponsorEmail;
+        break;
+      }
+
+      case 'submission_reviewed': {
+        const { studentName, mission, score, pointsAwarded, totalPoints, rank, feedback } = data;
+        html = submissionReviewedEmail({
+          studentName,
+          mission,
+          score,
+          pointsAwarded,
+          totalPoints,
+          rank,
+          feedback,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `Your submission has been reviewed: ${mission.title}`;
+        to = data.studentEmail;
+        break;
+      }
+
+      case 'perfect_score': {
+        const { studentName, mission, bonusPoints, totalPoints, rank } = data;
+        html = perfectScoreEmail({
+          studentName,
+          mission,
+          bonusPoints,
+          totalPoints,
+          rank,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `🎉 Perfect Score! You earned bonus points`;
+        to = data.studentEmail;
         break;
       }
 
