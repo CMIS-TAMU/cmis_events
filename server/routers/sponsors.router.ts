@@ -1,35 +1,30 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
-import { createClient } from '@supabase/supabase-js';
+import { TRPCError } from '@trpc/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// Helper to check if user is sponsor
-async function checkSponsor(userId: string): Promise<boolean> {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const { data } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', userId)
-    .single();
-  
-  return data?.role === 'sponsor' || data?.role === 'admin';
+// Helper to check if user is sponsor (uses role from context)
+function isSponsor(role?: string): boolean {
+  return role === 'sponsor' || role === 'admin';
 }
 
 export const sponsorsRouter = router({
   // Get sponsor dashboard stats
   getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
-    const isSponsor = await checkSponsor(user.id);
-    if (!isSponsor) {
-      throw new Error('Access denied. Sponsor role required.');
+    if (!isSponsor(ctx.user.role)) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Access denied. Sponsor role required.',
+      });
     }
 
     // Get total events
@@ -68,16 +63,21 @@ export const sponsorsRouter = router({
   getEventAttendance: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      const isSponsor = await checkSponsor(user.id);
-      if (!isSponsor) {
-        throw new Error('Access denied. Sponsor role required.');
+      if (!isSponsor(ctx.user.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied. Sponsor role required.',
+        });
       }
 
       const { data, error } = await supabase
@@ -101,7 +101,10 @@ export const sponsorsRouter = router({
         .order('registered_at', { ascending: false });
 
       if (error) {
-        throw new Error(`Failed to fetch attendance: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch attendance: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -122,16 +125,21 @@ export const sponsorsRouter = router({
       })
     )
     .query(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      const isSponsor = await checkSponsor(user.id);
-      if (!isSponsor) {
-        throw new Error('Access denied. Sponsor role required.');
+      if (!isSponsor(ctx.user.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied. Sponsor role required.',
+        });
       }
 
       let query = supabase
@@ -169,7 +177,10 @@ export const sponsorsRouter = router({
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Failed to search resumes: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to search resumes: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -179,26 +190,34 @@ export const sponsorsRouter = router({
   trackResumeView: protectedProcedure
     .input(z.object({ userId: z.string().uuid(), eventId: z.string().uuid().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      const isSponsor = await checkSponsor(user.id);
-      if (!isSponsor) {
-        throw new Error('Access denied. Sponsor role required.');
+      if (!isSponsor(ctx.user.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied. Sponsor role required.',
+        });
       }
 
       const { error } = await supabase.from('resume_views').insert({
         user_id: input.userId,
-        viewed_by: user.id,
+        viewed_by: ctx.user.id,
         event_id: input.eventId || null,
       });
 
       if (error) {
-        throw new Error(`Failed to track view: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to track view: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -206,23 +225,28 @@ export const sponsorsRouter = router({
 
   // Get shortlisted candidates (stored in metadata or separate table)
   getShortlist: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
-    const isSponsor = await checkSponsor(user.id);
-    if (!isSponsor) {
-      throw new Error('Access denied. Sponsor role required.');
+    if (!isSponsor(ctx.user.role)) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Access denied. Sponsor role required.',
+      });
     }
 
     // Get sponsor's shortlist from metadata
     const { data: sponsorData } = await supabase
       .from('users')
       .select('metadata')
-      .eq('id', user.id)
+      .eq('id', ctx.user.id)
       .single();
 
     const shortlistIds = (sponsorData?.metadata as any)?.shortlist || [];
@@ -238,7 +262,10 @@ export const sponsorsRouter = router({
       .not('resume_filename', 'is', null);
 
     if (error) {
-      throw new Error(`Failed to fetch shortlist: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch shortlist: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -248,23 +275,28 @@ export const sponsorsRouter = router({
   addToShortlist: protectedProcedure
     .input(z.object({ userId: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      const isSponsor = await checkSponsor(user.id);
-      if (!isSponsor) {
-        throw new Error('Access denied. Sponsor role required.');
+      if (!isSponsor(ctx.user.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied. Sponsor role required.',
+        });
       }
 
       // Get current shortlist
       const { data: sponsorData } = await supabase
         .from('users')
         .select('metadata')
-        .eq('id', user.id)
+        .eq('id', ctx.user.id)
         .single();
 
       const currentShortlist = (sponsorData?.metadata as any)?.shortlist || [];
@@ -282,10 +314,13 @@ export const sponsorsRouter = router({
       const { error } = await supabase
         .from('users')
         .update({ metadata: newMetadata })
-        .eq('id', user.id);
+        .eq('id', ctx.user.id);
 
       if (error) {
-        throw new Error(`Failed to add to shortlist: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to add to shortlist: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -295,23 +330,28 @@ export const sponsorsRouter = router({
   removeFromShortlist: protectedProcedure
     .input(z.object({ userId: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      const isSponsor = await checkSponsor(user.id);
-      if (!isSponsor) {
-        throw new Error('Access denied. Sponsor role required.');
+      if (!isSponsor(ctx.user.role)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied. Sponsor role required.',
+        });
       }
 
       // Get current shortlist
       const { data: sponsorData } = await supabase
         .from('users')
         .select('metadata')
-        .eq('id', user.id)
+        .eq('id', ctx.user.id)
         .single();
 
       const currentShortlist = (sponsorData?.metadata as any)?.shortlist || [];
@@ -325,10 +365,13 @@ export const sponsorsRouter = router({
       const { error } = await supabase
         .from('users')
         .update({ metadata: newMetadata })
-        .eq('id', user.id);
+        .eq('id', ctx.user.id);
 
       if (error) {
-        throw new Error(`Failed to remove from shortlist: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to remove from shortlist: ${error.message}`,
+        });
       }
 
       return { success: true };

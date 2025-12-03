@@ -67,6 +67,7 @@ export function Header() {
     { href: '/competitions', label: 'Competitions' },
     ...(user ? [
       { href: '/dashboard', label: 'Dashboard' },
+      { href: '/mentorship/dashboard', label: 'Mentorship' },
       { href: '/registrations', label: 'My Registrations' },
       { href: '/sessions', label: 'My Sessions' },
       ...(userRole === 'sponsor' || userRole === 'admin' ? [{ href: '/sponsor/dashboard', label: 'Sponsor' }] : []),

@@ -25,6 +25,11 @@ export default function RequestMentorPage() {
       refetch();
       setTimeout(() => refetch(), 1000); // Refetch after backend creates batch
     },
+    onError: (error) => {
+      console.error('Error requesting mentor:', error);
+      // Show error to user
+      alert(`Error: ${error.message}`);
+    },
   });
 
   useEffect(() => {
@@ -78,9 +83,23 @@ export default function RequestMentorPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground mb-4">
               This may take a few moments. Please wait while we analyze your profile and match you with mentors.
             </p>
+            {requestMentor.isError && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800 font-medium">Error occurred:</p>
+                <p className="text-sm text-red-600">{requestMentor.error?.message || 'Unknown error'}</p>
+                <Button
+                  onClick={() => requestMentor.mutate({})}
+                  variant="outline"
+                  className="mt-2"
+                  size="sm"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

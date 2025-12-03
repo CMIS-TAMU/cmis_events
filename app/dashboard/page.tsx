@@ -67,6 +67,32 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        <Card className="border-primary bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🎓 Mentorship Program
+            </CardTitle>
+            <CardDescription>Connect with experienced mentors</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Get guidance from industry professionals and alumni mentors
+            </p>
+            <div className="space-y-2">
+              <Link href="/mentorship/dashboard" className="block">
+                <Button className="w-full">
+                  Request a Mentor
+                </Button>
+              </Link>
+              <Link href="/mentorship/dashboard" className="block">
+                <Button variant="outline" className="w-full">
+                  View Mentorship Dashboard
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>My Events</CardTitle>

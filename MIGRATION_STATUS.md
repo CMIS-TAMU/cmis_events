@@ -1,136 +1,119 @@
-# Migration Status Tracker
+# ✅ Mentorship System Migration Status
 
-Use this to track your migration progress.
-
-## Pre-Migration Checklist
-
-- [ ] Database backup created (recommended)
-- [ ] Supabase project accessible
-- [ ] SQL Editor access confirmed
-- [ ] Environment variables configured
-- [ ] Development server can connect to Supabase
-
-## Migration Execution
-
-### Step 1: Run Master Migration
-
-- [ ] Opened Supabase SQL Editor
-- [ ] Copied `database/migrations/master_migration.sql`
-- [ ] Pasted into SQL Editor
-- [ ] Clicked "Run"
-- [ ] No errors reported
-- [ ] All commands executed successfully
-
-**Date Completed:** _______________
-**Time Taken:** _______________
-
-### Step 2: Verify Migration
-
-- [ ] Ran `scripts/verify-migration.sql`
-- [ ] All QR code checks passed ✅
-- [ ] All resume checks passed ✅
-- [ ] All session checks passed ✅
-- [ ] All functions created ✅
-
-**Verification Date:** _______________
-
-### Step 3: Storage Buckets
-
-- [ ] Created `resumes` bucket (Private, 10MB, PDF only)
-- [ ] Created `event-images` bucket (Public, 5MB, images)
-- [ ] Set bucket policies
-- [ ] Tested file upload permissions
-
-**Storage Setup Date:** _______________
-
-### Step 4: Row-Level Security
-
-- [ ] Enabled RLS on `resume_views`
-- [ ] Enabled RLS on `session_registrations`
-- [ ] Created access policies
-- [ ] Tested policy enforcement
-
-**RLS Setup Date:** _______________
-
-## Post-Migration Testing
-
-### Application Connection
-
-- [ ] Development server starts without errors
-- [ ] Health check endpoint works: `/api/health`
-- [ ] Can connect to Supabase from app
-- [ ] No connection errors in console
-
-### Feature Testing
-
-- [ ] QR Code generation works
-- [ ] Resume upload works
-- [ ] Session registration works
-- [ ] Database queries succeed
-- [ ] No SQL errors in logs
-
-**Testing Date:** _______________
-**Tester:** _______________
-
-## Issues Encountered
-
-List any issues and their resolutions:
-
-1. **Issue:**
-   - Description:
-   - Resolution:
-   
-2. **Issue:**
-   - Description:
-   - Resolution:
-
-## Migration Sign-Off
-
-- [ ] All migrations completed
-- [ ] All verifications passed
-- [ ] All features tested
-- [ ] Ready for production
-
-**Completed By:** _______________
-**Date:** _______________
-**Signature:** _______________
+**Date:** Current  
+**Status:** Step 1 of 3 Complete
 
 ---
 
-## Quick Verification Commands
+## ✅ **Step 1: Schema Migration - COMPLETE!**
+
+All 7 tables successfully created:
+- ✅ `mentorship_profiles`
+- ✅ `match_batches`
+- ✅ `matches`
+- ✅ `mentorship_feedback`
+- ✅ `quick_questions`
+- ✅ `meeting_logs`
+- ✅ `mentorship_requests`
+
+---
+
+## ⏳ **Step 2: RLS Policies Migration - NEXT**
+
+**File:** `database/migrations/add_mentorship_rls_policies.sql`
+
+**What it does:**
+- Enables Row-Level Security on all mentorship tables
+- Creates policies for admin, student, and mentor access
+- Ensures data privacy and proper access control
+
+**Estimated time:** 2-3 minutes
+
+**How to run:**
+1. Open Supabase SQL Editor
+2. Open `database/migrations/add_mentorship_rls_policies.sql`
+3. Copy entire contents and paste into SQL Editor
+4. Click "Run"
+5. Verify: Should see "Success" message
+
+---
+
+## ⏳ **Step 3: Matching Functions Migration - AFTER RLS**
+
+**File:** `database/migrations/add_mentorship_matching_functions.sql`
+
+**What it does:**
+- Creates the weighted matching algorithm functions
+- Enables automatic mentor-student matching
+- Provides health monitoring functions
+
+**Estimated time:** 3-5 minutes
+
+**How to run:**
+1. Open Supabase SQL Editor (new query)
+2. Open `database/migrations/add_mentorship_matching_functions.sql`
+3. Copy entire contents and paste into SQL Editor
+4. Click "Run"
+5. Verify: Should see "Success" message
+
+---
+
+## 📊 **Final Verification (After All 3 Steps)**
+
+Run this query to verify everything:
 
 ```sql
--- Quick check: Count all new columns/tables
-SELECT 
-    'QR Columns' as type,
-    COUNT(*) as count
-FROM information_schema.columns 
-WHERE table_name = 'event_registrations' 
-AND column_name IN ('qr_code_token', 'checked_in_at')
-UNION ALL
-SELECT 
-    'Resume Columns',
-    COUNT(*)
-FROM information_schema.columns 
-WHERE table_name = 'users' 
-AND column_name IN ('resume_url', 'resume_filename', 'major', 'gpa', 'skills')
-UNION ALL
-SELECT 
-    'New Tables',
-    COUNT(*)
+-- Check all tables exist (should return 7)
+SELECT COUNT(*) as table_count
 FROM information_schema.tables 
-WHERE table_name IN ('resume_views', 'session_registrations')
-UNION ALL
-SELECT 
-    'Functions',
-    COUNT(*)
+WHERE table_schema = 'public' 
+AND table_name IN (
+  'mentorship_profiles',
+  'match_batches',
+  'matches',
+  'mentorship_feedback',
+  'quick_questions',
+  'meeting_logs',
+  'mentorship_requests'
+);
+
+-- Check functions exist (should return 5)
+SELECT routine_name 
 FROM information_schema.routines 
-WHERE routine_name IN ('check_session_capacity', 'register_for_session');
+WHERE routine_schema = 'public' 
+AND routine_name IN (
+  'calculate_match_score',
+  'create_match_batch',
+  'find_top_mentors',
+  'get_at_risk_matches',
+  'mentor_select_student'
+)
+ORDER BY routine_name;
+
+-- Check RLS is enabled (all should show 't')
+SELECT tablename, rowsecurity 
+FROM pg_tables 
+WHERE schemaname = 'public' 
+AND tablename IN (
+  'mentorship_profiles',
+  'match_batches',
+  'matches',
+  'mentorship_feedback',
+  'quick_questions',
+  'meeting_logs',
+  'mentorship_requests'
+)
+ORDER BY tablename;
 ```
 
-Expected results:
-- QR Columns: 2
-- Resume Columns: 5+
-- New Tables: 2
-- Functions: 2
+---
 
+## 🎯 **Next Action**
+
+**Run Step 2: RLS Policies Migration now!**
+
+File: `database/migrations/add_mentorship_rls_policies.sql`
+
+---
+
+**Progress:** 33% Complete (1/3 migrations done) 🚀

@@ -4,6 +4,7 @@ import {
   registrationConfirmationEmail,
   cancellationEmail,
   adminRegistrationNotificationEmail,
+  mentorNotificationEmail,
 } from '@/lib/email/templates';
 
 export async function POST(request: NextRequest) {
@@ -53,6 +54,25 @@ export async function POST(request: NextRequest) {
         });
         subject = `New Registration: ${event.title}`;
         to = data.adminEmail;
+        break;
+      }
+
+      case 'mentor_notification': {
+        const { mentorName, studentName, studentEmail, studentMajor, studentSkills, matchScore, batchId, mentorPosition, studentNotes } = data;
+        html = mentorNotificationEmail({
+          mentorName,
+          studentName,
+          studentEmail,
+          studentMajor,
+          studentSkills,
+          matchScore,
+          batchId,
+          mentorPosition,
+          studentNotes,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `New Mentorship Request - Match Score: ${matchScore}/100`;
+        to = data.mentorEmail;
         break;
       }
 

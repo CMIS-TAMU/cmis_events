@@ -12,22 +12,16 @@ import { Loader2, ArrowLeft, Save, CheckCircle2 } from 'lucide-react';
 
 export default function MentorshipProfilePage() {
   const router = useRouter();
-  const [profileType, setProfileType] = useState<'student' | 'mentor'>('student');
+  const [profileType] = useState<'mentor'>('mentor'); // Fixed to mentor only
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state - Student
-  const [major, setMajor] = useState('');
-  const [graduationYear, setGraduationYear] = useState('');
-  const [researchInterests, setResearchInterests] = useState('');
-  const [careerGoals, setCareerGoals] = useState('');
-  const [technicalSkills, setTechnicalSkills] = useState('');
-  const [gpa, setGpa] = useState('');
+  // Common form state
   const [bio, setBio] = useState('');
   const [communicationPrefs, setCommunicationPrefs] = useState<string[]>([]);
   const [meetingFrequency, setMeetingFrequency] = useState<string>('monthly');
-  const [mentorshipType, setMentorshipType] = useState<string[]>([]);
+  const [mentorshipType, setMentorshipType] = useState<string>('');
 
   // Form state - Mentor
   const [industry, setIndustry] = useState('');
@@ -37,6 +31,12 @@ export default function MentorshipProfilePage() {
   const [location, setLocation] = useState('');
   const [areasOfExpertise, setAreasOfExpertise] = useState('');
   const [maxMentees, setMaxMentees] = useState('3');
+  // Mentor contact fields
+  const [preferredName, setPreferredName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
 
   // Check existing profile
   const { data: existingProfile, isLoading: profileLoading, refetch } = trpc.mentorship.getProfile.useQuery();
@@ -73,17 +73,10 @@ export default function MentorshipProfilePage() {
   // Load existing profile data
   useEffect(() => {
     if (existingProfile) {
-      setProfileType(existingProfile.profile_type || 'student');
-      setMajor(existingProfile.major || '');
-      setGraduationYear(existingProfile.graduation_year?.toString() || '');
-      setResearchInterests((existingProfile.research_interests || []).join(', '));
-      setCareerGoals(existingProfile.career_goals || '');
-      setTechnicalSkills((existingProfile.technical_skills || []).join(', '));
-      setGpa(existingProfile.gpa?.toString() || '');
       setBio(existingProfile.bio || '');
       setCommunicationPrefs(existingProfile.communication_preferences || []);
       setMeetingFrequency(existingProfile.meeting_frequency || 'monthly');
-      setMentorshipType(existingProfile.mentorship_type || []);
+      setMentorshipType(existingProfile.mentorship_type || '');
 
       // Mentor fields
       setIndustry(existingProfile.industry || '');
@@ -93,6 +86,12 @@ export default function MentorshipProfilePage() {
       setLocation(existingProfile.location || '');
       setAreasOfExpertise((existingProfile.areas_of_expertise || []).join(', '));
       setMaxMentees(existingProfile.max_mentees?.toString() || '3');
+      // Mentor contact fields
+      setPreferredName(existingProfile.preferred_name || '');
+      setPhoneNumber(existingProfile.phone_number || '');
+      setLinkedinUrl(existingProfile.linkedin_url || '');
+      setWebsiteUrl(existingProfile.website_url || '');
+      setContactEmail(existingProfile.contact_email || '');
     }
   }, [existingProfile]);
 
@@ -104,55 +103,42 @@ export default function MentorshipProfilePage() {
 
     try {
       // Parse comma-separated arrays
-      const researchInterestsArray = researchInterests
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
-      const technicalSkillsArray = technicalSkills
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
       const areasOfExpertiseArray = areasOfExpertise
         .split(',')
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
+      if (!industry) {
+        setError('Industry is required');
+        setLoading(false);
+        return;
+      }
+
       const profileData: any = {
-        profile_type: profileType,
-        bio,
-        communication_preferences: communicationPrefs,
-        meeting_frequency: meetingFrequency,
-        mentorship_type: mentorshipType,
+        profile_type: 'mentor',
+        industry,
         in_matching_pool: true,
         availability_status: 'active',
       };
 
-      if (profileType === 'student') {
-        if (!major) {
-          setError('Major is required');
-          setLoading(false);
-          return;
-        }
-        profileData.major = major;
-        if (graduationYear) profileData.graduation_year = parseInt(graduationYear);
-        if (researchInterestsArray.length > 0) profileData.research_interests = researchInterestsArray;
-        if (careerGoals) profileData.career_goals = careerGoals;
-        if (technicalSkillsArray.length > 0) profileData.technical_skills = technicalSkillsArray;
-        if (gpa) profileData.gpa = parseFloat(gpa);
-      } else {
-        if (!industry) {
-          setError('Industry is required');
-          setLoading(false);
-          return;
-        }
-        profileData.industry = industry;
-        if (organization) profileData.organization = organization;
-        if (jobDesignation) profileData.job_designation = jobDesignation;
-        if (tamuGradYear) profileData.tamu_graduation_year = parseInt(tamuGradYear);
-        if (location) profileData.location = location;
-        if (areasOfExpertiseArray.length > 0) profileData.areas_of_expertise = areasOfExpertiseArray;
-        if (maxMentees) profileData.max_mentees = parseInt(maxMentees);
-      }
+      // Add optional fields only if they have values
+      if (bio) profileData.bio = bio;
+      if (communicationPrefs.length > 0) profileData.communication_preferences = communicationPrefs;
+      if (meetingFrequency) profileData.meeting_frequency = meetingFrequency;
+      if (mentorshipType) profileData.mentorship_type = mentorshipType;
+
+      if (organization) profileData.organization = organization;
+      if (jobDesignation) profileData.job_designation = jobDesignation;
+      if (tamuGradYear) profileData.tamu_graduation_year = parseInt(tamuGradYear);
+      if (location) profileData.location = location;
+      if (areasOfExpertiseArray.length > 0) profileData.areas_of_expertise = areasOfExpertiseArray;
+      if (maxMentees) profileData.max_mentees = parseInt(maxMentees);
+      // Contact information fields
+      if (preferredName) profileData.preferred_name = preferredName;
+      if (phoneNumber) profileData.phone_number = phoneNumber;
+      if (linkedinUrl) profileData.linkedin_url = linkedinUrl;
+      if (websiteUrl) profileData.website_url = websiteUrl;
+      if (contactEmail) profileData.contact_email = contactEmail;
 
       if (existingProfile) {
         await updateProfile.mutateAsync(profileData);
@@ -160,7 +146,9 @@ export default function MentorshipProfilePage() {
         await createProfile.mutateAsync(profileData);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+      console.error('Profile save error:', err);
+      const errorMessage = err.message || err.data?.message || 'Failed to save profile. Please check the browser console for details.';
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -173,12 +161,8 @@ export default function MentorshipProfilePage() {
     );
   };
 
-  const toggleMentorshipType = (type: string) => {
-    setMentorshipType(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+  const handleMentorshipTypeChange = (type: string) => {
+    setMentorshipType(type);
   };
 
   if (profileLoading) {
@@ -197,10 +181,10 @@ export default function MentorshipProfilePage() {
           Back to Dashboard
         </Link>
         <h1 className="text-4xl font-bold mb-2">
-          {existingProfile ? 'Edit' : 'Create'} Mentorship Profile
+          {existingProfile ? 'Edit' : 'Create'} Mentor Profile
         </h1>
         <p className="text-muted-foreground">
-          Set up your profile to connect with {profileType === 'student' ? 'mentors' : 'students'}
+          Set up your mentor profile to connect with students seeking guidance
         </p>
       </div>
 
@@ -213,39 +197,12 @@ export default function MentorshipProfilePage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Type</CardTitle>
-          <CardDescription>Choose whether you&apos;re a student or mentor</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button
-              type="button"
-              variant={profileType === 'student' ? 'default' : 'outline'}
-              onClick={() => setProfileType('student')}
-              disabled={!!existingProfile}
-            >
-              Student
-            </Button>
-            <Button
-              type="button"
-              variant={profileType === 'mentor' ? 'default' : 'outline'}
-              onClick={() => setProfileType('mentor')}
-              disabled={!!existingProfile}
-            >
-              Mentor
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       <form onSubmit={handleSubmit} className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>{profileType === 'student' ? 'Student' : 'Mentor'} Information</CardTitle>
+            <CardTitle>Mentor Information</CardTitle>
             <CardDescription>
-              Provide details to help us match you with the right {profileType === 'student' ? 'mentor' : 'student'}
+              Provide details to help us match you with the right students
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -255,99 +212,89 @@ export default function MentorshipProfilePage() {
               </div>
             )}
 
-            {profileType === 'student' ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="major">Major *</Label>
-                  <Input
-                    id="major"
-                    value={major}
-                    onChange={(e) => setMajor(e.target.value)}
-                    placeholder="e.g., Computer Science"
-                    required
-                    disabled={loading}
-                  />
+            {/* Mentor Contact Information */}
+                <div className="space-y-4 border-b pb-4 mb-4">
+                  <h3 className="text-lg font-semibold">Contact Information</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="preferredName">Preferred Name</Label>
+                    <Input
+                      id="preferredName"
+                      value={preferredName}
+                      onChange={(e) => setPreferredName(e.target.value)}
+                      placeholder="e.g., John Doe"
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">Your preferred display name for mentorship</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+1 (555) 123-4567"
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contactEmail">Contact Email</Label>
+                      <Input
+                        id="contactEmail"
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="contact@example.com"
+                        disabled={loading}
+                      />
+                      <p className="text-xs text-muted-foreground">Optional: if different from account email</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedinUrl">LinkedIn Profile URL</Label>
+                      <Input
+                        id="linkedinUrl"
+                        type="url"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        placeholder="https://linkedin.com/in/yourname"
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="websiteUrl">Website/Portfolio URL</Label>
+                      <Input
+                        id="websiteUrl"
+                        type="url"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://yourwebsite.com"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Professional Information */}
+                <div className="space-y-4 border-b pb-4 mb-4">
+                  <h3 className="text-lg font-semibold">Professional Information</h3>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="graduationYear">Graduation Year</Label>
+                    <Label htmlFor="industry">Industry *</Label>
                     <Input
-                      id="graduationYear"
-                      type="number"
-                      min="2020"
-                      max="2030"
-                      value={graduationYear}
-                      onChange={(e) => setGraduationYear(e.target.value)}
-                      placeholder="2025"
+                      id="industry"
+                      value={industry}
+                      onChange={(e) => setIndustry(e.target.value)}
+                      placeholder="e.g., Technology, Finance, Healthcare"
+                      required
                       disabled={loading}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gpa">GPA</Label>
-                    <Input
-                      id="gpa"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="4.0"
-                      value={gpa}
-                      onChange={(e) => setGpa(e.target.value)}
-                      placeholder="3.5"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="researchInterests">Research Interests (comma-separated)</Label>
-                  <Input
-                    id="researchInterests"
-                    value={researchInterests}
-                    onChange={(e) => setResearchInterests(e.target.value)}
-                    placeholder="e.g., Machine Learning, Data Science, AI"
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">Separate multiple interests with commas</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="technicalSkills">Technical Skills (comma-separated)</Label>
-                  <Input
-                    id="technicalSkills"
-                    value={technicalSkills}
-                    onChange={(e) => setTechnicalSkills(e.target.value)}
-                    placeholder="e.g., Python, React, SQL"
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">Separate multiple skills with commas</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="careerGoals">Career Goals</Label>
-                  <textarea
-                    id="careerGoals"
-                    value={careerGoals}
-                    onChange={(e) => setCareerGoals(e.target.value)}
-                    placeholder="Describe your career goals and what you hope to achieve..."
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={loading}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="industry">Industry *</Label>
-                  <Input
-                    id="industry"
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    placeholder="e.g., Technology, Finance, Healthcare"
-                    required
-                    disabled={loading}
-                  />
-                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -422,8 +369,7 @@ export default function MentorshipProfilePage() {
                     disabled={loading}
                   />
                 </div>
-              </>
-            )}
+                </div>
 
             {/* Common Fields */}
             <div className="space-y-2">
@@ -474,20 +420,19 @@ export default function MentorshipProfilePage() {
 
             <div className="space-y-2">
               <Label>Mentorship Type</Label>
-              <div className="flex flex-wrap gap-2">
-                {['career', 'research', 'project', 'general'].map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant={mentorshipType.includes(type) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleMentorshipType(type)}
-                    disabled={loading}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Button>
-                ))}
-              </div>
+              <select
+                id="mentorshipType"
+                value={mentorshipType}
+                onChange={(e) => handleMentorshipTypeChange(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={loading}
+              >
+                <option value="">Select mentorship type</option>
+                <option value="career">Career</option>
+                <option value="research">Research</option>
+                <option value="project">Project</option>
+                <option value="general">General</option>
+              </select>
             </div>
 
             <div className="flex gap-4 pt-4">

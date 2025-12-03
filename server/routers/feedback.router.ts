@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -17,7 +18,15 @@ export const feedbackRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       // Check if user was registered for this event
       const { data: registration } = await supabase
@@ -28,7 +37,10 @@ export const feedbackRouter = router({
         .single();
 
       if (!registration) {
-        throw new Error('You must be registered for this event to submit feedback');
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You must be registered for this event to submit feedback',
+        });
       }
 
       // Check if user already submitted feedback
@@ -40,7 +52,10 @@ export const feedbackRouter = router({
         .single();
 
       if (existingFeedback) {
-        throw new Error('You have already submitted feedback for this event');
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'You have already submitted feedback for this event',
+        });
       }
 
       // Submit feedback
@@ -56,7 +71,17 @@ export const feedbackRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to submit feedback: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to submit feedback: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Feedback submission succeeded but no data returned',
+        });
       }
 
       return data;
@@ -66,7 +91,15 @@ export const feedbackRouter = router({
   hasSubmitted: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data } = await supabase
         .from('feedback')
@@ -81,8 +114,16 @@ export const feedbackRouter = router({
   // Get feedback for an event (admin only)
   getByEvent: adminProcedure
     .input(z.object({ event_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('feedback')
@@ -94,7 +135,10 @@ export const feedbackRouter = router({
         .order('created_at', { ascending: false });
 
       if (error) {
-        throw new Error(`Failed to fetch feedback: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch feedback: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -104,6 +148,7 @@ export const feedbackRouter = router({
   getSummary: publicProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .query(async ({ input }) => {
+      // Public procedure - create client without auth
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
       const { data: feedback, error } = await supabase
@@ -112,7 +157,10 @@ export const feedbackRouter = router({
         .eq('event_id', input.event_id);
 
       if (error) {
-        throw new Error(`Failed to fetch feedback: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch feedback: ${error.message}`,
+        });
       }
 
       if (!feedback || feedback.length === 0) {
@@ -148,8 +196,16 @@ export const feedbackRouter = router({
         offset: z.number().min(0).default(0),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('feedback')
@@ -162,7 +218,10 @@ export const feedbackRouter = router({
         .range(input?.offset || 0, (input?.offset || 0) + (input?.limit || 50) - 1);
 
       if (error) {
-        throw new Error(`Failed to fetch feedback: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch feedback: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -175,8 +234,17 @@ export const feedbackRouter = router({
         days: z.number().min(7).max(365).default(30),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - (input?.days || 30));
 
@@ -191,7 +259,10 @@ export const feedbackRouter = router({
         .order('created_at', { ascending: true });
 
       if (error) {
-        throw new Error(`Failed to fetch feedback trends: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch feedback trends: ${error.message}`,
+        });
       }
 
       // Group by event
@@ -227,8 +298,16 @@ export const feedbackRouter = router({
   // Delete feedback (admin only)
   delete: adminProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { error } = await supabase
         .from('feedback')
@@ -236,7 +315,10 @@ export const feedbackRouter = router({
         .eq('id', input.id);
 
       if (error) {
-        throw new Error(`Failed to delete feedback: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to delete feedback: ${error.message}`,
+        });
       }
 
       return { success: true };

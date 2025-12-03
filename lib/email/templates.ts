@@ -218,3 +218,87 @@ export function adminRegistrationNotificationEmail({
   `;
 }
 
+interface MentorNotificationEmailProps {
+  mentorName: string;
+  studentName: string;
+  studentEmail: string;
+  studentMajor?: string;
+  studentSkills?: string[];
+  matchScore: number;
+  batchId: string;
+  mentorPosition: number; // 1, 2, or 3
+  studentNotes?: string;
+  appUrl?: string;
+}
+
+export function mentorNotificationEmail({
+  mentorName,
+  studentName,
+  studentEmail,
+  studentMajor,
+  studentSkills = [],
+  matchScore,
+  batchId,
+  mentorPosition,
+  studentNotes,
+  appUrl = 'http://localhost:3000',
+}: MentorNotificationEmailProps): string {
+  const positionText = mentorPosition === 1 ? '1st' : mentorPosition === 2 ? '2nd' : '3rd';
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Mentorship Request</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">CMIS Mentorship Program</h1>
+  </div>
+  
+  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+    <h2 style="color: #333; margin-top: 0;">New Mentorship Request</h2>
+    
+    <p>Hello ${mentorName},</p>
+    
+    <p>A student has been matched with you and is requesting mentorship guidance!</p>
+    
+    <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea;">
+      <h3 style="margin-top: 0; color: #667eea;">Student Profile</h3>
+      <p><strong>Name:</strong> ${studentName}</p>
+      <p><strong>Email:</strong> ${studentEmail}</p>
+      ${studentMajor ? `<p><strong>Major:</strong> ${studentMajor}</p>` : ''}
+      ${studentSkills.length > 0 ? `<p><strong>Skills:</strong> ${studentSkills.join(', ')}</p>` : ''}
+      <p><strong>Match Score:</strong> ${matchScore}/100</p>
+      <p><strong>Your Position:</strong> ${positionText} Choice</p>
+    </div>
+    
+    ${studentNotes ? `
+    <div style="background: #fff9e6; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+      <p style="margin: 0;"><strong>Student Notes:</strong></p>
+      <p style="margin: 10px 0 0 0;">${studentNotes}</p>
+    </div>
+    ` : ''}
+    
+    <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+      <p style="margin: 0;"><strong>⏰ Important:</strong> You have 7 days to respond to this request. If you don't accept, another mentor may be selected.</p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${appUrl}/mentorship/mentor/requests" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View & Accept Request</a>
+    </div>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+      You can also view this request in your <a href="${appUrl}/mentorship/mentor/requests" style="color: #667eea;">Mentorship Dashboard</a>.
+    </p>
+    
+    <p style="margin-top: 30px;">Thank you for being part of our mentorship program!</p>
+    
+    <p style="margin-top: 30px;">Best regards,<br>CMIS Mentorship Program Team</p>
+  </div>
+</body>
+</html>
+  `;
+}

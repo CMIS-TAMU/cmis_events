@@ -1,20 +1,13 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
+import { createAdminSupabase } from '@/lib/supabase/server';
+import { sendEmail } from '@/lib/email/client';
+import { mentorNotificationEmail } from '@/lib/email/templates';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Helper to get admin supabase client (bypasses RLS)
-function getAdminSupabase() {
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 export const mentorshipRouter = router({
   // ========================================================================
@@ -41,6 +34,12 @@ export const mentorshipRouter = router({
         location: z.string().optional(),
         areas_of_expertise: z.array(z.string()).optional(),
         max_mentees: z.number().int().min(1).max(10).optional(),
+        // Mentor contact fields
+        preferred_name: z.string().optional(),
+        phone_number: z.string().optional(),
+        linkedin_url: z.string().optional(),
+        website_url: z.string().optional(),
+        contact_email: z.string().email().optional(),
         // Common fields
         communication_preferences: z.array(z.string()).optional(),
         meeting_frequency: z.enum(['weekly', 'biweekly', 'monthly', 'as-needed']).optional(),
@@ -50,14 +49,16 @@ export const mentorshipRouter = router({
         availability_status: z.enum(['active', 'on-break', 'unavailable']).default('active'),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+    .mutation(async ({ ctx, input }) => {
+      // User is already authenticated via protectedProcedure
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
-
+      
+      // Use Supabase client from context if available, otherwise create one with service role for DB ops
+      // Note: For database queries, we can use anon key client as RLS will handle permissions
+      const supabase = ctx.supabase || createClient(supabaseUrl, supabaseAnonKey);
+      
       const { profile_type, ...profileData } = input;
 
       // Validate required fields based on profile type
@@ -72,7 +73,7 @@ export const mentorshipRouter = router({
       const { data: existing } = await supabase
         .from('mentorship_profiles')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .eq('profile_type', profile_type)
         .single();
 
@@ -83,7 +84,7 @@ export const mentorshipRouter = router({
       const { data, error } = await supabase
         .from('mentorship_profiles')
         .insert({
-          user_id: user.id,
+          user_id: ctx.user.id,
           profile_type,
           ...profileData,
         })
@@ -115,6 +116,12 @@ export const mentorshipRouter = router({
         location: z.string().optional(),
         areas_of_expertise: z.array(z.string()).optional(),
         max_mentees: z.number().int().min(1).max(10).optional(),
+        // Mentor contact fields
+        preferred_name: z.string().optional(),
+        phone_number: z.string().optional(),
+        linkedin_url: z.string().optional(),
+        website_url: z.string().optional(),
+        contact_email: z.string().email().optional(),
         communication_preferences: z.array(z.string()).optional(),
         meeting_frequency: z.enum(['weekly', 'biweekly', 'monthly', 'as-needed']).optional(),
         mentorship_type: z.enum(['career', 'research', 'project', 'general']).optional(),
@@ -123,13 +130,15 @@ export const mentorshipRouter = router({
         availability_status: z.enum(['active', 'on-break', 'unavailable']).optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+    .mutation(async ({ ctx, input }) => {
+      // Use Supabase client from context (has cookie handling) or create one
+      const supabase = ctx.supabase || createClient(supabaseUrl, supabaseAnonKey);
+      
+      // User is already authenticated via protectedProcedure
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
+      const user = ctx.user;
 
       const { data: existing } = await supabase
         .from('mentorship_profiles')
@@ -157,17 +166,18 @@ export const mentorshipRouter = router({
 
   // Get user's mentorship profile
   getProfile: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    // Use Supabase client from context (has cookie handling) or create one
+    const supabase = ctx.supabase || createClient(supabaseUrl, supabaseAnonKey);
+    
+    // User is already authenticated via protectedProcedure
+    if (!ctx.user) {
       throw new Error('User not authenticated');
     }
 
     const { data, error } = await supabase
       .from('mentorship_profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.user.id)
       .maybeSingle();
 
     if (error) {
@@ -239,28 +249,50 @@ export const mentorshipRouter = router({
         student_notes: z.string().optional(),
       }).optional()
     )
-    .mutation(async ({ input }) => {
-      const supabase = getAdminSupabase(); // Use service role to bypass RLS
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+    .mutation(async ({ ctx, input }) => {
+      // Get authenticated user from context (already verified by protectedProcedure)
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
 
-      // Verify user is a student
-      const { data: profile } = await supabase
-        .from('mentorship_profiles')
-        .select('profile_type, in_matching_pool')
-        .eq('user_id', user.id)
-        .eq('profile_type', 'student')
+      const userId = ctx.user.id;
+      const supabase = createAdminSupabase(); // Use service role to bypass RLS
+
+      // Verify user is a student (no profile required)
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role, major, skills, resume_url')
+        .eq('id', userId)
         .single();
 
-      if (!profile) {
-        throw new Error('Student profile not found. Please create a profile first.');
+      if (!userProfile || userProfile.role !== 'student') {
+        throw new Error('You must be a student to request a mentor.');
       }
 
-      if (!profile.in_matching_pool) {
-        throw new Error('You are not currently in the matching pool.');
+      // Optional: Check if user has some data for matching (major, skills, or resume)
+      if (!userProfile.major && (!userProfile.skills || userProfile.skills.length === 0) && !userProfile.resume_url) {
+        throw new Error('Please add your major, skills, or upload a resume to help us match you with the right mentor.');
+      }
+
+      // DEFENSIVE FIX: Clear ALL pending batches for this student before creating new one
+      // This ensures no blocking batches exist when user wants to request a new mentor
+      try {
+        // Clear ALL pending batches for this student (user wants a fresh request)
+        const { error: clearAllError } = await supabase
+          .from('match_batches')
+          .delete()
+          .eq('student_id', userId)
+          .eq('status', 'pending');
+        
+        if (clearAllError) {
+          console.warn('Failed to clear pending batches:', clearAllError);
+          // Log but continue - database function will handle the check
+        } else {
+          console.log(`Attempted to clear all pending match batches for student ${userId}`);
+        }
+      } catch (err) {
+        console.warn('Error clearing pending batches (non-critical):', err);
+        // Continue anyway - database function will handle the check
       }
 
       // Create mentorship request (optional tracking)
@@ -269,7 +301,7 @@ export const mentorshipRouter = router({
         const { data: request, error: requestError } = await supabase
           .from('mentorship_requests')
           .insert({
-            student_id: user.id,
+            student_id: userId,
             preferred_mentorship_type: input?.preferred_mentorship_type,
             preferred_industry: input?.preferred_industry,
             preferred_communication_method: input?.preferred_communication_method,
@@ -289,7 +321,7 @@ export const mentorshipRouter = router({
 
       // Create match batch using database function
       const { data: batchResult, error: batchError } = await supabase.rpc('create_match_batch', {
-        p_student_id: user.id,
+        p_student_id: userId,
         p_request_id: requestId,
       });
 
@@ -298,6 +330,13 @@ export const mentorshipRouter = router({
       }
 
       if (!batchResult?.ok) {
+        // Provide a more helpful error message for pending batch errors
+        if (batchResult?.error?.includes('pending match batch')) {
+          throw new Error(
+            batchResult.error + 
+            ' Please wait a moment and try again, or contact support if this persists.'
+          );
+        }
         throw new Error(batchResult?.error || 'Failed to create match batch');
       }
 
@@ -307,6 +346,116 @@ export const mentorshipRouter = router({
           .from('mentorship_requests')
           .update({ status: 'matched', match_batch_id: batchResult.batch_id })
           .eq('id', requestId);
+      }
+
+      // Send email notifications to mentors (async, don't block response)
+      // Send emails asynchronously - don't wait for completion
+      if (batchResult?.ok && batchResult.batch_id) {
+        // Get student data
+        const { data: student } = await supabase
+          .from('users')
+          .select('full_name, email, major, skills, metadata')
+          .eq('id', userId)
+          .single();
+
+        // Get student notes from request if available
+        let studentNotes = input?.student_notes || null;
+        if (!studentNotes && requestId) {
+          const { data: request } = await supabase
+            .from('mentorship_requests')
+            .select('student_notes')
+            .eq('id', requestId)
+            .single();
+          studentNotes = request?.student_notes || null;
+        }
+
+        // Get match batch details with mentor info
+        const { data: matchBatch } = await supabase
+          .from('match_batches')
+          .select(`
+            mentor_1_id,
+            mentor_1_score,
+            mentor_2_id,
+            mentor_2_score,
+            mentor_3_id,
+            mentor_3_score,
+            mentor_1:mentor_1_id(id, email, full_name),
+            mentor_2:mentor_2_id(id, email, full_name),
+            mentor_3:mentor_3_id(id, email, full_name)
+          `)
+          .eq('id', batchResult.batch_id)
+          .single();
+
+        if (student && matchBatch) {
+          const studentSkills = (student.skills || []) as string[];
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+          // Helper function to send email (fire and forget)
+          const sendMentorEmail = async (
+            mentorEmail: string,
+            mentorName: string,
+            matchScore: number,
+            position: number
+          ) => {
+            try {
+              const html = mentorNotificationEmail({
+                mentorName,
+                studentName: student.full_name || student.email || 'Student',
+                studentEmail: student.email,
+                studentMajor: student.major || null,
+                studentSkills: studentSkills,
+                matchScore,
+                batchId: batchResult.batch_id,
+                mentorPosition: position,
+                studentNotes: studentNotes || undefined,
+                appUrl,
+              });
+
+              const result = await sendEmail({
+                to: mentorEmail,
+                subject: `New Mentorship Request - Match Score: ${matchScore}/100`,
+                html,
+              });
+
+              if (!result.success) {
+                console.error(`Failed to send email to mentor ${position}:`, result.error);
+              }
+            } catch (err) {
+              console.error(`Failed to send email to mentor ${position}:`, err);
+            }
+          };
+
+          // Send emails to all mentors (async, fire and forget - don't block response)
+          const mentor1 = matchBatch.mentor_1 as any;
+          if (matchBatch.mentor_1_id && mentor1?.email) {
+            sendMentorEmail(
+              mentor1.email,
+              mentor1.full_name || 'Mentor',
+              matchBatch.mentor_1_score || 0,
+              1
+            ).catch(() => {}); // Silently fail - don't block response
+          }
+
+          const mentor2 = matchBatch.mentor_2 as any;
+          if (matchBatch.mentor_2_id && mentor2?.email) {
+            sendMentorEmail(
+              mentor2.email,
+              mentor2.full_name || 'Mentor',
+              matchBatch.mentor_2_score || 0,
+              2
+            ).catch(() => {}); // Silently fail - don't block response
+          }
+
+          const mentor3 = matchBatch.mentor_3 as any;
+          if (matchBatch.mentor_3_id && mentor3?.email) {
+            sendMentorEmail(
+              mentor3.email,
+              mentor3.full_name || 'Mentor',
+              matchBatch.mentor_3_score || 0,
+              3
+            ).catch(() => {}); // Silently fail - don't block response
+          }
+        }
       }
 
       return batchResult;
@@ -319,17 +468,18 @@ export const mentorshipRouter = router({
         batch_id: z.string().uuid(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = getAdminSupabase(); // Use service role
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+    .mutation(async ({ ctx, input }) => {
+      // Get authenticated user from context
+      if (!ctx.user) {
         throw new Error('User not authenticated');
       }
 
+      const mentorId = ctx.user.id;
+      const supabase = createAdminSupabase(); // Use service role to bypass RLS
+
       // Call database function to process selection
       const { data: result, error } = await supabase.rpc('mentor_select_student', {
-        p_mentor_id: user.id,
+        p_mentor_id: mentorId,
         p_batch_id: input.batch_id,
       });
 
@@ -453,6 +603,43 @@ export const mentorshipRouter = router({
 
     return data;
   }),
+
+  // Get match by ID (for match details page)
+  getMatchById: protectedProcedure
+    .input(z.object({ match_id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const supabase = ctx.supabase;
+
+      // Get match with student and mentor info
+      const { data: match, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          student:student_id(id, email, full_name, major, skills),
+          mentor:mentor_id(id, email, full_name)
+        `)
+        .eq('id', input.match_id)
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to fetch match: ${error.message}`);
+      }
+
+      if (!match) {
+        throw new Error('Match not found');
+      }
+
+      // Verify user has access to this match
+      if (match.student_id !== ctx.user.id && match.mentor_id !== ctx.user.id) {
+        throw new Error('Access denied');
+      }
+
+      return match;
+    }),
 
   // ========================================================================
   // FEEDBACK

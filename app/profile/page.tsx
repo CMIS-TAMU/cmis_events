@@ -113,6 +113,14 @@ export default function ProfilePage() {
             <CardDescription>Manage your account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {profile?.role === 'student' && (
+              <Link href="/profile/edit" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <User className="h-4 w-4 mr-2" />
+                  Edit Student Profile
+                </Button>
+              </Link>
+            )}
             <Link href="/profile/resume" className="block">
               <Button variant="outline" className="w-full justify-start">
                 <FileText className="h-4 w-4 mr-2" />
