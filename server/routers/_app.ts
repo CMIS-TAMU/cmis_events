@@ -7,6 +7,10 @@ import { sessionsRouter } from './sessions.router';
 import { sponsorsRouter } from './sponsors.router';
 import { competitionsRouter } from './competitions.router';
 import { missionsRouter } from './missions.router';
+import { feedbackRouter } from './feedback.router';
+import { analyticsRouter } from './analytics.router';
+import { mentorshipRouter } from './mentorship.router';
+import { seatingRouter } from './seating.router';
 
 // Main app router that combines all routers
 export const appRouter = router({
@@ -18,6 +22,10 @@ export const appRouter = router({
   sponsors: sponsorsRouter,
   competitions: competitionsRouter,
   missions: missionsRouter,
+  feedback: feedbackRouter,
+  analytics: analyticsRouter,
+  mentorship: mentorshipRouter,
+  seating: seatingRouter,
 });
 
 // Export type for use in client

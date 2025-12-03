@@ -3,7 +3,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Calendar, Clock, Users, MapPin, ArrowLeft, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, ArrowLeft, Edit, Trash2, CheckCircle2, MessageSquare, LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
 import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -239,12 +240,20 @@ export default function EventDetailPage() {
                     <p className="text-sm text-muted-foreground">
                       Registered on {format(new Date(registrationStatus.registered_at), 'MMM d, yyyy')}
                     </p>
-                    <CancelButton
-                      eventId={eventId}
-                      eventTitle={event.title}
-                      variant="outline"
-                      size="default"
-                    />
+                    <div className="flex gap-2">
+                      <Link href="/seating" className="flex-1">
+                        <Button variant="outline" className="w-full">
+                          <LayoutGrid className="h-4 w-4 mr-2" />
+                          View Seating Layout
+                        </Button>
+                      </Link>
+                      <CancelButton
+                        eventId={eventId}
+                        eventTitle={event.title}
+                        variant="outline"
+                        size="default"
+                      />
+                    </div>
                   </>
                 ) : waitlistStatus ? (
                   <div className="space-y-3">
@@ -260,11 +269,19 @@ export default function EventDetailPage() {
                     </p>
                   </div>
                 ) : (
-                  <RegisterButton
-                    eventId={eventId}
-                    eventTitle={event.title}
-                    className="w-full"
-                  />
+                  <>
+                    <RegisterButton
+                      eventId={eventId}
+                      eventTitle={event.title}
+                      className="w-full"
+                    />
+                    <Link href="/seating">
+                      <Button variant="outline" className="w-full">
+                        <LayoutGrid className="h-4 w-4 mr-2" />
+                        View Seating Layout
+                      </Button>
+                    </Link>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -285,6 +302,28 @@ export default function EventDetailPage() {
                 >
                   Sign In to Register
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Feedback Card - Show for past events if user was registered */}
+          {isPast && user && registrationStatus?.status === 'registered' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your experience at this event
+                </p>
+                <Link href={`/feedback/${eventId}`}>
+                  <Button className="w-full">
+                    Leave Feedback
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           )}

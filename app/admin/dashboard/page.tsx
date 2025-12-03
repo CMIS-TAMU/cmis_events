@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { Calendar, Users, CheckCircle2, Clock, Plus, Trophy, MessageSquare, BarChart3 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -184,6 +184,66 @@ export default function AdminDashboardPage() {
             </Link>
             <p className="text-xs text-muted-foreground">
               Create fake student ratings for demo purposes
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Competitions
+            </CardTitle>
+            <CardDescription>Manage case competitions</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link href="/admin/competitions" className="block">
+              <Button variant="outline" className="w-full">
+                Manage Competitions
+              </Button>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Teams, submissions, and judging
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Feedback
+            </CardTitle>
+            <CardDescription>View event feedback</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link href="/admin/feedback" className="block">
+              <Button variant="outline" className="w-full">
+                View Feedback
+              </Button>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Ratings, comments, and trends
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Analytics
+            </CardTitle>
+            <CardDescription>View detailed analytics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link href="/admin/analytics" className="block">
+              <Button variant="outline" className="w-full">
+                View Analytics
+              </Button>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Metrics, trends, and exports
             </p>
           </CardContent>
         </Card>
