@@ -1,0 +1,322 @@
+{
+  "name": "CMIS Outreach Campaign (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "outreach-campaign",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "outreach-campaign"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Campaign triggered\" } }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oduighnwrvozkxnhrnel.supabase.co/rest/v1/rpc/get_all_contacts_with_stats",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {}
+      },
+      "id": "fetch-contacts",
+      "name": "Fetch All Contacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "notes": "Fetches all contacts via Supabase REST API"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate template for each contact\nconst currentYear = new Date().getFullYear();\nconst items = $input.all();\n\nconst processed = items.map(item => {\n  const contact = item.json;\n  const yearsActive = contact.years_active || 0;\n  const yearsMissing = contact.years_missing || 0;\n  const studentsMet = contact.total_students_met || 0;\n  const lastYear = contact.last_year_active || 0;\n  const roles = contact.roles || [];\n  \n  let template = 'loyal-partner';\n  let templateName = 'Loyal Partner (Default)';\n  \n  if (yearsActive >= 8) {\n    template = 'legend-8-plus';\n    templateName = 'Legend 8+ Years';\n  } else if (yearsActive >= 5 && yearsActive <= 7) {\n    template = 'loyal-partner';\n    templateName = 'Loyal Partner (5-7 years)';\n  } else if (yearsMissing >= 2) {\n    template = 'comeback';\n    templateName = 'Comeback (Missing 2+ years)';\n  } else if (studentsMet >= 80 && lastYear === currentYear - 1) {\n    template = 'top-recruiter';\n    templateName = 'Top Recruiter (80+ students)';\n  } else if (yearsActive === 1) {\n    template = 'first-timer-upgrade';\n    templateName = 'First Timer → Upgrade';\n  } else if (roles.includes('mentor') && yearsActive >= 3) {\n    template = 'mentor-hero';\n    templateName = 'Mentor Hero (3+ years)';\n  }\n  \n  return {\n    json: {\n      ...contact,\n      template,\n      templateName,\n      emailProps: {\n        name: contact.full_name,\n        company: contact.company || 'your company',\n        yearsActive,\n        yearsMissing,\n        studentsMet,\n        lastYear\n      }\n    }\n  };\n});\n\nreturn processed;"
+      },
+      "id": "calculate-template",
+      "name": "Calculate Template",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}/api/email/render",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "template",
+              "value": "={{ $json.template }}"
+            },
+            {
+              "name": "props",
+              "value": "={{ $json.emailProps }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "render-email",
+      "name": "Render Email HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "emailHtml",
+              "name": "emailHtml",
+              "value": "={{ $json.html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-html",
+      "name": "Extract HTML",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.RESEND_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "={{ $env.RESEND_FROM_EMAIL || 'noreply@cmisevents.com' }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $('Calculate Template').item.json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ 'We Miss You, ' + $('Calculate Template').item.json.full_name + '!' }}"
+            },
+            {
+              "name": "html",
+              "value": "={{ $json.emailHtml }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email via Resend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300],
+      "notes": "Sends email via Resend API using HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://oduighnwrvozkxnhrnel.supabase.co/rest/v1/contacts?id=eq.{{ $('Calculate Template').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "last_outreach_sent_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-outreach-time",
+      "name": "Update Outreach Time",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1050, 500],
+      "notes": "Updates timestamp after email sent via Supabase REST API"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ '✅ Outreach campaign completed! Sent ' + $('Calculate Template').all().length + ' emails.' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-notification",
+      "name": "Post Summary to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 500],
+      "disabled": true,
+      "notes": "Optional: Enable if you have Slack webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All Contacts": {
+      "main": [
+        [
+          {
+            "node": "Calculate Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Template": {
+      "main": [
+        [
+          {
+            "node": "Render Email HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Email HTML": {
+      "main": [
+        [
+          {
+            "node": "Extract HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract HTML": {
+      "main": [
+        [
+          {
+            "node": "Send Email via Resend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email via Resend": {
+      "main": [
+        [
+          {
+            "node": "Update Outreach Time",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Outreach Time": {
+      "main": [
+        [
+          {
+            "node": "Post Summary to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-12-04T00:00:00.000Z",
+  "versionId": "2"
+}
+
