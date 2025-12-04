@@ -25,6 +25,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
+import { calculateProfileCompleteness } from '@/lib/profile/completeness';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -91,51 +93,10 @@ export default function DashboardPage() {
     }
   }, [role, roleLoading, router]);
 
-  // Calculate profile completion percentage for students
-  const calculateProfileCompletion = () => {
-    if (!profile?.profile || role !== 'student') return 0;
-
-    const p = profile.profile;
-    let completed = 0;
-    let total = 0;
-
-    // Required fields
-    const checkField = (value: any, required: boolean = false) => {
-      if (required) total++;
-      if (value) {
-        if (required) completed++;
-        else if (value !== null && value !== '') { total++; completed++; }
-      } else if (!required) { total++; }
-    };
-
-    // Basic info (required)
-    checkField(p.full_name, true);
-    checkField(p.major, true);
-    
-    // Academic
-    checkField(p.degree_type);
-    checkField(p.graduation_year);
-    checkField(p.gpa);
-    checkField(p.skills);
-    
-    // Contact
-    checkField(p.phone);
-    checkField(p.linkedin_url);
-    checkField(p.github_url);
-    checkField(p.address);
-    
-    // Professional
-    checkField(p.preferred_industry);
-    checkField(p.work_experience);
-    checkField(p.education);
-    
-    // Resume
-    checkField(p.resume_url);
-
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
-  };
-
-  const profileCompletion = calculateProfileCompletion();
+  // Calculate profile completion for display
+  const profileCompleteness = profile?.profile 
+    ? calculateProfileCompleteness(profile.profile)
+    : { percentage: 0, missingFields: [] };
 
   // Get upcoming registrations
   const upcomingRegistrations = registrations?.filter((reg: any) => {
@@ -174,51 +135,14 @@ export default function DashboardPage() {
 
         {/* Student-Specific Dashboard */}
         <StudentOnly>
+          {/* Profile Completion Prompt (shown if incomplete) */}
+          {profile?.profile && profileCompleteness.percentage < 100 && (
+            <div className="mb-6">
+              <ProfileCompletenessCard profile={profile.profile} />
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-            {/* Profile Completion Card */}
-            <Card className={profileCompletion < 50 ? 'border-orange-500' : profileCompletion < 100 ? 'border-yellow-500' : 'border-green-500'}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Profile Completion
-                </CardTitle>
-                <CardDescription>Complete your profile to get better matches</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold">{profileCompletion}%</span>
-                    {profileCompletion === 100 ? (
-                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Complete
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">In Progress</Badge>
-                    )}
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        profileCompletion < 50
-                          ? 'bg-orange-500'
-                          : profileCompletion < 100
-                          ? 'bg-yellow-500'
-                          : 'bg-green-500'
-                      }`}
-                      style={{ width: `${profileCompletion}%` }}
-                    />
-                  </div>
-                  {profileCompletion < 100 && (
-                    <Link href="/profile/edit">
-                      <Button variant="outline" className="w-full mt-2" size="sm">
-                        Complete Profile
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Academic Summary Card */}
             {profile?.profile && (

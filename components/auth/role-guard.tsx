@@ -59,7 +59,7 @@ export function RoleGuard({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              You don't have permission to access this content. Required role: {allowedRoles.join(' or ')}.
+              You don&apos;t have permission to access this content. Required role: {allowedRoles.join(' or ')}.
             </AlertDescription>
           </Alert>
         );
@@ -97,7 +97,7 @@ export function RoleGuard({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              You don't have the required permissions to access this content.
+              You don&apos;t have the required permissions to access this content.
             </AlertDescription>
           </Alert>
         );

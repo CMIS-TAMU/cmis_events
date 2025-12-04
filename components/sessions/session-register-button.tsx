@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc/trpc';
+import { toastUtil } from '@/lib/utils/toast';
 
 interface SessionRegisterButtonProps {
   sessionId: string;
@@ -33,7 +34,7 @@ export function SessionRegisterButton({
       if (onError) {
         onError(error.message || 'Failed to register for session');
       } else {
-        alert(error.message || 'Failed to register for session');
+        toastUtil.error('Registration failed', error.message || 'Failed to register for session. Please try again.');
       }
     },
   });

@@ -12,15 +12,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ArrowLeft, Save, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { 
-  WorkExperienceForm, 
-  WorkExperienceCard, 
+  WorkExperienceForm,
+  WorkExperienceCard,
   type WorkExperienceEntry 
-} from '@/components/profile/work-experience-form';
+} from '@/components/profile/index';
 import { 
-  EducationForm, 
-  EducationCard, 
+  EducationForm,
+  EducationCard,
   type EducationEntry 
-} from '@/components/profile/education-form';
+} from '@/components/profile/index';
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -160,6 +160,7 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,7 +185,7 @@ export default function EditProfilePage() {
       career_goals: careerGoals || undefined,
       graduation_year: graduationYear ? parseInt(graduationYear) : undefined,
       gpa: gpa ? parseFloat(gpa) : undefined,
-      degree_type: degreeType || undefined,
+      degree_type: degreeType ? (degreeType as 'bachelor' | 'master' | 'phd' | 'associate' | 'certificate') : undefined,
       phone: phone || undefined,
       linkedin_url: linkedin,
       github_url: github,
@@ -311,8 +312,8 @@ export default function EditProfilePage() {
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       <option value="">Select degree type</option>
-                      <option value="bachelor">Bachelor's</option>
-                      <option value="master">Master's</option>
+                      <option value="bachelor">Bachelor&apos;s</option>
+                      <option value="master">Master&apos;s</option>
                       <option value="phd">PhD</option>
                       <option value="associate">Associate</option>
                       <option value="certificate">Certificate</option>
@@ -479,7 +480,7 @@ export default function EditProfilePage() {
                     placeholder="e.g., Software, Finance, Healthcare, Consulting"
                   />
                   <p className="text-xs text-muted-foreground">
-                    The industry you're most interested in pursuing
+                    The industry you&apos;re most interested in pursuing
                   </p>
                 </div>
 

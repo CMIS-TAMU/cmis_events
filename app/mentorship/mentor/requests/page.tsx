@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, User, Mail, GraduationCap, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function MentorRequestsPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function MentorRequestsPage() {
       router.push('/mentorship/dashboard');
     },
     onError: (err) => {
-      alert(err.message);
+      toastUtil.error('Failed to select student', err.message || 'Please try again.');
       setSelectingBatchId(null);
     },
   });

@@ -149,7 +149,7 @@ export default function SponsorResumesPage() {
   }
 
   // Get unique majors for filter
-  const uniqueMajors = Array.from(new Set(resumes?.map((r: any) => r.major).filter(Boolean) || []));
+  const uniqueMajors: string[] = Array.from(new Set(resumes?.map((r: any) => r.major).filter(Boolean) || [])) as string[];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, User, Mail, Building, MapPin, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function RequestMentorPage() {
   const router = useRouter();
@@ -27,8 +28,10 @@ export default function RequestMentorPage() {
     },
     onError: (error) => {
       console.error('Error requesting mentor:', error);
-      // Show error to user
-      alert(`Error: ${error.message}`);
+      toastUtil.error(
+        'Failed to request mentor',
+        error.message || 'Please try again or contact support if the problem persists.'
+      );
     },
   });
 

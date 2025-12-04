@@ -1,5 +1,7 @@
 'use client';
 
+import { toastUtil } from '@/lib/utils/toast';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/trpc';
@@ -85,7 +87,10 @@ export default function TeamRegistrationPage() {
 
   const handleAddMember = (userId: string, userName: string) => {
     if (members.length >= (competition?.max_team_size || 4)) {
-      alert(`Maximum team size is ${competition?.max_team_size || 4} members`);
+      toastUtil.warning(
+        'Team size limit reached',
+        `Maximum team size is ${competition?.max_team_size || 4} members.`
+      );
       return;
     }
     if (!members.includes(userId)) {
@@ -97,7 +102,7 @@ export default function TeamRegistrationPage() {
 
   const handleRemoveMember = (userId: string) => {
     if (userId === user?.id) {
-      alert('You cannot remove yourself from the team');
+      toastUtil.warning('Cannot remove yourself', 'You cannot remove yourself from the team.');
       return;
     }
     setMembers(members.filter((id) => id !== userId));
@@ -107,17 +112,23 @@ export default function TeamRegistrationPage() {
     e.preventDefault();
 
     if (!teamName.trim()) {
-      alert('Please enter a team name');
+      toastUtil.warning('Team name required', 'Please enter a team name before submitting.');
       return;
     }
 
     if (members.length < (competition?.min_team_size || 2)) {
-      alert(`Team must have at least ${competition?.min_team_size || 2} members`);
+      toastUtil.warning(
+        'Team size too small',
+        `Team must have at least ${competition?.min_team_size || 2} members.`
+      );
       return;
     }
 
     if (members.length > (competition?.max_team_size || 4)) {
-      alert(`Team can have at most ${competition?.max_team_size || 4} members`);
+      toastUtil.warning(
+        'Team size too large',
+        `Team can have at most ${competition?.max_team_size || 4} members.`
+      );
       return;
     }
 
@@ -127,8 +138,9 @@ export default function TeamRegistrationPage() {
         name: teamName,
         members,
       });
+      toastUtil.success('Team created successfully!', 'Your team has been registered for the competition.');
     } catch (error: any) {
-      alert(error.message || 'Failed to create team');
+      toastUtil.error('Failed to create team', error.message || 'Please try again.');
     }
   };
 

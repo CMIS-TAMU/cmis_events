@@ -1097,7 +1097,7 @@ export const mentorshipRouter = router({
       }).optional()
     )
     .query(async ({ input }) => {
-      const supabase = getAdminSupabase();
+      const supabase = createAdminSupabase();
 
       let query = supabase
         .from('matches')
@@ -1130,7 +1130,7 @@ export const mentorshipRouter = router({
       }).optional()
     )
     .query(async ({ input }) => {
-      const supabase = getAdminSupabase();
+      const supabase = createAdminSupabase();
       const days = input?.days || 30;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -1198,7 +1198,7 @@ export const mentorshipRouter = router({
 
   // Get at-risk matches (admin)
   getAtRiskMatches: adminProcedure.query(async ({ ctx }) => {
-    const supabase = getAdminSupabase();
+    const supabase = createAdminSupabase();
 
     const { data, error } = await supabase.rpc('get_at_risk_matches');
 
@@ -1220,7 +1220,7 @@ export const mentorshipRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const supabase = getAdminSupabase();
+      const supabase = createAdminSupabase();
 
       // Verify both profiles exist
       const { data: studentProfile } = await supabase
@@ -1276,7 +1276,7 @@ export const mentorshipRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const supabase = getAdminSupabase();
+      const supabase = createAdminSupabase();
 
       const { data, error } = await supabase
         .from('matches')

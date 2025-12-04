@@ -27,8 +27,8 @@ import {
   Award
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { WorkExperienceCard, type WorkExperienceEntry } from '@/components/profile/work-experience-form';
-import { EducationCard, type EducationEntry } from '@/components/profile/education-form';
+import { WorkExperienceCard, type WorkExperienceEntry, EducationCard, type EducationEntry } from '@/components/profile/index';
+import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -107,6 +107,13 @@ export default function ProfilePage() {
           </Link>
         )}
       </div>
+
+      {/* Profile Completeness Card */}
+      {profile?.role === 'student' && (
+        <div className="mb-6">
+          <ProfileCompletenessCard profile={profile} />
+        </div>
+      )}
 
       {/* Basic Profile Information */}
       <div className="grid gap-6 md:grid-cols-2 mb-6">

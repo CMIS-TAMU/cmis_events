@@ -263,7 +263,7 @@ export const authRouter = router({
 
       const { data, error } = await supabaseAdmin
         .from('users')
-        .update({ work_experience })
+        .update({ work_experience: workExperience })
         .eq('id', userId)
         .select('work_experience')
         .single();

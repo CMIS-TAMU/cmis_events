@@ -67,7 +67,7 @@ export const analyticsRouter = router({
         .gte('created_at', startDate);
 
       const avgRating = feedbackData && feedbackData.length > 0
-        ? Math.round((feedbackData.reduce((sum, f) => sum + f.rating, 0) / feedbackData.length) * 100) / 100
+        ? Math.round((feedbackData.reduce((sum: number, f: { rating: number }) => sum + f.rating, 0) / feedbackData.length) * 100) / 100
         : 0;
 
       // Get check-in count
@@ -127,7 +127,7 @@ export const analyticsRouter = router({
       // Group by date
       const groupedData = new Map<string, { registrations: number; cancellations: number }>();
 
-      (registrations || []).forEach((r) => {
+      (registrations || []).forEach((r: { registered_at: string; status: string }) => {
         const date = new Date(r.registered_at).toISOString().split('T')[0];
 
         if (!groupedData.has(date)) {
@@ -293,7 +293,7 @@ export const analyticsRouter = router({
       });
 
       // Sort by registration count
-      eventsWithCounts.sort((a, b) => b.registered - a.registered);
+      eventsWithCounts.sort((a: { registered: number }, b: { registered: number }) => b.registered - a.registered);
 
       return eventsWithCounts.slice(0, input?.limit || 5);
     }),

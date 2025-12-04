@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toastUtil } from '@/lib/utils/toast';
 
 const sessionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -109,8 +110,9 @@ export function SessionDialog({
         });
       }
       onSuccess();
+      toastUtil.success('Session saved successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to save session');
+      toastUtil.error('Failed to save session', error.message || 'Please try again.');
     } finally {
       setIsSubmitting(false);
     }

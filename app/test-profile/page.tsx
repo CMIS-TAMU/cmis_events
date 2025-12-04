@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 // Using inline textarea instead of Textarea component
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function TestProfilePage() {
   const router = useRouter();
@@ -24,29 +25,29 @@ export default function TestProfilePage() {
     },
     onError: (error) => {
       console.error('❌ Error:', error);
-      alert(`Error: ${error.message}`);
+      toastUtil.error('Failed to update profile', error.message || 'Please try again.');
     },
   });
 
   const updateWorkExp = trpc.auth.updateWorkExperience.useMutation({
     onSuccess: (data) => {
       console.log('✅ Work experience updated:', data);
-      alert('Work experience updated successfully!');
+      toastUtil.success('Work experience updated successfully!');
     },
     onError: (error) => {
       console.error('❌ Error:', error);
-      alert(`Error: ${error.message}`);
+      toastUtil.error('Failed to update work experience', error.message || 'Please try again.');
     },
   });
 
   const updateEducation = trpc.auth.updateEducation.useMutation({
     onSuccess: (data) => {
       console.log('✅ Education updated:', data);
-      alert('Education updated successfully!');
+      toastUtil.success('Education updated successfully!');
     },
     onError: (error) => {
       console.error('❌ Error:', error);
-      alert(`Error: ${error.message}`);
+      toastUtil.error('Failed to update education', error.message || 'Please try again.');
     },
   });
 
@@ -180,8 +181,8 @@ export default function TestProfilePage() {
                 <option value="certificate">Certificate</option>
               </select>
             </div>
-            <Button type="submit" disabled={updateProfile.isLoading} className="w-full">
-              {updateProfile.isLoading ? (
+            <Button type="submit" disabled={updateProfile.isPending} className="w-full">
+              {updateProfile.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
@@ -240,8 +241,8 @@ export default function TestProfilePage() {
               <input type="checkbox" id="is_current" name="is_current" className="rounded" />
               <Label htmlFor="is_current" className="font-normal">Current Position</Label>
             </div>
-            <Button type="submit" disabled={updateWorkExp.isLoading} className="w-full">
-              {updateWorkExp.isLoading ? (
+            <Button type="submit" disabled={updateWorkExp.isPending} className="w-full">
+              {updateWorkExp.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
@@ -298,8 +299,8 @@ export default function TestProfilePage() {
               <input type="checkbox" id="edu_is_current" name="edu_is_current" className="rounded" />
               <Label htmlFor="edu_is_current" className="font-normal">Currently Enrolled</Label>
             </div>
-            <Button type="submit" disabled={updateEducation.isLoading} className="w-full">
-              {updateEducation.isLoading ? (
+            <Button type="submit" disabled={updateEducation.isPending} className="w-full">
+              {updateEducation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Calendar, Clock, Users, ArrowRight, Loader2 } from 'lucide-react';
 import { trpc } from '@/lib/trpc/trpc';
+import { toastUtil } from '@/lib/utils/toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,16 +38,17 @@ export default function MySessionsPage() {
   const cancelMutation = trpc.sessions.cancel.useMutation({
     onSuccess: () => {
       utils.sessions.getMySessions.invalidate();
+      toastUtil.success('Session registration cancelled', 'You have successfully cancelled your session registration.');
+    },
+    onError: (error: any) => {
+      toastUtil.error('Failed to cancel registration', error.message || 'Please try again.');
     },
   });
 
   const handleCancel = async (sessionId: string) => {
+    // Using confirm dialog - can be replaced with custom dialog later
     if (confirm('Are you sure you want to cancel your registration for this session?')) {
-      try {
-        await cancelMutation.mutateAsync({ session_id: sessionId });
-      } catch (error: any) {
-        alert(error.message || 'Failed to cancel registration');
-      }
+      await cancelMutation.mutateAsync({ session_id: sessionId });
     }
   };
 

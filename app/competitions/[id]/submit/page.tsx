@@ -1,5 +1,7 @@
 'use client';
 
+import { toastUtil } from '@/lib/utils/toast';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc/trpc';
@@ -58,13 +60,19 @@ export default function SubmitPage() {
       ];
 
       if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type. Please upload a PDF, DOC, DOCX, PPT, or PPTX file.');
+        toastUtil.error(
+          'Invalid file type',
+          'Please upload a PDF, DOC, DOCX, PPT, or PPTX file.'
+        );
         return;
       }
 
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size exceeds 10MB limit.');
+        toastUtil.error(
+          'File too large',
+          'File size exceeds 10MB limit. Please select a smaller file.'
+        );
         return;
       }
 
@@ -80,7 +88,10 @@ export default function SubmitPage() {
     // Check deadline
     const deadline = competition?.deadline ? new Date(competition.deadline) : null;
     if (deadline && deadline < new Date()) {
-      alert('Submission deadline has passed.');
+      toastUtil.error(
+        'Deadline passed',
+        'The submission deadline for this competition has passed.'
+      );
       return;
     }
 
@@ -115,8 +126,9 @@ export default function SubmitPage() {
         submission_url: publicUrl,
         submission_filename: selectedFile.name,
       });
+      toastUtil.success('Submission successful!', 'Your competition submission has been uploaded successfully.');
     } catch (error: any) {
-      alert(error.message || 'Failed to submit. Please try again.');
+      toastUtil.error('Submission failed', error.message || 'Please try again.');
     } finally {
       setUploading(false);
     }
