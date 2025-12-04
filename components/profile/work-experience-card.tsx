@@ -52,12 +52,12 @@ export function WorkExperienceCard({ entry, onEdit, onDelete }: WorkExperienceCa
             <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
               {entry.location && (
                 <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
                   <span>{entry.location}</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4" aria-hidden="true" />
                 <span>
                   {startDate} - {endDate}
                 </span>
@@ -75,16 +75,18 @@ export function WorkExperienceCard({ entry, onEdit, onDelete }: WorkExperienceCa
               size="icon"
               onClick={() => onEdit(entry)}
               className="h-8 w-8"
+              aria-label={`Edit work experience at ${entry.company}`}
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onDelete(entry)}
               className="h-8 w-8 text-destructive hover:text-destructive"
+              aria-label={`Delete work experience at ${entry.company}`}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>

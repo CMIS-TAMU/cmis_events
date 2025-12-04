@@ -496,12 +496,12 @@ export const mentorshipRouter = router({
 
   // Get match batch for student
   getMatchBatch: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!ctx.user) {
       throw new Error('User not authenticated');
     }
+
+    // Use context supabase client (has proper authentication)
+    const supabase = ctx.supabase || createAdminSupabase();
 
     const { data, error } = await supabase
       .from('match_batches')
@@ -511,7 +511,7 @@ export const mentorshipRouter = router({
         mentor_2:mentor_2_id(id, email, full_name),
         mentor_3:mentor_3_id(id, email, full_name)
       `)
-      .eq('student_id', user.id)
+      .eq('student_id', ctx.user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -525,12 +525,12 @@ export const mentorshipRouter = router({
 
   // Get match batch for mentor (where they are recommended)
   getMentorMatchBatch: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!ctx.user) {
       throw new Error('User not authenticated');
     }
+
+    // Use context supabase client (has proper authentication)
+    const supabase = ctx.supabase || createAdminSupabase();
 
     const { data, error } = await supabase
       .from('match_batches')
@@ -538,7 +538,7 @@ export const mentorshipRouter = router({
         *,
         student:student_id(id, email, full_name)
       `)
-      .or(`mentor_1_id.eq.${user.id},mentor_2_id.eq.${user.id},mentor_3_id.eq.${user.id}`)
+      .or(`mentor_1_id.eq.${ctx.user.id},mentor_2_id.eq.${ctx.user.id},mentor_3_id.eq.${ctx.user.id}`)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
@@ -551,12 +551,12 @@ export const mentorshipRouter = router({
 
   // Get all matches for current user
   getMatches: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!ctx.user) {
       throw new Error('User not authenticated');
     }
+
+    // Use context supabase client (has proper authentication)
+    const supabase = ctx.supabase || createAdminSupabase();
 
     const { data, error } = await supabase
       .from('matches')
@@ -565,7 +565,7 @@ export const mentorshipRouter = router({
         student:student_id(id, email, full_name),
         mentor:mentor_id(id, email, full_name)
       `)
-      .or(`student_id.eq.${user.id},mentor_id.eq.${user.id}`)
+      .or(`student_id.eq.${ctx.user.id},mentor_id.eq.${ctx.user.id}`)
       .order('matched_at', { ascending: false });
 
     if (error) {
@@ -577,12 +577,12 @@ export const mentorshipRouter = router({
 
   // Get active match for current user
   getActiveMatch: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!ctx.user) {
       throw new Error('User not authenticated');
     }
+
+    // Use context supabase client (has proper authentication)
+    const supabase = ctx.supabase || createAdminSupabase();
 
     const { data, error } = await supabase
       .from('matches')
@@ -591,7 +591,7 @@ export const mentorshipRouter = router({
         student:student_id(id, email, full_name),
         mentor:mentor_id(id, email, full_name)
       `)
-      .or(`student_id.eq.${user.id},mentor_id.eq.${user.id}`)
+      .or(`student_id.eq.${ctx.user.id},mentor_id.eq.${ctx.user.id}`)
       .eq('status', 'active')
       .order('matched_at', { ascending: false })
       .limit(1)

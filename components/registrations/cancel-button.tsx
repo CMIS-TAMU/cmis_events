@@ -66,25 +66,26 @@ export function CancelButton({
         size={size}
         onClick={handleCancel}
         disabled={cancelMutation.isPending}
+        aria-label={`Cancel registration for ${eventTitle}`}
       >
         {cancelMutation.isPending ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
             Cancelling...
           </>
         ) : (
           <>
-            <X className="h-4 w-4 mr-2" />
+            <X className="h-4 w-4 mr-2" aria-hidden="true" />
             Cancel Registration
           </>
         )}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent aria-labelledby="cancel-dialog-title" aria-describedby="cancel-dialog-description">
           <DialogHeader>
-            <DialogTitle>Cancel Registration</DialogTitle>
-            <DialogDescription>
+            <DialogTitle id="cancel-dialog-title">Cancel Registration</DialogTitle>
+            <DialogDescription id="cancel-dialog-description">
               Are you sure you want to cancel your registration for &quot;{eventTitle}&quot;?
               This action cannot be undone.
             </DialogDescription>
@@ -92,13 +93,22 @@ export function CancelButton({
 
           {cancelStatus === 'idle' && (
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDialog(false)}
+                aria-label="Keep your registration"
+              >
                 Keep Registration
               </Button>
-              <Button variant="destructive" onClick={confirmCancel} disabled={cancelMutation.isPending}>
+              <Button 
+                variant="destructive" 
+                onClick={confirmCancel} 
+                disabled={cancelMutation.isPending}
+                aria-label={`Confirm cancellation of registration for ${eventTitle}`}
+              >
                 {cancelMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
                     Cancelling...
                   </>
                 ) : (

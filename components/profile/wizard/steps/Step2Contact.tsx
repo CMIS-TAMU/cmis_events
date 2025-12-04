@@ -56,6 +56,7 @@ export function Step2Contact({
             onChange={(e) =>
               setFormData({ ...formData, address: e.target.value })
             }
+            autoComplete="street-address"
           />
         </div>
 
@@ -69,6 +70,7 @@ export function Step2Contact({
             onChange={(e) =>
               setFormData({ ...formData, linkedin_url: e.target.value })
             }
+            autoComplete="url"
           />
         </div>
 
@@ -95,18 +97,28 @@ export function Step2Contact({
             onChange={(e) =>
               setFormData({ ...formData, website_url: e.target.value })
             }
+            autoComplete="url"
           />
         </div>
       </div>
 
       <div className="flex justify-between pt-6">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onBack}
+          aria-label="Go to previous step"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back
         </Button>
-        <Button type="button" onClick={handleNext}>
+        <Button 
+          type="button" 
+          onClick={handleNext}
+          aria-label="Continue to next step"
+        >
           Next
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
     </div>

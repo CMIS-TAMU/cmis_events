@@ -40,22 +40,28 @@ export function QRCodeDisplay({ data, title, size = 200, showDownload = true }: 
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4 bg-white rounded-lg border">
+    <div className="flex flex-col items-center gap-4 p-4 bg-white rounded-lg border" role="region" aria-label={title || "QR Code"}>
       {title && <h3 className="font-semibold text-lg">{title}</h3>}
       <div className="p-4 bg-white rounded border-2 border-gray-200">
-        <div id="qr-code-svg">
+        <div id="qr-code-svg" aria-label="QR Code image">
           <QRCode
             value={data}
             size={size}
             level="M"
             style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
             viewBox="0 0 256 256"
+            aria-label={`QR Code: ${title || 'Event registration'}`}
           />
         </div>
       </div>
       {showDownload && (
-        <Button variant="outline" size="sm" onClick={handleDownload}>
-          <Download className="h-4 w-4 mr-2" />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleDownload}
+          aria-label="Download QR code as SVG file"
+        >
+          <Download className="h-4 w-4 mr-2" aria-hidden="true" />
           Download QR Code
         </Button>
       )}

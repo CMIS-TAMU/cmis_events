@@ -10,6 +10,7 @@ import { missionsRouter } from './missions.router';
 import { feedbackRouter } from './feedback.router';
 import { analyticsRouter } from './analytics.router';
 import { mentorshipRouter } from './mentorship.router';
+import { miniMentorshipRouter } from './miniMentorship.router';
 import { seatingRouter } from './seating.router';
 
 // Main app router that combines all routers
@@ -25,6 +26,7 @@ export const appRouter = router({
   feedback: feedbackRouter,
   analytics: analyticsRouter,
   mentorship: mentorshipRouter,
+  miniMentorship: miniMentorshipRouter,
   seating: seatingRouter,
 });
 

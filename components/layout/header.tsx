@@ -134,16 +134,27 @@ export function Header() {
   });
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header 
+      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      role="banner"
+    >
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <Calendar className="h-6 w-6" />
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 font-bold text-xl"
+            aria-label="CMIS Events home page"
+          >
+            <Calendar className="h-6 w-6" aria-hidden="true" />
             <span>CMIS Events</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav 
+            className="hidden md:flex items-center gap-6"
+            role="navigation"
+            aria-label="Main navigation"
+          >
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -151,6 +162,7 @@ export function Header() {
                 className={`text-sm font-medium transition-colors hover:text-primary ${
                   isActive(link.href) ? 'text-primary' : 'text-muted-foreground'
                 }`}
+                aria-current={isActive(link.href) ? 'page' : undefined}
               >
                 {link.label}
               </Link>
@@ -164,20 +176,25 @@ export function Header() {
             <>
               {role === 'admin' && (
                 <Link href="/admin/dashboard">
-                  <Button variant="ghost" size="sm">
-                    <Shield className="h-4 w-4 mr-2" />
+                  <Button variant="ghost" size="sm" aria-label="Go to admin dashboard">
+                    <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
                     Admin
                   </Button>
                 </Link>
               )}
               <Link href="/profile">
-                <Button variant="ghost" size="sm">
-                  <User className="h-4 w-4 mr-2" />
+                <Button variant="ghost" size="sm" aria-label="Go to your profile">
+                  <User className="h-4 w-4 mr-2" aria-hidden="true" />
                   Profile
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                aria-label="Sign out of your account"
+              >
+                <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
                 Sign out
               </Button>
             </>
@@ -201,15 +218,22 @@ export function Header() {
           size="icon"
           className="md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation"
         >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </Button>
       </div>
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="border-t md:hidden">
-          <nav className="container flex flex-col gap-4 px-4 py-4">
+        <div className="border-t md:hidden" id="mobile-navigation">
+          <nav 
+            className="container flex flex-col gap-4 px-4 py-4"
+            role="navigation"
+            aria-label="Mobile navigation"
+          >
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -218,6 +242,7 @@ export function Header() {
                   isActive(link.href) ? 'text-primary' : 'text-muted-foreground'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
+                aria-current={isActive(link.href) ? 'page' : undefined}
               >
                 {link.label}
               </Link>

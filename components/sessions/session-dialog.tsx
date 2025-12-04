@@ -120,23 +120,34 @@ export function SessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        aria-labelledby="session-dialog-title"
+        aria-describedby="session-dialog-description"
+      >
         <DialogHeader>
-          <DialogTitle>{session ? 'Edit Session' : 'Create Session'}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id="session-dialog-title">{session ? 'Edit Session' : 'Create Session'}</DialogTitle>
+          <DialogDescription id="session-dialog-description">
             {session ? 'Update session details' : 'Add a new session to this event'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" aria-label={session ? 'Edit session form' : 'Create session form'}>
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">
+              Title <span className="text-red-500" aria-label="required">*</span>
+            </Label>
             <Input
               id="title"
               {...register('title')}
               placeholder="e.g., Opening Keynote"
+              aria-required="true"
+              aria-invalid={errors.title ? 'true' : 'false'}
+              aria-describedby={errors.title ? 'title-error' : undefined}
             />
             {errors.title && (
-              <p className="text-sm text-destructive">{errors.title.message}</p>
+              <p id="title-error" className="text-sm text-destructive" role="alert">
+                {errors.title.message}
+              </p>
             )}
           </div>
 
@@ -153,26 +164,40 @@ export function SessionDialog({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="starts_at">Start Time *</Label>
+              <Label htmlFor="starts_at">
+                Start Time <span className="text-red-500" aria-label="required">*</span>
+              </Label>
               <Input
                 id="starts_at"
                 type="datetime-local"
                 {...register('starts_at')}
+                aria-required="true"
+                aria-invalid={errors.starts_at ? 'true' : 'false'}
+                aria-describedby={errors.starts_at ? 'starts_at-error' : undefined}
               />
               {errors.starts_at && (
-                <p className="text-sm text-destructive">{errors.starts_at.message}</p>
+                <p id="starts_at-error" className="text-sm text-destructive" role="alert">
+                  {errors.starts_at.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ends_at">End Time *</Label>
+              <Label htmlFor="ends_at">
+                End Time <span className="text-red-500" aria-label="required">*</span>
+              </Label>
               <Input
                 id="ends_at"
                 type="datetime-local"
                 {...register('ends_at')}
+                aria-required="true"
+                aria-invalid={errors.ends_at ? 'true' : 'false'}
+                aria-describedby={errors.ends_at ? 'ends_at-error' : undefined}
               />
               {errors.ends_at && (
-                <p className="text-sm text-destructive">{errors.ends_at.message}</p>
+                <p id="ends_at-error" className="text-sm text-destructive" role="alert">
+                  {errors.ends_at.message}
+                </p>
               )}
             </div>
           </div>
@@ -192,10 +217,19 @@ export function SessionDialog({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              aria-label="Cancel and close dialog"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              aria-label={isSubmitting ? 'Saving session, please wait' : session ? 'Update session' : 'Create new session'}
+            >
               {isSubmitting ? 'Saving...' : session ? 'Update Session' : 'Create Session'}
             </Button>
           </div>

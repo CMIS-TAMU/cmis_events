@@ -59,7 +59,7 @@ export function SessionCard({
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4" aria-hidden="true" />
             <span>{format(startDate, 'MMM d, yyyy')}</span>
           </div>
           <div className="flex items-center gap-1">
@@ -67,8 +67,8 @@ export function SessionCard({
           </div>
           {session.capacity > 0 && (
             <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>
+              <Users className="h-4 w-4" aria-hidden="true" />
+              <span aria-label={`Capacity: ${remaining !== undefined ? `${remaining} of ${session.capacity} spots remaining` : `${session.capacity} total capacity`}`}>
                 {remaining !== undefined ? (
                   <>
                     {remaining} / {session.capacity} spots left
@@ -86,7 +86,12 @@ export function SessionCard({
         {showActions && isUpcoming && (
           <div className="flex gap-2">
             {registered ? (
-              <Button variant="outline" size="sm" onClick={onCancel}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onCancel}
+                aria-label={`Cancel registration for ${session.title}`}
+              >
                 Cancel Registration
               </Button>
             ) : (
@@ -94,6 +99,8 @@ export function SessionCard({
                 size="sm"
                 onClick={onRegister}
                 disabled={isFull}
+                aria-label={isFull ? `${session.title} is full` : `Register for ${session.title}`}
+                aria-disabled={isFull}
               >
                 {isFull ? 'Full' : 'Register for Session'}
               </Button>

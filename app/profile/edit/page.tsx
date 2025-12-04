@@ -272,17 +272,17 @@ export default function EditProfilePage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} aria-label="Edit profile form">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="contact">Contact</TabsTrigger>
-            <TabsTrigger value="professional">Professional</TabsTrigger>
-            <TabsTrigger value="education">Education</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4" role="tablist" aria-label="Profile sections">
+            <TabsTrigger value="basic" role="tab" aria-controls="basic-tabpanel">Basic Info</TabsTrigger>
+            <TabsTrigger value="contact" role="tab" aria-controls="contact-tabpanel">Contact</TabsTrigger>
+            <TabsTrigger value="professional" role="tab" aria-controls="professional-tabpanel">Professional</TabsTrigger>
+            <TabsTrigger value="education" role="tab" aria-controls="education-tabpanel">Education</TabsTrigger>
           </TabsList>
 
           {/* Tab 1: Basic Information */}
-          <TabsContent value="basic" className="mt-6">
+          <TabsContent value="basic" className="mt-6" id="basic-tabpanel" role="tabpanel" aria-labelledby="basic-tab">
             <Card>
               <CardHeader>
                 <CardTitle>Academic Information</CardTitle>
@@ -293,13 +293,17 @@ export default function EditProfilePage() {
               <CardContent className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="major">Major *</Label>
+                    <Label htmlFor="major">
+                      Major <span className="text-red-500" aria-label="required">*</span>
+                    </Label>
                     <Input
                       id="major"
                       value={major}
                       onChange={(e) => setMajor(e.target.value)}
                       placeholder="e.g., Computer Science"
                       required
+                      aria-required="true"
+                      autoComplete="organization-title"
                     />
                   </div>
 
@@ -310,6 +314,7 @@ export default function EditProfilePage() {
                       value={degreeType}
                       onChange={(e) => setDegreeType(e.target.value)}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label="Select your degree type"
                     >
                       <option value="">Select degree type</option>
                       <option value="bachelor">Bachelor&apos;s</option>

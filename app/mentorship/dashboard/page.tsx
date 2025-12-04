@@ -8,7 +8,9 @@ import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Users, MessageSquare, Calendar, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, UserPlus, Users, MessageSquare, Calendar, AlertCircle, CheckCircle2, ArrowRight, Video, Clock, Zap } from 'lucide-react';
+import { MiniSessionRequestDialog } from '@/components/mentorship/MiniSessionRequestDialog';
+import { format } from 'date-fns';
 
 export default function MentorshipDashboardPage() {
   const router = useRouter();
@@ -33,25 +35,69 @@ export default function MentorshipDashboardPage() {
     getUserRole();
   }, []);
 
+  // Determine if user is mentor or student (calculate early for use in queries)
+  const isStudent = userRole === 'student';
+
   // Fetch user's mentorship profile (only for mentors - students don't need it)
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = trpc.mentorship.getProfile.useQuery();
+  // For students, this will return null, which is fine
+  const { data: profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = trpc.mentorship.getProfile.useQuery(undefined, {
+    enabled: userRole !== 'student', // Only fetch for non-students
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Cache for 1 minute
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnMount: false,
+  });
   
   // Fetch active match
-  const { data: activeMatch, isLoading: matchLoading, refetch: refetchMatch } = trpc.mentorship.getActiveMatch.useQuery();
+  const { data: activeMatch, isLoading: matchLoading, error: matchError, refetch: refetchMatch } = trpc.mentorship.getActiveMatch.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    // Add timeout
+    networkMode: 'online',
+  });
   
   // Fetch match batch (pending recommendations) - for students (works without profile)
-  const { data: matchBatch, isLoading: batchLoading } = trpc.mentorship.getMatchBatch.useQuery(undefined, {
+  const { data: matchBatch, isLoading: batchLoading, error: batchError } = trpc.mentorship.getMatchBatch.useQuery(undefined, {
     enabled: userRole === 'student',
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    // Add timeout
+    networkMode: 'online',
   });
   
   // Fetch mentor match batches (where they're recommended) - for mentors (need profile)
-  const { data: mentorMatchBatches, isLoading: mentorBatchLoading } = trpc.mentorship.getMentorMatchBatch.useQuery(undefined, {
-    enabled: profile?.profile_type === 'mentor',
+  const { data: mentorMatchBatches, isLoading: mentorBatchLoading, error: mentorBatchError } = trpc.mentorship.getMentorMatchBatch.useQuery(undefined, {
+    enabled: userRole !== 'student' && !!profile?.profile_type && profile.profile_type === 'mentor',
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
   
   // Fetch all matches for mentors (to show all their mentees)
-  const { data: allMatches, isLoading: allMatchesLoading } = trpc.mentorship.getMatches.useQuery(undefined, {
-    enabled: profile?.profile_type === 'mentor',
+  const { data: allMatches, isLoading: allMatchesLoading, error: allMatchesError } = trpc.mentorship.getMatches.useQuery(undefined, {
+    enabled: userRole !== 'student' && !!profile?.profile_type && profile.profile_type === 'mentor',
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  });
+
+  // Determine if user is mentor (isStudent already defined above)
+  const isMentor = userRole !== 'student' && profile?.profile_type === 'mentor';
+
+  // Fetch mini session requests for students
+  const { data: miniSessionRequests, isLoading: miniRequestsLoading, error: miniRequestsError, refetch: refetchMiniRequests } = trpc.miniMentorship.getMyRequests.useQuery(undefined, {
+    enabled: userRole === 'student',
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    throwOnError: false,
   });
 
   // Request mentor mutation
@@ -73,17 +119,111 @@ export default function MentorshipDashboardPage() {
     await requestMentor.mutateAsync({});
   };
 
-  if (isLoadingRole || profileLoading || matchLoading || batchLoading || mentorBatchLoading || allMatchesLoading) {
+  // Show loading only if essential queries are loading
+  // Don't wait forever - allow page to load even if some queries fail
+  // Only wait for role check - everything else can fail gracefully
+  const isEssentialLoading = isLoadingRole;
+
+  // Only show error for critical failures (ignore profile error for students)
+  const hasCriticalError = matchError || (userRole === 'student' ? batchError : false);
+  
+  // Add timeout to prevent infinite loading - shorter timeout
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  useEffect(() => {
+    if (isEssentialLoading) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 8000); // 8 second timeout (shorter)
+      return () => clearTimeout(timer);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isEssentialLoading]);
+  
+  // Show content even if some queries are still loading after timeout
+  const shouldShowContent = !isEssentialLoading || loadingTimeout;
+  
+  if (isEssentialLoading && !loadingTimeout && !hasCriticalError) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Loading mentorship dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If timeout, show error but allow user to continue
+  if (loadingTimeout && !shouldShowContent) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              Loading Timeout
+            </CardTitle>
+            <CardDescription>
+              The dashboard is taking longer than expected to load
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This might indicate a connection issue. You can try reloading or continue to view partial content.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="default">
+                  Reload Page
+                </Button>
+                <Button onClick={() => setLoadingTimeout(false)} variant="outline">
+                  Continue Anyway
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Determine if user is mentor or student
-  const isMentor = userRole !== 'student' && profile?.profile_type === 'mentor';
-  const isStudent = userRole === 'student';
+  // Show timeout or error state
+  if (loadingTimeout || hasCriticalError) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              {loadingTimeout ? 'Loading Timeout' : 'Error Loading Dashboard'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {loadingTimeout 
+                  ? 'The dashboard is taking too long to load. This might indicate a connection issue or missing data.'
+                  : (matchError?.message || batchError?.message || 'An error occurred while loading the dashboard.')}
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="default">
+                  Reload Page
+                </Button>
+                <Link href="/dashboard">
+                  <Button variant="outline">
+                    Go to Main Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // isStudent and isMentor already defined above
 
   // Mentors need a profile, students don't
   if (isMentor && !profile) {
@@ -360,6 +500,139 @@ export default function MentorshipDashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mini Sessions - Student Only */}
+        {isStudent && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Mini Mentorship Sessions
+              </CardTitle>
+              <CardDescription>
+                Request quick 30-60 minute sessions for specific help (interview prep, skill learning, resume review, etc.)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Need quick help with something specific? Request a mini session with a mentor for targeted assistance.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Video className="h-3 w-3" />
+                        Video call
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        30-60 min
+                      </span>
+                      <span>•</span>
+                      <span>One-time session</span>
+                      <span>•</span>
+                      <span>No long-term commitment</span>
+                    </div>
+                  </div>
+                  <MiniSessionRequestDialog
+                    onSuccess={() => {
+                      refetchMiniRequests();
+                    }}
+                    trigger={
+                      <Button>
+                        <Video className="h-4 w-4 mr-2" />
+                        Request Mini Session
+                      </Button>
+                    }
+                  />
+                </div>
+
+                {/* Mini Session Requests List */}
+                {miniRequestsError ? (
+                  <div className="pt-4 border-t">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Mini mentorship feature is not available yet. Please run the database migration first.
+                    </p>
+                  </div>
+                ) : miniRequestsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : miniSessionRequests && miniSessionRequests.length > 0 ? (
+                  <div className="space-y-2 pt-4 border-t">
+                    <p className="text-sm font-medium">Your Mini Session Requests</p>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {miniSessionRequests.slice(0, 5).map((request: any) => {
+                        const getStatusBadge = (status: string) => {
+                          switch (status) {
+                            case 'open':
+                              return <Badge variant="default">Open</Badge>;
+                            case 'claimed':
+                              return <Badge variant="secondary">Claimed</Badge>;
+                            case 'scheduled':
+                              return <Badge variant="outline" className="bg-blue-50 text-blue-700">Scheduled</Badge>;
+                            case 'completed':
+                              return <Badge variant="outline" className="bg-green-50 text-green-700">Completed</Badge>;
+                            case 'cancelled':
+                              return <Badge variant="outline" className="bg-gray-50 text-gray-700">Cancelled</Badge>;
+                            default:
+                              return <Badge variant="outline">{status}</Badge>;
+                          }
+                        };
+
+                        const sessionTypeLabels: Record<string, string> = {
+                          interview_prep: 'Interview Prep',
+                          skill_learning: 'Skill Learning',
+                          career_advice: 'Career Advice',
+                          resume_review: 'Resume Review',
+                          project_guidance: 'Project Guidance',
+                          technical_help: 'Technical Help',
+                          portfolio_review: 'Portfolio Review',
+                          networking_advice: 'Networking',
+                          other: 'Other',
+                        };
+
+                        return (
+                          <div key={request.id} className="p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-medium text-sm truncate">{request.title}</p>
+                                  {getStatusBadge(request.status)}
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  {sessionTypeLabels[request.session_type] || request.session_type} • {request.preferred_duration_minutes} min
+                                </p>
+                                {request.claimed_mentor && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Claimed by: {request.claimed_mentor?.full_name || request.claimed_mentor?.email || 'Mentor'}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Created {format(new Date(request.created_at), 'MMM d, yyyy')}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {miniSessionRequests.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        Showing 5 of {miniSessionRequests.length} requests
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t text-center">
+                    <p className="text-sm text-muted-foreground">No mini session requests yet. Create your first one above!</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <Card className="md:col-span-2">

@@ -37,21 +37,25 @@ export default function EventsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="mb-8 space-y-4">
+      <div className="mb-8 space-y-4" role="search" aria-label="Search and filter events">
         <div className="flex gap-4 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search 
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" 
+              aria-hidden="true"
+            />
             <Input
               type="text"
               placeholder="Search events..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
+              aria-label="Search events by title or description"
             />
           </div>
           <Link href="/seating">
-            <Button variant="outline">
-              <LayoutGrid className="h-4 w-4 mr-2" />
+            <Button variant="outline" aria-label="View seating layout">
+              <LayoutGrid className="h-4 w-4 mr-2" aria-hidden="true" />
               View Seating Layout
             </Button>
           </Link>
@@ -61,8 +65,10 @@ export default function EventsPage() {
               setShowUpcomingOnly(!showUpcomingOnly);
               setPage(0);
             }}
+            aria-label={showUpcomingOnly ? 'Show all events' : 'Show only upcoming events'}
+            aria-pressed={showUpcomingOnly}
           >
-            <CalendarIcon className="h-4 w-4 mr-2" />
+            <CalendarIcon className="h-4 w-4 mr-2" aria-hidden="true" />
             Upcoming Only
           </Button>
         </div>

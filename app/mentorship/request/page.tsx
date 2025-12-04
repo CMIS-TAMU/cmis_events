@@ -35,18 +35,81 @@ export default function RequestMentorPage() {
     },
   });
 
+  // Add timeout to prevent infinite spinning
+  useEffect(() => {
+    if (requestMentor.isPending) {
+      const timeout = setTimeout(() => {
+        if (requestMentor.isPending) {
+          requestMentor.reset();
+          toastUtil.error(
+            'Request timeout',
+            'The request is taking too long. This might mean there are no mentors available. Please contact support.'
+          );
+        }
+      }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [requestMentor.isPending]);
+
   useEffect(() => {
     // Auto-request if no batch exists and user doesn't have active match
-    if (!batchLoading && !matchBatch && !activeMatch) {
+    if (!batchLoading && !matchBatch && !activeMatch && !requestMentor.isPending && !requestMentor.isError) {
       requestMentor.mutate({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchLoading, matchBatch, activeMatch]);
 
+  // Show error state if request failed
+  if (requestMentor.isError) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              Request Failed
+            </CardTitle>
+            <CardDescription>
+              Unable to create mentor request
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800 font-medium mb-2">Error:</p>
+                <p className="text-sm text-red-600">{requestMentor.error?.message || 'Unknown error occurred'}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    requestMentor.reset();
+                    requestMentor.mutate({});
+                  }}
+                  variant="default"
+                >
+                  Try Again
+                </Button>
+                <Link href="/mentorship/dashboard">
+                  <Button variant="outline">
+                    Back to Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (batchLoading || requestMentor.isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Finding mentors...</p>
+        </div>
       </div>
     );
   }

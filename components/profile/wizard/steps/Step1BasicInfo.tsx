@@ -72,15 +72,17 @@ export function Step1BasicInfo({
             value={userEmail}
             disabled
             className="bg-muted"
+            aria-label="Email address (cannot be changed)"
+            aria-describedby="email-hint"
           />
-          <p className="text-xs text-muted-foreground">
+          <p id="email-hint" className="text-xs text-muted-foreground" role="note">
             Your email cannot be changed
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="full_name">
-            Full Name <span className="text-red-500">*</span>
+            Full Name <span className="text-red-500" aria-label="required">*</span>
           </Label>
           <Input
             id="full_name"
@@ -92,15 +94,21 @@ export function Step1BasicInfo({
               setErrors({ ...errors, full_name: '' });
             }}
             className={errors.full_name ? 'border-red-500' : ''}
+            aria-required="true"
+            aria-invalid={errors.full_name ? 'true' : 'false'}
+            aria-describedby={errors.full_name ? 'full_name-error' : undefined}
+            autoComplete="name"
           />
           {errors.full_name && (
-            <p className="text-xs text-red-500">{errors.full_name}</p>
+            <p id="full_name-error" className="text-xs text-red-500" role="alert">
+              {errors.full_name}
+            </p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Phone Number <span className="text-red-500">*</span>
+            Phone Number <span className="text-red-500" aria-label="required">*</span>
           </Label>
           <Input
             id="phone"
@@ -112,9 +120,15 @@ export function Step1BasicInfo({
               setErrors({ ...errors, phone: '' });
             }}
             className={errors.phone ? 'border-red-500' : ''}
+            aria-required="true"
+            aria-invalid={errors.phone ? 'true' : 'false'}
+            aria-describedby={errors.phone ? 'phone-error' : undefined}
+            autoComplete="tel"
           />
           {errors.phone && (
-            <p className="text-xs text-red-500">{errors.phone}</p>
+            <p id="phone-error" className="text-xs text-red-500" role="alert">
+              {errors.phone}
+            </p>
           )}
         </div>
       </div>
@@ -125,13 +139,18 @@ export function Step1BasicInfo({
           variant="outline"
           onClick={onBack}
           disabled={isFirstStep}
+          aria-label="Go to previous step"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back
         </Button>
-        <Button type="button" onClick={handleNext}>
+        <Button 
+          type="button" 
+          onClick={handleNext}
+          aria-label="Continue to next step"
+        >
           Next
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
     </div>
