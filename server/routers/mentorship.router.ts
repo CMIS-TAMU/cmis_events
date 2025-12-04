@@ -1209,6 +1209,105 @@ export const mentorshipRouter = router({
     return data || [];
   }),
 
+  // Get student profile for mentor view (only if mentor has pending request or match)
+  getStudentProfile: protectedProcedure
+    .input(z.object({ student_id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
+      // Get current user's role
+      const { data: currentUserProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      const isAdmin = currentUserProfile?.role === 'admin';
+
+      // Get mentor profile to verify they're a mentor
+      const { data: mentorProfile } = await supabase
+        .from('mentorship_profiles')
+        .select('user_id')
+        .eq('user_id', ctx.user.id)
+        .eq('profile_type', 'mentor')
+        .single();
+
+      // Verify student exists and is a student
+      const { data: studentUser } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('id', input.student_id)
+        .single();
+
+      if (!studentUser || studentUser.role !== 'student') {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Student not found',
+        });
+      }
+
+      // Check if mentor has permission:
+      // 1. Admin can view any student
+      // 2. Mentor can view if they have a pending match batch or active match with this student
+      if (!isAdmin && mentorProfile) {
+        // Check for pending match batch where mentor is recommended
+        const { data: pendingBatch } = await supabase
+          .from('match_batches')
+          .select('id')
+          .eq('student_id', input.student_id)
+          .eq('status', 'pending')
+          .or(`mentor_1_id.eq.${ctx.user.id},mentor_2_id.eq.${ctx.user.id},mentor_3_id.eq.${ctx.user.id}`)
+          .limit(1)
+          .maybeSingle();
+
+        // Check for active match
+        const { data: activeMatch } = await supabase
+          .from('matches')
+          .select('id')
+          .eq('student_id', input.student_id)
+          .eq('mentor_id', mentorProfile.user_id)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (!pendingBatch && !activeMatch) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to view this student profile',
+          });
+        }
+      } else if (!isAdmin && !mentorProfile) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only mentors or admins can view student profiles',
+        });
+      }
+
+      // Get full student profile from users table (use admin client to bypass RLS)
+      const adminSupabase = createAdminSupabase();
+      const { data: studentProfile, error: profileError } = await adminSupabase
+        .from('users')
+        .select('*')
+        .eq('id', input.student_id)
+        .single();
+
+      if (profileError) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch student profile: ${profileError.message}`,
+        });
+      }
+
+      return studentProfile;
+    }),
+
   // Create manual match (admin)
   createManualMatch: adminProcedure
     .input(
