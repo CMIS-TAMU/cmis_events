@@ -708,11 +708,11 @@ export default function BeASponsorPage() {
           Schedule a 15-minute call with our team - we're here to help, Aggie to Aggie
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8">
+          <Button size="lg" className="bg-white hover:bg-gray-100 font-semibold px-8" style={{color: '#500101'}}>
             <Users className="mr-2 h-5 w-5" />
             Schedule a Call
           </Button>
-          <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 font-semibold px-8">
+          <Button size="lg" className="bg-white/20 hover:bg-white/30 text-white border-2 border-white font-semibold px-8 backdrop-blur-sm">
             <FileText className="mr-2 h-5 w-5" />
             Download Sponsor Kit
           </Button>
