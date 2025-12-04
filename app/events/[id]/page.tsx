@@ -109,8 +109,9 @@ export default function EventDetailPage() {
         variant="ghost"
         onClick={() => router.back()}
         className="mb-6"
+        aria-label="Go back to previous page"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
         Back
       </Button>
 
@@ -129,7 +130,7 @@ export default function EventDetailPage() {
             </div>
           ) : (
             <div className="h-96 w-full rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Calendar className="h-24 w-24 text-primary/30" />
+              <Calendar className="h-24 w-24 text-primary/30" aria-hidden="true" />
             </div>
           )}
 
@@ -153,8 +154,9 @@ export default function EventDetailPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => router.push(`/admin/events/${eventId}/edit`)}
+                      aria-label={`Edit event: ${event.title}`}
                     >
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="h-4 w-4 mr-2" aria-hidden="true" />
                       Edit
                     </Button>
                     <Button
@@ -162,8 +164,9 @@ export default function EventDetailPage() {
                       size="sm"
                       onClick={handleDelete}
                       disabled={deleteMutation.isPending}
+                      aria-label={`Delete event: ${event.title}`}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
                       Delete
                     </Button>
                   </div>

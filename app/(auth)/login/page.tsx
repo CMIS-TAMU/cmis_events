@@ -80,10 +80,14 @@ function LoginForm() {
             Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} aria-label="Sign in form">
           <CardContent className="space-y-4">
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div 
+                className="rounded-md bg-red-50 p-4"
+                role="alert"
+                aria-live="assertive"
+              >
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
@@ -97,6 +101,10 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'login-error' : undefined}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -108,19 +116,29 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'login-error' : undefined}
+                autoComplete="current-password"
               />
             </div>
             <div className="flex items-center justify-between">
               <Link
                 href="/reset-password"
                 className="text-sm text-primary hover:underline"
+                aria-label="Reset your password"
               >
                 Forgot password?
               </Link>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+              aria-label={loading ? 'Signing in, please wait' : 'Sign in to your account'}
+            >
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
             <p className="text-center text-sm text-muted-foreground">

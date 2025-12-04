@@ -4,6 +4,8 @@ import { Providers } from '@/components/providers';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ChatProvider } from '@/components/chat';
+import { SkipLink } from '@/components/accessibility/skip-link';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export const metadata: Metadata = {
   title: 'CMIS Event Management System',
@@ -19,11 +21,15 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          <TooltipProvider>
+            <SkipLink />
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main id="main-content" className="flex-1" tabIndex={-1}>
+                {children}
+              </main>
+              <Footer />
+            </div>
           
           {/* AI Chatbot - appears on all pages */}
           <ChatProvider
@@ -33,7 +39,16 @@ export default function RootLayout({
               position: 'bottom-right',
             }}
           />
+          </TooltipProvider>
         </Providers>
+        
+        {/* Aria-live region for screen reader announcements */}
+        <div
+          id="aria-live-announcer"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        />
       </body>
     </html>
   );

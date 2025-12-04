@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
 import { uploadResume, getResumeSignedUrl, deleteResume } from '@/lib/storage/resume';
 
@@ -19,18 +20,21 @@ export const resumesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Get current resume info to delete old one
       const { data: currentUser } = await supabase
         .from('users')
         .select('resume_url, resume_filename, resume_version')
-        .eq('id', user.id)
+        .eq('id', ctx.user.id)
         .single();
 
       // Delete old resume if exists
@@ -54,12 +58,22 @@ export const resumesRouter = router({
           skills: input.skills || null,
           graduation_year: input.graduationYear || null,
         })
-        .eq('id', user.id)
+        .eq('id', ctx.user.id)
         .select()
         .single();
 
       if (error) {
-        throw new Error(`Failed to update resume: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update resume: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User profile not found',
+        });
       }
 
       return data;
@@ -67,21 +81,27 @@ export const resumesRouter = router({
 
   // Get user's resume
   getMyResume: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     const { data, error } = await supabase
       .from('users')
       .select('resume_url, resume_filename, resume_uploaded_at, resume_version, major, gpa, skills, graduation_year')
-      .eq('id', user.id)
+      .eq('id', ctx.user.id)
       .single();
 
     if (error) {
-      throw new Error(`Failed to fetch resume: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch resume: ${error.message}`,
+      });
     }
 
     // Get signed URL if resume exists
@@ -98,18 +118,21 @@ export const resumesRouter = router({
 
   // Delete resume
   delete: protectedProcedure.mutation(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     // Get resume info
     const { data: userData } = await supabase
       .from('users')
       .select('resume_filename')
-      .eq('id', user.id)
+      .eq('id', ctx.user.id)
       .single();
 
     if (userData?.resume_filename) {
@@ -125,12 +148,15 @@ export const resumesRouter = router({
         resume_uploaded_at: null,
         resume_version: 1,
       })
-      .eq('id', user.id)
+      .eq('id', ctx.user.id)
       .select()
       .single();
 
     if (error) {
-      throw new Error(`Failed to delete resume: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to delete resume: ${error.message}`,
+      });
     }
 
     return { success: true };
@@ -150,8 +176,16 @@ export const resumesRouter = router({
         offset: z.number().min(0).default(0),
       })
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       let query = supabase
         .from('users')
@@ -188,7 +222,10 @@ export const resumesRouter = router({
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Failed to search resumes: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to search resumes: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -197,22 +234,28 @@ export const resumesRouter = router({
   // Track resume view (for analytics)
   trackView: adminProcedure
     .input(z.object({ userId: z.string().uuid(), eventId: z.string().uuid().optional() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { error } = await supabase.from('resume_views').insert({
         user_id: input.userId,
-        viewed_by: user.id,
+        viewed_by: ctx.user.id,
         event_id: input.eventId || null,
       });
 
       if (error) {
-        throw new Error(`Failed to track view: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to track view: ${error.message}`,
+        });
       }
 
       return { success: true };

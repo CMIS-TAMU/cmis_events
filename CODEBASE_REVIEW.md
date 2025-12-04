@@ -1,349 +1,353 @@
-# 📋 Codebase Review & Next Steps
+# Codebase Review: Inconsistencies & Improvements
 
-**Date:** December 2024  
-**Repository:** https://github.com/CMIS-TAMU/cmis_events  
-**Last Commit:** 43e692e - fix: Resolve admin access issues and RLS infinite recursion
-
----
-
-## ✅ **COMPLETED FEATURES (100%)**
-
-### Phase 1: Core Features (Sprint 1) ✅
-- ✅ **Backend Setup**
-  - tRPC fully configured with all routers
-  - API endpoints working
-  - Database schema implemented
-  - Row-Level Security (RLS) configured
-
-- ✅ **Authentication System**
-  - Login/Signup pages
-  - Password reset
-  - Role-based access control
-  - Protected routes middleware
-  - Admin role management fixed
-
-- ✅ **Event Management**
-  - Create/Read/Update/Delete events
-  - Event listing page
-  - Event detail pages
-  - Admin event management interface
-  - Image uploads
-
-- ✅ **Registration System**
-  - Register for events
-  - Cancel registrations
-  - View my registrations
-  - QR code generation
-  - Registration status tracking
-
-- ✅ **Email Integration**
-  - Registration confirmation emails
-  - QR codes in emails
-  - Cancellation notifications
-  - Email templates
-
-### Phase 2: Enhanced Features (Sprint 2) ✅
-
-- ✅ **Resume Management**
-  - Resume upload (PDF)
-  - Resume viewing
-  - Resume search for sponsors
-  - Resume metadata tracking
-
-- ✅ **Sponsor Portal**
-  - Sponsor dashboard
-  - Resume search and filtering
-  - Candidate shortlist
-  - CSV export functionality
-  - Analytics tracking
-
-- ✅ **QR Code Check-in**
-  - QR code generation on registration
-  - QR code display in registrations
-  - Admin check-in scanner
-  - Check-in status tracking
-
-- ✅ **Event Sessions**
-  - Create sessions within events
-  - Session registration
-  - Capacity management
-  - Conflict detection
-  - "My Sessions" page
-
-- ✅ **Waitlist System**
-  - Backend waitlist logic
-  - Waitlist position display
-  - Auto-add to waitlist when full
-
-### Phase 3: Advanced Features (In Progress)
-
-- ✅ **Case Competitions (65% Complete)**
-  - ✅ Database schema
-  - ✅ Complete tRPC router (all endpoints)
-  - ✅ Admin competitions list
-  - ✅ Admin create/edit competition
-  - ✅ Competition management interface
-  - ✅ Public competitions list
-  - ✅ Competition detail page
-  - ⏳ Team registration UI (35% remaining)
-  - ⏳ Submission upload interface
-  - ⏳ Judging interface
-  - ⏳ Results display page
-
-- ✅ **Feedback System (Backend Complete)**
-  - ✅ Database schema
-  - ✅ tRPC router created
-  - ⏳ Post-event survey UI
-  - ⏳ Feedback analytics dashboard
-
-- ✅ **Analytics Dashboard (Backend Complete)**
-  - ✅ tRPC router created
-  - ⏳ Analytics UI dashboard
-  - ⏳ Charts and visualizations
+**Date:** 2024  
+**Scope:** Functionality, Consistency, Code Quality
 
 ---
 
-## 📊 **CURRENT STATUS SUMMARY**
+## 🔴 Critical Issues
 
-### Routers Available (10 total):
-1. ✅ `auth.router.ts` - Authentication
-2. ✅ `events.router.ts` - Event management
-3. ✅ `registrations.router.ts` - Registrations & waitlist
-4. ✅ `resumes.router.ts` - Resume management
-5. ✅ `sessions.router.ts` - Event sessions
-6. ✅ `sponsors.router.ts` - Sponsor features
-7. ✅ `competitions.router.ts` - Case competitions
-8. ✅ `feedback.router.ts` - Feedback system
-9. ✅ `analytics.router.ts` - Analytics
-10. ✅ `_app.ts` - Main router combining all
+### 1. **Inconsistent Supabase Client Creation**
 
-### Frontend Pages (55 total):
-- ✅ Authentication pages (login, signup, reset)
-- ✅ Dashboard pages
-- ✅ Event pages (list, detail)
-- ✅ Registration pages
-- ✅ Admin pages (dashboard, events, competitions)
-- ✅ Profile pages (main, resume)
-- ✅ Sessions pages
-- ✅ Sponsor pages (dashboard, resumes, shortlist)
-- ✅ Competitions pages (list, detail)
-- ✅ Feedback page (basic)
-- ⏳ Competition team registration
-- ⏳ Competition submission upload
-- ⏳ Competition results display
-- ⏳ Analytics dashboard UI
+**Problem:** Multiple patterns for creating Supabase clients across routers.
 
----
+**Current Patterns:**
+- `createClient(supabaseUrl, supabaseAnonKey)` - Creates new client without cookie handling
+- `ctx.supabase` - Client from context with cookie handling (PREFERRED)
+- `getAdminSupabase()` - Local function in mentorship router
+- `createAdminSupabase()` - From lib/supabase/server.ts
 
-## 🎯 **NEXT STEPS (Priority Order)**
+**Issues:**
+- Many routers create new clients instead of using `ctx.supabase`
+- Cookie-based auth won't work properly without context client
+- Duplicate code for admin client creation
 
-### Step 1: Complete Case Competitions (High Priority)
-**Estimated Time:** 4-6 hours
+**Affected Files:**
+- `server/routers/events.router.ts` - All procedures create new clients
+- `server/routers/registrations.router.ts` - Creates new clients, calls `getUser()` redundantly
+- `server/routers/auth.router.ts` - Creates new clients in `protectedProcedure`
+- `server/routers/competitions.router.ts` - Multiple new client creations
+- `server/routers/mentorship.router.ts` - Mix of patterns
 
-#### 1.1 Team Registration UI
-**File:** `app/competitions/[id]/register/page.tsx`
-- [ ] Create team name form
-- [ ] User search functionality (already have endpoint)
-- [ ] Add/remove team members
-- [ ] Validate team size (min/max)
-- [ ] Show existing teams
-- [ ] Submit team registration
+**Recommendation:**
+```typescript
+// ✅ GOOD: Use context client
+.mutation(async ({ ctx, input }) => {
+  const supabase = ctx.supabase; // Has cookie handling
+  // ctx.user is already available in protectedProcedure
+})
 
-#### 1.2 Submission Upload Interface
-**File:** `app/competitions/[id]/submit/page.tsx`
-- [ ] File upload component
-- [ ] Support PDF, DOCX, PPT files
-- [ ] Upload to Supabase Storage
-- [ ] Show submission status
-- [ ] View/download submission
-- [ ] Update submission functionality
-
-#### 1.3 Judging Interface Enhancement
-**File:** `app/admin/competitions/[id]/judging.tsx` (exists but needs completion)
-- [ ] Complete judging UI
-- [ ] Scoring form per rubric
-- [ ] Save scores with comments
-- [ ] Progress tracking
-- [ ] Judge assignment UI
-
-#### 1.4 Results Display Page
-**File:** `app/competitions/[id]/results/page.tsx`
-- [ ] Calculate aggregated scores
-- [ ] Display ranked teams
-- [ ] Show individual scores
-- [ ] Publish/unpublish toggle
-- [ ] Public/private view
-
-**Status:** Backend is 100% complete, just need UI pages!
-
----
-
-### Step 2: Complete Feedback System (Medium Priority)
-**Estimated Time:** 2-3 hours
-
-#### 2.1 Post-Event Survey Form
-**File:** `app/feedback/[event_id]/page.tsx`
-- [ ] Rating component (1-5 stars)
-- [ ] Open-ended comment field
-- [ ] Anonymous feedback option
-- [ ] Submit feedback to backend
-- [ ] Success/error handling
-
-#### 2.2 Feedback Analytics Dashboard
-**File:** `app/admin/feedback/page.tsx`
-- [ ] List all feedback
-- [ ] Filter by event
-- [ ] Average ratings display
-- [ ] Feedback comments list
-- [ ] Export to CSV
-
-**Status:** Backend router exists, just need UI!
-
----
-
-### Step 3: Complete Analytics Dashboard (Medium Priority)
-**Estimated Time:** 3-4 hours
-
-#### 3.1 Install Charts Library
-```bash
-pnpm add recharts
-```
-
-#### 3.2 Analytics Dashboard Page
-**File:** `app/admin/analytics/page.tsx`
-- [ ] Date range selector
-- [ ] Event attendance chart
-- [ ] Registration trends chart
-- [ ] Sponsor engagement metrics
-- [ ] Student participation stats
-- [ ] Popular events list
-- [ ] Export to CSV button
-- [ ] Real-time data updates
-
-**Status:** Backend router exists with all endpoints!
-
----
-
-### Step 4: Polish & Testing (Before Launch)
-**Estimated Time:** 4-6 hours
-
-- [ ] End-to-end testing of all features
-- [ ] Mobile responsiveness check
-- [ ] Error handling improvements
-- [ ] Loading states everywhere
-- [ ] Toast notifications for actions
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Documentation updates
-
----
-
-## 🛠 **TECHNICAL DEBT & FIXES NEEDED**
-
-### Completed Fixes ✅
-- ✅ Admin role access issues resolved
-- ✅ RLS infinite recursion fixed
-- ✅ Email verification setup documented
-- ✅ Resume upload RLS policies fixed
-
-### Potential Improvements
-- [ ] Error boundaries on all pages
-- [ ] Better loading skeletons
-- [ ] Toast notification system
-- [ ] Form validation improvements
-- [ ] Image optimization
-- [ ] Caching strategy
-- [ ] API rate limiting
-
----
-
-## 📁 **PROJECT STRUCTURE**
-
-```
-cmis_events/
-├── app/                          # Next.js App Router (55 files)
-│   ├── (auth)/                  # Authentication pages
-│   ├── admin/                   # Admin interfaces
-│   ├── api/                     # API routes
-│   ├── competitions/            # Case competitions
-│   ├── events/                  # Event pages
-│   ├── feedback/                # Feedback system
-│   ├── profile/                 # User profile
-│   ├── sessions/                # Event sessions
-│   └── sponsor/                 # Sponsor portal
-├── components/                   # React components
-│   ├── admin/                   # Admin components
-│   ├── events/                  # Event components
-│   ├── layout/                  # Layout components
-│   ├── qr/                      # QR code components
-│   ├── resumes/                 # Resume components
-│   ├── sessions/                # Session components
-│   └── ui/                      # Shadcn/ui components
-├── server/                       # Server-side code
-│   └── routers/                 # tRPC routers (10 files)
-├── lib/                         # Utilities
-│   ├── supabase/               # Supabase clients
-│   ├── trpc/                    # tRPC configuration
-│   ├── email/                   # Email utilities
-│   └── storage/                 # Storage utilities
-├── database/                     # Database scripts
-│   ├── schema.sql              # Database schema
-│   └── migrations/             # Migration files
-└── scripts/                     # Utility scripts
+// ❌ BAD: Create new client
+.mutation(async ({ ctx, input }) => {
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: { user } } = await supabase.auth.getUser(); // Redundant!
+})
 ```
 
 ---
 
-## 🚀 **RECOMMENDED ACTION PLAN**
+### 2. **Redundant User Authentication Checks**
 
-### This Week:
-1. **Complete Case Competitions** (4-6 hours)
-   - Team registration UI
-   - Submission upload
-   - Judging interface
-   - Results page
+**Problem:** Many `protectedProcedure` endpoints create new Supabase clients and call `getUser()` even though `ctx.user` is already available.
 
-2. **Complete Feedback System** (2-3 hours)
-   - Survey form
-   - Analytics dashboard
+**Examples:**
+- `auth.router.ts:getCurrentUser` - Protected procedure but still calls `getUser()`
+- `auth.router.ts:updateProfile` - Has `ctx.user` but creates new client
+- `events.router.ts:create` - Admin procedure but creates new client
+- `registrations.router.ts:register` - Has context but creates new client
 
-### Next Week:
-3. **Complete Analytics Dashboard** (3-4 hours)
-   - Install Recharts
-   - Build dashboard UI
-   - Add charts and metrics
+**Impact:**
+- Unnecessary database queries
+- Cookie handling issues
+- Performance degradation
+- Potential auth inconsistencies
 
-4. **Testing & Polish** (4-6 hours)
-   - End-to-end testing
-   - Bug fixes
-   - Performance optimization
+**Fix Pattern:**
+```typescript
+// ✅ GOOD
+protectedProcedure.mutation(async ({ ctx, input }) => {
+  const userId = ctx.user.id; // Already authenticated
+  const supabase = ctx.supabase; // Has session cookies
+  // No need to call getUser() again
+})
 
-### Ready for Launch:
-- ✅ Core features working
-- ✅ Admin access functional
-- ✅ Database schema complete
-- ✅ All routers implemented
-- ⏳ Final UI pages needed
-- ⏳ Testing required
-
----
-
-## 📝 **NOTES**
-
-1. **Backend is 95% Complete** - All tRPC routers are implemented and working
-2. **Frontend is 85% Complete** - Most pages exist, a few competition pages remaining
-3. **Database is 100% Complete** - All schemas and migrations are done
-4. **Authentication Works** - Admin access has been fixed and tested
-
-**Overall Project Completion:** ~85%
-
-**Remaining Work:** 
-- Case Competitions UI (35% remaining)
-- Feedback System UI (50% remaining)
-- Analytics Dashboard UI (50% remaining)
-- Testing & Polish (0% remaining)
+// ❌ BAD
+protectedProcedure.mutation(async ({ ctx, input }) => {
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: { user } } = await supabase.auth.getUser(); // Redundant!
+  if (!user) throw new Error('Not authenticated'); // Already checked!
+})
+```
 
 ---
 
-**Ready to continue development!** 🚀
+### 3. **Inconsistent Error Handling**
 
+**Problem:** Mix of error types and messages.
+
+**Current Patterns:**
+- `throw new Error('message')` - Generic errors
+- `throw new TRPCError({ code, message })` - Structured errors (PREFERRED)
+- Some errors include `.message` from Supabase, others don't
+
+**Examples:**
+- Some: `throw new Error('User not found')`
+- Others: `throw new TRPCError({ code: 'UNAUTHORIZED', message: '...' })`
+- Some: `throw new Error(\`Failed: ${error.message}\`)`
+- Others: `throw new Error('Failed')`
+
+**Recommendation:** Standardize on TRPCError for better client handling:
+```typescript
+// ✅ GOOD
+throw new TRPCError({
+  code: 'NOT_FOUND',
+  message: 'User not found',
+});
+
+// ✅ GOOD for database errors
+throw new TRPCError({
+  code: 'INTERNAL_SERVER_ERROR',
+  message: `Failed to update profile: ${error.message}`,
+  cause: error,
+});
+```
+
+---
+
+### 4. **Missing Error Checks**
+
+**Problem:** Some database queries don't check for errors before using data.
+
+**Examples:**
+- `auth.router.ts:getCurrentUser` - Doesn't check `profileError`
+- `events.router.ts:getById` - Returns data without checking if null
+- Multiple places use `.single()` without checking if record exists
+
+**Fix:**
+```typescript
+// ✅ GOOD
+const { data, error } = await supabase.from('users').select('*').single();
+if (error) {
+  throw new TRPCError({
+    code: 'NOT_FOUND',
+    message: 'User not found',
+  });
+}
+if (!data) {
+  throw new TRPCError({
+    code: 'NOT_FOUND',
+    message: 'User not found',
+  });
+}
+```
+
+---
+
+## 🟡 Medium Priority Issues
+
+### 5. **Code Duplication - Admin Supabase Client**
+
+**Problem:** Two ways to create admin clients:
+- `getAdminSupabase()` function in `mentorship.router.ts`
+- `createAdminSupabase()` in `lib/supabase/server.ts`
+
+**Recommendation:** Remove local function, use centralized one:
+```typescript
+// ✅ GOOD: Use from lib
+import { createAdminSupabase } from '@/lib/supabase/server';
+const supabase = createAdminSupabase();
+
+// ❌ BAD: Local duplicate
+function getAdminSupabase() {
+  return createClient(supabaseUrl, supabaseServiceKey, {...});
+}
+```
+
+---
+
+### 6. **Inconsistent Use of Context User**
+
+**Problem:** Some routers properly use `ctx.user`, others ignore it.
+
+**Good Examples:**
+- `mentorship.router.ts` - Mostly uses `ctx.user.id`
+- `feedback.router.ts` - Uses `ctx.user.id`
+
+**Bad Examples:**
+- `auth.router.ts:getCurrentUser` - Ignores context user
+- `auth.router.ts:updateProfile` - Creates new client
+- `registrations.router.ts` - Multiple redundant `getUser()` calls
+
+---
+
+### 7. **Missing Null Checks**
+
+**Problem:** Several places assume data exists without checks.
+
+**Examples:**
+- `events.router.ts:getById` - Returns data directly, might be null
+- `auth.router.ts:getCurrentUser` - Returns `profile || null` but should check error first
+
+---
+
+### 8. **Inconsistent Query Error Handling**
+
+**Problem:** Some queries check errors, others silently fail.
+
+**Pattern to Follow:**
+```typescript
+const { data, error } = await supabase.from('table').select('*');
+
+if (error) {
+  throw new TRPCError({
+    code: 'INTERNAL_SERVER_ERROR',
+    message: `Database error: ${error.message}`,
+  });
+}
+
+return data || []; // Provide fallback
+```
+
+---
+
+## 🟢 Low Priority / Improvements
+
+### 9. **Missing Input Validation**
+
+**Problem:** Some endpoints could benefit from stricter Zod validation.
+
+**Examples:**
+- UUID validation could be stricter
+- String length limits
+- Email format validation
+
+---
+
+### 10. **Performance: Multiple Database Calls**
+
+**Problem:** Some endpoints make multiple sequential queries that could be optimized.
+
+**Example:**
+```typescript
+// Current: 3 queries
+const { data: eventData } = await supabase.from('events').select('*').single();
+const { data: userData } = await supabase.auth.getUser();
+const { data: userProfile } = await supabase.from('users').select('*').single();
+
+// Could be: 2 queries (event + user with join)
+```
+
+---
+
+### 11. **Missing Type Safety**
+
+**Problem:** Some return types use `any` or loose typing.
+
+**Examples:**
+- `mentorship.router.ts` - Uses `as any` for mentor objects
+- Multiple places use loose typing for Supabase responses
+
+---
+
+## 📋 Priority Action Items
+
+### High Priority (Fix Immediately)
+
+1. **Standardize Supabase Client Usage**
+   - Use `ctx.supabase` in all protected/admin procedures
+   - Remove redundant `getUser()` calls
+   - Use `createAdminSupabase()` from lib (not local function)
+
+2. **Fix Authentication Patterns**
+   - Use `ctx.user` directly in protected procedures
+   - Remove redundant auth checks
+
+3. **Standardize Error Handling**
+   - Use `TRPCError` consistently
+   - Include proper error codes
+   - Add error context where helpful
+
+### Medium Priority (Next Sprint)
+
+4. **Add Missing Error Checks**
+   - Check all database query errors
+   - Add null checks before using data
+   - Handle edge cases properly
+
+5. **Remove Code Duplication**
+   - Consolidate admin client creation
+   - Extract common patterns to utilities
+
+### Low Priority (Future)
+
+6. **Performance Optimization**
+   - Batch database queries where possible
+   - Add database indexes for common queries
+   - Consider caching for read-heavy endpoints
+
+7. **Type Safety Improvements**
+   - Add proper TypeScript types
+   - Remove `any` types
+   - Use Supabase generated types
+
+---
+
+## 🔧 Recommended Refactoring Order
+
+### Phase 1: Critical Fixes
+1. Update `auth.router.ts` to use `ctx.supabase` and `ctx.user`
+2. Update `events.router.ts` to use context clients
+3. Update `registrations.router.ts` to use context
+
+### Phase 2: Standardization
+4. Standardize error handling across all routers
+5. Remove duplicate admin client function
+6. Add missing error checks
+
+### Phase 3: Improvements
+7. Optimize database queries
+8. Improve type safety
+9. Add comprehensive error handling
+
+---
+
+## 📝 Files Requiring Immediate Attention
+
+### Critical
+- `server/routers/auth.router.ts` - 5 issues
+- `server/routers/events.router.ts` - 4 issues
+- `server/routers/registrations.router.ts` - 4 issues
+
+### Important
+- `server/routers/competitions.router.ts` - 3 issues
+- `server/routers/mentorship.router.ts` - 2 issues (mostly good but has local admin function)
+
+### Low
+- `server/routers/analytics.router.ts` - Minor improvements
+- `server/routers/sponsors.router.ts` - Minor improvements
+
+---
+
+## ✅ Good Patterns Found
+
+1. **Mentorship Router** - Mostly uses context properly
+2. **Feedback Router** - Good use of `ctx.user`
+3. **tRPC Setup** - Proper context structure
+4. **Protected Procedures** - Good authentication middleware
+
+---
+
+## 🎯 Summary
+
+**Total Issues Found:** 11 major inconsistencies  
+**Critical:** 4  
+**Medium:** 4  
+**Low:** 3  
+
+**Main Theme:** Inconsistent use of context (user + supabase client) and error handling patterns.
+
+**Recommended Next Steps:**
+1. Create refactoring checklist
+2. Start with auth.router.ts (highest impact)
+3. Create shared utility functions for common patterns
+4. Document patterns for future development

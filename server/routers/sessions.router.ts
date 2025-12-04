@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -9,8 +10,16 @@ export const sessionsRouter = router({
   // Get all sessions for an event
   getByEvent: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('event_sessions')
@@ -19,7 +28,10 @@ export const sessionsRouter = router({
         .order('starts_at', { ascending: true });
 
       if (error) {
-        throw new Error(`Failed to fetch sessions: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch sessions: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -28,8 +40,16 @@ export const sessionsRouter = router({
   // Get session by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('event_sessions')
@@ -38,7 +58,17 @@ export const sessionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to fetch session: ${error.message}`);
+        throw new TRPCError({
+          code: error.code === 'PGRST116' ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch session: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Session not found',
+        });
       }
 
       return data;
@@ -56,8 +86,16 @@ export const sessionsRouter = router({
         capacity: z.number().int().min(0).default(0),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       // Check for time conflicts with other sessions in the same event
       const { data: conflictingSessions } = await supabase
@@ -67,9 +105,10 @@ export const sessionsRouter = router({
         .or(`and(starts_at.lt.${input.ends_at},ends_at.gt.${input.starts_at})`);
 
       if (conflictingSessions && conflictingSessions.length > 0) {
-        throw new Error(
-          `Time conflict with existing session: ${conflictingSessions[0].title}`
-        );
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: `Time conflict with existing session: ${conflictingSessions[0].title}`,
+        });
       }
 
       const { data, error } = await supabase
@@ -86,7 +125,17 @@ export const sessionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to create session: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create session: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Session creation succeeded but no data returned',
+        });
       }
 
       return data;
@@ -104,18 +153,29 @@ export const sessionsRouter = router({
         capacity: z.number().int().min(0).optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       // Get current session to check event_id
-      const { data: currentSession } = await supabase
+      const { data: currentSession, error: fetchError } = await supabase
         .from('event_sessions')
         .select('event_id, starts_at, ends_at')
         .eq('id', input.id)
         .single();
 
-      if (!currentSession) {
-        throw new Error('Session not found');
+      if (fetchError || !currentSession) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Session not found: ${fetchError?.message || 'Unknown error'}`,
+        });
       }
 
       // Check for time conflicts if time is being updated
@@ -131,9 +191,10 @@ export const sessionsRouter = router({
           .or(`and(starts_at.lt.${endTime},ends_at.gt.${startTime})`);
 
         if (conflictingSessions && conflictingSessions.length > 0) {
-          throw new Error(
-            `Time conflict with existing session: ${conflictingSessions[0].title}`
-          );
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: `Time conflict with existing session: ${conflictingSessions[0].title}`,
+          });
         }
       }
 
@@ -151,7 +212,17 @@ export const sessionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to update session: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update session: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Session not found',
+        });
       }
 
       return data;
@@ -160,8 +231,16 @@ export const sessionsRouter = router({
   // Delete session (admin only)
   delete: adminProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { error } = await supabase
         .from('event_sessions')
@@ -169,7 +248,10 @@ export const sessionsRouter = router({
         .eq('id', input.id);
 
       if (error) {
-        throw new Error(`Failed to delete session: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to delete session: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -178,12 +260,15 @@ export const sessionsRouter = router({
   // Register for a session
   register: protectedProcedure
     .input(z.object({ session_id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if already registered
@@ -191,25 +276,34 @@ export const sessionsRouter = router({
         .from('session_registrations')
         .select('id')
         .eq('session_id', input.session_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .single();
 
       if (existing) {
-        throw new Error('Already registered for this session');
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'Already registered for this session',
+        });
       }
 
       // Use database function to register (handles capacity)
       const { data, error } = await supabase.rpc('register_for_session', {
         p_session_id: input.session_id,
-        p_user_id: user.id,
+        p_user_id: ctx.user.id,
       });
 
       if (error) {
-        throw new Error(`Registration failed: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Registration failed: ${error.message}`,
+        });
       }
 
       if (data && typeof data === 'object' && 'ok' in data && !data.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: data.error || 'Registration failed',
+        });
       }
 
       return data;
@@ -218,22 +312,28 @@ export const sessionsRouter = router({
   // Cancel session registration
   cancel: protectedProcedure
     .input(z.object({ session_id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { error } = await supabase
         .from('session_registrations')
         .delete()
         .eq('session_id', input.session_id)
-        .eq('user_id', user.id);
+        .eq('user_id', ctx.user.id);
 
       if (error) {
-        throw new Error(`Failed to cancel registration: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to cancel registration: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -241,11 +341,14 @@ export const sessionsRouter = router({
 
   // Get user's session registrations
   getMySessions: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     const { data, error } = await supabase
@@ -260,11 +363,14 @@ export const sessionsRouter = router({
           )
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.user.id)
       .order('registered_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch sessions: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch sessions: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -273,23 +379,29 @@ export const sessionsRouter = router({
   // Get session registration status
   getRegistrationStatus: protectedProcedure
     .input(z.object({ session_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .query(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { data, error } = await supabase
         .from('session_registrations')
         .select('*')
         .eq('session_id', input.session_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-        throw new Error(`Failed to check registration: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to check registration: ${error.message}`,
+        });
       }
 
       return data || null;
@@ -298,15 +410,26 @@ export const sessionsRouter = router({
   // Get session capacity info
   getCapacity: protectedProcedure
     .input(z.object({ session_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase.rpc('check_session_capacity', {
         p_session_id: input.session_id,
       });
 
       if (error) {
-        throw new Error(`Failed to check capacity: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to check capacity: ${error.message}`,
+        });
       }
 
       return data;

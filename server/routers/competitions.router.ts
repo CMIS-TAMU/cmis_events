@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -7,8 +8,16 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const competitionsRouter = router({
   // Get all competitions
-  getAll: protectedProcedure.query(async () => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    // Use context supabase client (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
+    }
     
     const { data, error } = await supabase
       .from('case_competitions')
@@ -19,7 +28,10 @@ export const competitionsRouter = router({
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch competitions: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch competitions: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -28,8 +40,16 @@ export const competitionsRouter = router({
   // Get competition by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('case_competitions')
@@ -41,7 +61,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to fetch competition: ${error.message}`);
+        throw new TRPCError({
+          code: error.code === 'PGRST116' ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch competition: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Competition not found',
+        });
       }
 
       return data;
@@ -50,8 +80,16 @@ export const competitionsRouter = router({
   // Get competitions for an event
   getByEvent: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('case_competitions')
@@ -63,7 +101,10 @@ export const competitionsRouter = router({
         .order('created_at', { ascending: false });
 
       if (error) {
-        throw new Error(`Failed to fetch competitions: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch competitions: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -83,8 +124,16 @@ export const competitionsRouter = router({
         min_team_size: z.number().default(2),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('case_competitions')
@@ -102,7 +151,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to create competition: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create competition: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Competition creation succeeded but no data returned',
+        });
       }
 
       return data;
@@ -123,8 +182,17 @@ export const competitionsRouter = router({
         status: z.enum(['open', 'closed', 'judging', 'completed']).optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
       const { id, ...updates } = input;
       
       const { data, error } = await supabase
@@ -135,7 +203,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to update competition: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update competition: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Competition not found',
+        });
       }
 
       return data;
@@ -144,8 +222,16 @@ export const competitionsRouter = router({
   // Delete competition (admin only)
   delete: adminProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { error } = await supabase
         .from('case_competitions')
@@ -153,7 +239,10 @@ export const competitionsRouter = router({
         .eq('id', input.id);
 
       if (error) {
-        throw new Error(`Failed to delete competition: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to delete competition: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -162,8 +251,16 @@ export const competitionsRouter = router({
   // Get teams for a competition
   getTeams: protectedProcedure
     .input(z.object({ competition_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('teams')
@@ -172,7 +269,10 @@ export const competitionsRouter = router({
         .order('created_at', { ascending: false });
 
       if (error) {
-        throw new Error(`Failed to fetch teams: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch teams: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -180,11 +280,14 @@ export const competitionsRouter = router({
 
   // Get user's teams
   getMyTeams: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     const { data, error } = await supabase
@@ -195,10 +298,13 @@ export const competitionsRouter = router({
           events (*)
         )
       `)
-      .contains('members', [user.id]);
+      .contains('members', [ctx.user.id]);
 
     if (error) {
-      throw new Error(`Failed to fetch teams: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch teams: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -213,16 +319,22 @@ export const competitionsRouter = router({
         members: z.array(z.string().uuid()),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
-      if (!input.members.includes(user.id)) {
-        throw new Error('You must include yourself in the team');
+      if (!input.members.includes(ctx.user.id)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'You must include yourself in the team',
+        });
       }
 
       // Get competition to check team size limits
@@ -234,10 +346,16 @@ export const competitionsRouter = router({
 
       if (competition) {
         if (input.members.length < (competition.min_team_size || 2)) {
-          throw new Error(`Team must have at least ${competition.min_team_size || 2} members`);
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Team must have at least ${competition.min_team_size || 2} members`,
+          });
         }
         if (input.members.length > (competition.max_team_size || 4)) {
-          throw new Error(`Team can have at most ${competition.max_team_size || 4} members`);
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Team can have at most ${competition.max_team_size || 4} members`,
+          });
         }
       }
 
@@ -247,13 +365,23 @@ export const competitionsRouter = router({
           competition_id: input.competition_id,
           name: input.name,
           members: input.members,
-          team_leader_id: user.id,
+          team_leader_id: ctx.user.id,
         })
         .select()
         .single();
 
       if (error) {
-        throw new Error(`Failed to create team: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create team: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Team creation succeeded but no data returned',
+        });
       }
 
       return data;
@@ -268,23 +396,29 @@ export const competitionsRouter = router({
         members: z.array(z.string().uuid()).optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if user is team leader
-      const { data: team } = await supabase
+      const { data: team, error: fetchError } = await supabase
         .from('teams')
         .select('team_leader_id, competition_id')
         .eq('id', input.id)
         .single();
 
-      if (!team || team.team_leader_id !== user.id) {
-        throw new Error('Only team leader can update team');
+      if (fetchError || !team || team.team_leader_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only team leader can update team',
+        });
       }
 
       const { id, ...updates } = input;
@@ -296,7 +430,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to update team: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update team: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Team not found',
+        });
       }
 
       return data;
@@ -305,23 +449,29 @@ export const competitionsRouter = router({
   // Delete team
   deleteTeam: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if user is team leader
-      const { data: team } = await supabase
+      const { data: team, error: fetchError } = await supabase
         .from('teams')
         .select('team_leader_id')
         .eq('id', input.id)
         .single();
 
-      if (!team || team.team_leader_id !== user.id) {
-        throw new Error('Only team leader can delete team');
+      if (fetchError || !team || team.team_leader_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only team leader can delete team',
+        });
       }
 
       const { error } = await supabase
@@ -330,7 +480,10 @@ export const competitionsRouter = router({
         .eq('id', input.id);
 
       if (error) {
-        throw new Error(`Failed to delete team: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to delete team: ${error.message}`,
+        });
       }
 
       return { success: true };
@@ -345,23 +498,29 @@ export const competitionsRouter = router({
         submission_filename: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if user is team member
-      const { data: team } = await supabase
+      const { data: team, error: teamError } = await supabase
         .from('teams')
         .select('members, competition_id')
         .eq('id', input.team_id)
         .single();
 
-      if (!team || !team.members.includes(user.id)) {
-        throw new Error('Only team members can submit');
+      if (teamError || !team || !team.members.includes(ctx.user.id)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only team members can submit',
+        });
       }
 
       // Check deadline
@@ -372,7 +531,10 @@ export const competitionsRouter = router({
         .single();
 
       if (competition?.deadline && new Date(competition.deadline) < new Date()) {
-        throw new Error('Submission deadline has passed');
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Submission deadline has passed',
+        });
       }
 
       const { data, error } = await supabase
@@ -387,7 +549,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to submit: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to submit: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Team not found',
+        });
       }
 
       return data;
@@ -396,8 +568,16 @@ export const competitionsRouter = router({
   // Get rubrics for competition
   getRubrics: protectedProcedure
     .input(z.object({ competition_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('competition_rubrics')
@@ -406,7 +586,10 @@ export const competitionsRouter = router({
         .order('order_index', { ascending: true });
 
       if (error) {
-        throw new Error(`Failed to fetch rubrics: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch rubrics: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -424,8 +607,16 @@ export const competitionsRouter = router({
         order_index: z.number().default(0),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('competition_rubrics')
@@ -434,7 +625,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to create rubric: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create rubric: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Rubric creation succeeded but no data returned',
+        });
       }
 
       return data;
@@ -450,41 +651,50 @@ export const competitionsRouter = router({
         comments: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if user is assigned judge
-      const { data: team } = await supabase
+      const { data: team, error: teamError } = await supabase
         .from('teams')
         .select('competition_id')
         .eq('id', input.team_id)
         .single();
 
-      if (!team) {
-        throw new Error('Team not found');
+      if (teamError || !team) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Team not found',
+        });
       }
 
       const { data: judgeAssignment } = await supabase
         .from('competition_judges')
         .select('judge_id')
         .eq('competition_id', team.competition_id)
-        .eq('judge_id', user.id)
+        .eq('judge_id', ctx.user.id)
         .single();
 
       if (!judgeAssignment) {
-        throw new Error('You are not assigned as a judge for this competition');
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You are not assigned as a judge for this competition',
+        });
       }
 
       const { data, error } = await supabase
         .from('competition_scores')
         .upsert({
           team_id: input.team_id,
-          judge_id: user.id,
+          judge_id: ctx.user.id,
           rubric_id: input.rubric_id,
           score: input.score,
           comments: input.comments,
@@ -496,7 +706,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to submit score: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to submit score: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Score submission succeeded but no data returned',
+        });
       }
 
       return data;
@@ -505,12 +725,15 @@ export const competitionsRouter = router({
   // Get scores for team (judges and team leader can view)
   getTeamScores: protectedProcedure
     .input(z.object({ team_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { data: scores, error } = await supabase
@@ -523,7 +746,10 @@ export const competitionsRouter = router({
         .eq('team_id', input.team_id);
 
       if (error) {
-        throw new Error(`Failed to fetch scores: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch scores: ${error.message}`,
+        });
       }
 
       return scores || [];
@@ -532,14 +758,29 @@ export const competitionsRouter = router({
   // Get competition results (aggregated scores)
   getResults: protectedProcedure
     .input(z.object({ competition_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       // Get all teams with their aggregated scores
-      const { data: teams } = await supabase
+      const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select('*')
         .eq('competition_id', input.competition_id);
+
+      if (teamsError) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch teams: ${teamsError.message}`,
+        });
+      }
 
       if (!teams) {
         return [];
@@ -547,7 +788,7 @@ export const competitionsRouter = router({
 
       // Get all scores and calculate totals
       const results = await Promise.all(
-        teams.map(async (team) => {
+        teams.map(async (team: any) => {
           const { data: scores } = await supabase
             .from('competition_scores')
             .select(`
@@ -558,7 +799,7 @@ export const competitionsRouter = router({
 
           let totalScore = 0;
           if (scores) {
-            totalScore = scores.reduce((sum, s: any) => {
+            totalScore = scores.reduce((sum: number, s: any) => {
               const rubric = s.competition_rubrics;
               return sum + (s.score * (rubric.weight || 1.0));
             }, 0);
@@ -584,8 +825,16 @@ export const competitionsRouter = router({
         judge_id: z.string().uuid(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('competition_judges')
@@ -594,7 +843,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to assign judge: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to assign judge: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Judge assignment succeeded but no data returned',
+        });
       }
 
       return data;
@@ -603,8 +862,16 @@ export const competitionsRouter = router({
   // Publish results (admin only)
   publishResults: adminProcedure
     .input(z.object({ competition_id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { data, error } = await supabase
         .from('case_competitions')
@@ -614,7 +881,17 @@ export const competitionsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to publish results: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to publish results: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Competition not found',
+        });
       }
 
       return data;

@@ -76,10 +76,15 @@ export function RegisterButton({ eventId, eventTitle, className }: RegisterButto
 
   return (
     <>
-      <Button onClick={handleRegister} className={className} disabled={registerMutation.isPending}>
+      <Button 
+        onClick={handleRegister} 
+        className={className} 
+        disabled={registerMutation.isPending}
+        aria-label={`Register for ${eventTitle}`}
+      >
         {registerMutation.isPending ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
             Registering...
           </>
         ) : (
@@ -88,23 +93,31 @@ export function RegisterButton({ eventId, eventTitle, className }: RegisterButto
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent aria-labelledby="registration-dialog-title" aria-describedby="registration-dialog-description">
           <DialogHeader>
-            <DialogTitle>Confirm Registration</DialogTitle>
-            <DialogDescription>
+            <DialogTitle id="registration-dialog-title">Confirm Registration</DialogTitle>
+            <DialogDescription id="registration-dialog-description">
               Are you sure you want to register for &quot;{eventTitle}&quot;?
             </DialogDescription>
           </DialogHeader>
 
           {registrationStatus === 'idle' && (
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDialog(false)}
+                aria-label="Cancel registration"
+              >
                 Cancel
               </Button>
-              <Button onClick={confirmRegister} disabled={registerMutation.isPending}>
+              <Button 
+                onClick={confirmRegister} 
+                disabled={registerMutation.isPending}
+                aria-label={`Confirm registration for ${eventTitle}`}
+              >
                 {registerMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
                     Registering...
                   </>
                 ) : (

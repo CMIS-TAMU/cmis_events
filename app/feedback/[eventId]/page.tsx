@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Star, Send, CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function FeedbackPage() {
   const params = useParams();
@@ -54,7 +55,7 @@ export default function FeedbackPage() {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      alert('Please select a rating');
+      toastUtil.warning('Rating Required', 'Please select a rating before submitting your feedback.');
       return;
     }
 

@@ -1,533 +1,631 @@
-# 🧪 Mentorship System Testing Guide
+# 🧪 Mentorship System - Complete Testing Guide
 
-**Complete step-by-step testing guide for the mentorship matching system**
-
----
-
-## 📋 **PRE-TESTING CHECKLIST**
-
-Before testing, ensure:
-
-- [ ] **Database migrations are run** (See `database/migrations/MENTORSHIP_MIGRATION_GUIDE.md`)
-- [ ] **Development server is running** (`pnpm dev`)
-- [ ] **User is logged in** to the application
-- [ ] **Environment variables are set** (Supabase keys, etc.)
+**Status:** Ready for Testing  
+**Date:** Today
 
 ---
 
-## 🔍 **STEP 1: Verify Database Setup**
+## 📋 **TESTING OVERVIEW**
 
-### **1.1 Check Tables Exist**
-
-Open Supabase SQL Editor and run:
-
-```sql
--- Check if mentorship tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name LIKE '%mentorship%' OR table_name LIKE 'match%'
-ORDER BY table_name;
-
--- Should return:
--- match_batches
--- matches
--- meeting_logs
--- mentorship_feedback
--- mentorship_profiles
--- mentorship_requests
--- quick_questions
-```
-
-### **1.2 Check Functions Exist**
-
-```sql
--- Check if matching functions exist
-SELECT routine_name 
-FROM information_schema.routines 
-WHERE routine_schema = 'public' 
-AND routine_name LIKE '%match%'
-ORDER BY routine_name;
-
--- Should return:
--- calculate_match_score
--- create_match_batch
--- find_top_mentors
--- get_at_risk_matches
--- mentor_select_student
-```
-
-### **1.3 Check RLS Policies**
-
-```sql
--- Check RLS is enabled
-SELECT tablename, rowsecurity 
-FROM pg_tables 
-WHERE schemaname = 'public' 
-AND (tablename LIKE '%mentorship%' OR tablename LIKE 'match%')
-ORDER BY tablename;
-
--- All should show rowsecurity = true
-```
+This guide covers comprehensive testing of all mentorship system features. Test each section systematically to ensure everything works correctly.
 
 ---
 
-## 🧪 **STEP 2: Test Profile Creation**
-
-### **2.1 Navigate to Profile Page**
-
-1. **Go to:** `http://localhost:3000/mentorship/profile`
-2. **Expected:** Should see profile creation form
-
-### **2.2 Create Student Profile**
-
-**Test Case 2.2.1: Valid Student Profile**
-
-1. Select **"Student"** profile type
-2. Fill in required fields:
-   - **Major:** `Computer Science`
-   - **Graduation Year:** `2025`
-   - **Research Interests:** `Machine Learning, Data Science`
-   - **Technical Skills:** `Python, React, SQL`
-   - **Career Goals:** `I want to become a software engineer`
-   - **GPA:** `3.5`
-3. Fill optional fields:
-   - **Bio:** `I am a third-year student interested in AI`
-   - **Communication Preferences:** Click `email`, `zoom`
-   - **Meeting Frequency:** Select `monthly`
-   - **Mentorship Type:** Click `career`, `research`
-4. Click **"Save Profile"**
-5. **Expected Result:**
-   - ✅ Success message appears
-   - ✅ Redirects to `/mentorship/dashboard`
-   - ✅ Profile is saved in database
-
-**Verify in Database:**
-```sql
-SELECT * FROM mentorship_profiles 
-WHERE profile_type = 'student' 
-ORDER BY created_at DESC 
-LIMIT 1;
-```
-
-**Test Case 2.2.2: Missing Required Field**
-
-1. Select **"Student"** profile type
-2. Leave **Major** field empty
-3. Click **"Save Profile"**
-4. **Expected Result:**
-   - ✅ Error message: "Major is required"
-   - ✅ Form does not submit
-
-### **2.3 Create Mentor Profile**
-
-**Test Case 2.3.1: Valid Mentor Profile**
-
-1. Navigate to `/mentorship/profile`
-2. Select **"Mentor"** profile type
-3. Fill in required fields:
-   - **Industry:** `Technology`
-   - **Organization:** `Microsoft`
-   - **Job Designation:** `Senior Software Engineer`
-   - **Areas of Expertise:** `Software Engineering, Leadership, Product Management`
-   - **Max Mentees:** `3`
-4. Fill optional fields:
-   - **TAMU Graduation Year:** `2015`
-   - **Location:** `Austin, TX`
-   - **Bio:** `Experienced software engineer with 10+ years in tech`
-   - **Communication Preferences:** Click `email`, `slack`
-   - **Meeting Frequency:** Select `biweekly`
-   - **Mentorship Type:** Click `career`, `project`
-5. Click **"Save Profile"**
-6. **Expected Result:**
-   - ✅ Success message
-   - ✅ Redirects to dashboard
-   - ✅ Profile saved
-
-**Verify in Database:**
-```sql
-SELECT * FROM mentorship_profiles 
-WHERE profile_type = 'mentor' 
-ORDER BY created_at DESC 
-LIMIT 1;
-```
-
-### **2.4 Edit Existing Profile**
-
-1. Navigate to `/mentorship/profile` (with existing profile)
-2. **Expected:** Form should be pre-filled with existing data
-3. Modify some fields (e.g., update bio)
-4. Click **"Save Profile"**
-5. **Expected Result:**
-   - ✅ Success message
-   - ✅ Changes saved
-   - ✅ Updated data reflected
-
----
-
-## 🧪 **STEP 3: Test Student Dashboard**
-
-### **3.1 Navigate to Dashboard**
-
-1. **Go to:** `http://localhost:3000/mentorship/dashboard`
-2. **Expected:** Should see dashboard with profile status
-
-### **3.2 Test Without Profile**
-
-**Test Case 3.2.1: No Profile Created**
-
-1. Log in as user without mentorship profile
-2. Navigate to `/mentorship/dashboard`
-3. **Expected Result:**
-   - ✅ Shows "Welcome to Mentorship Matching" card
-   - ✅ Displays "Create Profile" button
-   - ✅ No error messages
-
-### **3.3 Test With Profile (No Match)**
-
-**Test Case 3.3.1: Profile Exists, No Match**
-
-1. Ensure you have a student profile created
-2. Navigate to `/mentorship/dashboard`
-3. **Expected Result:**
-   - ✅ Shows "Current Match" card with "No Active Match"
-   - ✅ Shows "Profile Status" card with profile details
-   - ✅ Displays "Request a Mentor" button
-   - ✅ Shows Quick Actions section
-
-### **3.4 Test With Active Match**
-
-**Test Case 3.4.1: Active Match Display**
-
-1. Ensure you have an active match (will need to create one manually or through matching)
-2. Navigate to `/mentorship/dashboard`
-3. **Expected Result:**
-   - ✅ Shows mentor name and details
-   - ✅ Shows match score (if available)
-   - ✅ Shows "View Match Details" button
-   - ✅ Shows matched date
-
----
-
-## 🧪 **STEP 4: Test Mentor Request Flow**
-
-### **4.1 Request a Mentor**
-
-**Test Case 4.1.1: Request Mentor from Dashboard**
-
-1. Navigate to `/mentorship/dashboard`
-2. Ensure you have a student profile
-3. Click **"Request a Mentor"** button
-4. **Expected Result:**
-   - ✅ Loading state appears
-   - ✅ Redirects to `/mentorship/request` page
-   - ✅ Shows "Finding Mentors" message
-   - ✅ After processing, shows mentor recommendations
-
-**Test Case 4.1.2: Request Without Profile**
-
-1. Log in as user without profile
-2. Try to navigate to `/mentorship/request` directly
-3. **Expected Result:**
-   - ✅ Should redirect or show error
-   - ✅ Should prompt to create profile first
-
-### **4.2 View Recommendations**
-
-**Test Case 4.2.1: View Match Batch**
-
-1. After requesting mentor, navigate to `/mentorship/request`
-2. **Expected Result:**
-   - ✅ Shows up to 3 mentor recommendations
-   - ✅ Each mentor card shows:
-     - Name/Email
-     - Match score
-     - Match reasoning (if available)
-   - ✅ Shows "Best Match" badge on top match (if score > 80)
-   - ✅ Shows pending status indicator
-
-**Test Case 4.2.2: No Recommendations Available**
-
-1. Request mentor when no mentors are in matching pool
-2. **Expected Result:**
-   - ✅ Shows appropriate message
-   - ✅ Handles gracefully (no errors)
-
-### **4.3 Test Pending State**
-
-**Test Case 4.3.1: Pending Batch Status**
-
-1. Request mentor (creates match batch)
-2. View `/mentorship/request` page
-3. **Expected Result:**
-   - ✅ Shows "Waiting for mentors to respond" message
-   - ✅ Shows "What Happens Next" section
-   - ✅ Displays mentor cards in pending state
-
----
-
-## 🔧 **STEP 5: Manual Database Testing**
-
-### **5.1 Create Test Data Manually**
-
-For testing without real mentors, create test data:
-
-```sql
--- 1. Create a test student profile
-INSERT INTO mentorship_profiles (
-  user_id,
-  profile_type,
-  major,
-  graduation_year,
-  research_interests,
-  career_goals,
-  technical_skills,
-  in_matching_pool,
-  availability_status
-) VALUES (
-  '<YOUR_USER_ID>', -- Replace with actual user ID
-  'student',
-  'Computer Science',
-  2025,
-  ARRAY['Machine Learning', 'Data Science'],
-  'Become a software engineer',
-  ARRAY['Python', 'React', 'SQL'],
-  true,
-  'active'
-);
-
--- 2. Create a test mentor profile (use different user)
-INSERT INTO mentorship_profiles (
-  user_id,
-  profile_type,
-  industry,
-  organization,
-  areas_of_expertise,
-  max_mentees,
-  in_matching_pool,
-  availability_status
-) VALUES (
-  '<MENTOR_USER_ID>', -- Replace with mentor user ID
-  'mentor',
-  'Technology',
-  'Microsoft',
-  ARRAY['Software Engineering', 'Leadership'],
-  3,
-  true,
-  'active'
-);
-
--- 3. Test matching function
-SELECT * FROM find_top_mentors('<STUDENT_USER_ID>', 3, 0);
-```
-
-### **5.2 Test Match Batch Creation**
-
-```sql
--- Create a match batch manually
-SELECT * FROM create_match_batch('<STUDENT_USER_ID>', NULL);
-
--- Check created batch
-SELECT * FROM match_batches ORDER BY created_at DESC LIMIT 1;
-```
-
----
-
-## 🐛 **STEP 6: Error Testing**
-
-### **6.1 Test Error Scenarios**
-
-**Test Case 6.1.1: Network Error**
-
-1. Disconnect from internet
-2. Try to save profile
-3. **Expected:** Error message displayed gracefully
-
-**Test Case 6.1.2: Invalid Data**
-
-1. Try to submit profile with invalid graduation year (e.g., 2100)
-2. **Expected:** Validation error or backend rejection
-
-**Test Case 6.1.3: Duplicate Profile**
-
-1. Try to create profile when one already exists
-2. **Expected:** Error message or redirect to edit page
-
----
-
-## ✅ **STEP 7: UI/UX Testing**
-
-### **7.1 Visual Testing**
-
-Check each page for:
-- [ ] Proper spacing and layout
-- [ ] All text is readable
-- [ ] Buttons are clickable
-- [ ] Forms are properly aligned
-- [ ] Loading states are visible
-- [ ] Error messages are clear
-- [ ] Success messages are visible
-
-### **7.2 Responsive Testing**
-
-Test on different screen sizes:
-- [ ] Mobile (375px width)
-- [ ] Tablet (768px width)
-- [ ] Desktop (1024px+ width)
-
-### **7.3 Accessibility Testing**
-
-- [ ] All form fields have labels
-- [ ] Buttons have descriptive text
-- [ ] Error messages are announced
-- [ ] Keyboard navigation works
-- [ ] Focus indicators are visible
-
----
-
-## 📊 **STEP 8: Integration Testing**
-
-### **8.1 Full Flow Test**
-
-**Complete Student Journey:**
-
-1. ✅ User logs in
-2. ✅ Creates student profile
-3. ✅ Views dashboard
-4. ✅ Requests mentor
-5. ✅ Views recommendations
-6. ✅ (Future) Mentor accepts
-7. ✅ (Future) Views active match
-
-### **8.2 API Endpoint Testing**
-
-Test tRPC endpoints directly:
-
-```typescript
-// In browser console or React Query DevTools
-const { data } = await trpc.mentorship.getProfile.useQuery();
-console.log('Profile:', data);
-
-const { data: matches } = await trpc.mentorship.getMatches.useQuery();
-console.log('Matches:', matches);
-```
-
----
-
-## 🔍 **STEP 9: Database Verification**
-
-After testing, verify data integrity:
-
-```sql
--- Check all mentorship profiles
-SELECT 
-  profile_type,
-  COUNT(*) as count,
-  COUNT(*) FILTER (WHERE in_matching_pool = true) as in_pool,
-  COUNT(*) FILTER (WHERE availability_status = 'active') as active
-FROM mentorship_profiles
-GROUP BY profile_type;
-
--- Check match batches
-SELECT 
-  status,
-  COUNT(*) as count
-FROM match_batches
-GROUP BY status;
-
--- Check matches
-SELECT 
-  status,
-  COUNT(*) as count
-FROM matches
-GROUP BY status;
-```
-
----
-
-## 🚨 **COMMON ISSUES & SOLUTIONS**
-
-### **Issue 1: "Profile not found" error**
-
-**Solution:**
-- Verify user is logged in
-- Check if profile exists: `SELECT * FROM mentorship_profiles WHERE user_id = '<USER_ID>';`
-- Create profile if missing
-
-### **Issue 2: "Failed to create match batch"**
-
-**Solution:**
-- Ensure matching functions exist in database
-- Check if mentors exist in matching pool
-- Verify student profile has `in_matching_pool = true`
-
-### **Issue 3: "User not authenticated"**
-
-**Solution:**
-- Check authentication state
-- Refresh page
-- Log out and log back in
-
-### **Issue 4: Mentor recommendations not showing**
-
-**Solution:**
-- Verify mentors exist with matching criteria
-- Check match batch was created: `SELECT * FROM match_batches ORDER BY created_at DESC LIMIT 1;`
-- Verify match scores are calculated
-
-### **Issue 5: RLS Policy Errors**
-
-**Solution:**
-- Verify RLS policies are created
-- Check user has proper permissions
-- Use service role key for admin operations
+## 🎯 **PREREQUISITES FOR TESTING**
+
+### **1. Database Setup**
+- ✅ All mentorship migrations run in Supabase
+- ✅ RLS policies enabled
+- ✅ Matching functions created
+- ✅ At least one mentor profile exists
+
+### **2. Test Accounts Needed**
+- **Student Account:** Regular student user
+- **Mentor Account:** User with mentorship profile (mentor type)
+- **Admin Account:** User with admin role
+
+### **3. Browser Setup**
+- Open Developer Tools (F12 or Cmd+Option+I)
+- Keep Console tab open to see errors
+- Keep Network tab open to monitor API calls
 
 ---
 
 ## 📝 **TESTING CHECKLIST**
 
-Use this checklist to track your testing:
+### **✅ Phase 1: Student Features**
 
-- [ ] Database migrations run successfully
-- [ ] All tables created
-- [ ] All functions created
-- [ ] RLS policies enabled
-- [ ] Student profile creation works
-- [ ] Mentor profile creation works
-- [ ] Profile editing works
-- [ ] Dashboard displays correctly
-- [ ] Request mentor button works
-- [ ] Recommendations page displays
-- [ ] Error handling works
-- [ ] Loading states appear
-- [ ] Success messages appear
-- [ ] Mobile responsive
-- [ ] All links work
+#### **Test 1: Student Dashboard** (`/mentorship/dashboard`)
+**Steps:**
+1. Log in as a student
+2. Navigate to `/mentorship/dashboard`
+3. Verify the page loads without errors
+4. Check that you see:
+   - ✅ "Account Information" section (not profile requirement)
+   - ✅ "Request a Mentor" button (if no active match)
+   - ✅ Quick Actions section
+
+**Expected Results:**
+- ✅ Page loads successfully
+- ✅ No console errors
+- ✅ Student-specific content displayed
+- ✅ No profile creation prompt
+
+**Edge Cases:**
+- Test with student who has no data (major, skills, resume)
+- Test with student who has active match
+- Test with student who has pending batch
 
 ---
 
-## 🎯 **TESTING PRIORITY**
+#### **Test 2: Request a Mentor** (`/mentorship/request`)
+**Steps:**
+1. Log in as a student
+2. Navigate to `/mentorship/request`
+3. Fill out the request form:
+   - Preferred mentorship type (optional)
+   - Preferred industry (optional)
+   - Preferred communication method (optional)
+   - Student notes (optional)
+4. Click "Request a Mentor"
+5. Monitor browser console for errors
 
-**High Priority:**
-1. Profile creation (Student)
-2. Profile creation (Mentor)
-3. Dashboard display
-4. Request mentor flow
+**Expected Results:**
+- ✅ Form submits successfully
+- ✅ Loading state shows "Finding Mentors..."
+- ✅ Success message appears
+- ✅ Redirects to request page or dashboard
+- ✅ No errors in console
 
-**Medium Priority:**
-1. Profile editing
-2. Match batch display
-3. Error handling
-4. Loading states
+**Edge Cases:**
+- Test without filling any optional fields
+- Test with student who already has pending batch (should show error)
+- Test with student who has no major/skills/resume (should show error)
 
-**Low Priority:**
-1. UI polish
-2. Accessibility
-3. Performance optimization
+**Known Issue:** If "Finding Mentors" hangs, check:
+- Are there mentors in the database?
+- Are mentors in matching pool?
+- Run `DEBUG_MATCHING_ISSUE.sql` to diagnose
+
+---
+
+#### **Test 3: Match Details Page** (`/mentorship/match/[id]`)
+**Prerequisites:** Student must have an active match
+
+**Steps:**
+1. Log in as a student
+2. Navigate to `/mentorship/dashboard`
+3. Click "View Match Details" on active match
+4. Verify page loads at `/mentorship/match/[match-id]`
+5. Check all sections:
+   - Match Information card
+   - Match Score display
+   - Partner Profile (Mentor)
+   - Meeting Statistics
+   - Quick Actions sidebar
+   - Match Health indicator
+   - Recent Feedback section
+
+**Expected Results:**
+- ✅ Page loads with match information
+- ✅ Mentor details displayed correctly
+- ✅ Match score shown
+- ✅ Match reasoning displayed (if available)
+- ✅ Links to meetings work
+- ✅ No errors in console
+
+**Edge Cases:**
+- Test with match that has no meetings
+- Test with match that has at-risk status
+- Test with match that has low health score
+
+---
+
+#### **Test 4: Meeting Logs** (`/mentorship/match/[id]/meetings`)
+**Steps:**
+1. Navigate to match details page
+2. Click "View Meeting Logs" or "View Meetings"
+3. Verify page loads at `/mentorship/match/[id]/meetings`
+4. Check statistics cards (Total Meetings, Total Time, Average)
+5. Click "Log Meeting" button
+6. Fill out meeting form:
+   - Meeting Date (required)
+   - Duration (optional)
+   - Meeting Type (virtual, in-person, phone, email)
+   - Agenda (optional)
+   - Student Notes (optional)
+7. Submit the form
+8. Verify meeting appears in the list
+
+**Expected Results:**
+- ✅ Meetings page loads
+- ✅ Statistics calculated correctly
+- ✅ Dialog opens for logging meeting
+- ✅ Form validation works
+- ✅ Meeting is saved successfully
+- ✅ New meeting appears in list immediately
+- ✅ Meeting details display correctly
+
+**Edge Cases:**
+- Test logging meeting without duration
+- Test logging meeting with all fields filled
+- Test viewing meetings with no meetings logged
+- Test meeting type badges display correctly
+
+---
+
+#### **Test 5: Quick Questions - Student** (`/mentorship/questions`)
+**Steps:**
+1. Log in as a student
+2. Navigate to `/mentorship/questions`
+3. Verify statistics cards show correct counts
+4. Click "Ask a Question" button
+5. Fill out question form:
+   - Question Title (required, 5-200 chars)
+   - Description (required, 10-2000 chars)
+   - Preferred Response Time (24-hours, 48-hours, 1-week)
+   - Tags (optional, can add multiple)
+6. Submit the question
+7. Verify question appears in your questions list
+8. Check question status (should be "Open")
+
+**Expected Results:**
+- ✅ Questions page loads
+- ✅ Statistics display correctly
+- ✅ Form dialog opens
+- ✅ Validation works (min/max lengths)
+- ✅ Tags can be added/removed
+- ✅ Question is posted successfully
+- ✅ Question appears in list with correct status
+
+**Edge Cases:**
+- Test posting question with minimum required fields
+- Test posting question with all fields filled
+- Test adding/removing tags
+- Test viewing questions that are claimed
+- Test viewing questions that are completed
+
+---
+
+#### **Test 6: Feedback Submission**
+**Steps:**
+1. Navigate to match details page (`/mentorship/match/[id]`)
+2. Click "Submit Feedback" in Quick Actions
+3. Fill out feedback form:
+   - Feedback Type (general, match-quality, session, final)
+   - Rating (1-5 stars)
+   - Comment (optional)
+4. Submit feedback
+5. Verify feedback appears in "Recent Feedback" sidebar
+
+**Expected Results:**
+- ✅ Feedback dialog opens
+- ✅ Star rating can be selected (1-5)
+- ✅ Form submission works
+- ✅ Feedback appears in recent feedback section
+- ✅ No errors in console
+
+**Edge Cases:**
+- Test submitting feedback with only rating (no comment)
+- Test submitting feedback with rating and comment
+- Test submitting feedback twice (should show error about already submitted)
+- Test different feedback types
+
+---
+
+### **✅ Phase 2: Mentor Features**
+
+#### **Test 7: Mentor Dashboard** (`/mentorship/dashboard`)
+**Prerequisites:** Mentor account with mentorship profile
+
+**Steps:**
+1. Log in as a mentor
+2. Navigate to `/mentorship/dashboard`
+3. Verify mentor-specific content:
+   - Profile Status section
+   - Current Mentees section (if any)
+   - Pending Requests section (if any)
+   - Quick Actions
+
+**Expected Results:**
+- ✅ Mentor-specific dashboard loads
+- ✅ Profile information displayed
+- ✅ Active mentees listed (if any)
+- ✅ Pending requests shown (if any)
+- ✅ No "Request a Mentor" button (mentors don't need it)
+
+---
+
+#### **Test 8: Mentor Requests** (`/mentorship/mentor/requests`)
+**Prerequisites:** At least one student request where mentor is recommended
+
+**Steps:**
+1. Log in as a mentor
+2. Navigate to `/mentorship/mentor/requests`
+3. Verify student requests are displayed
+4. For each request, check:
+   - Student name and email
+   - Match score
+   - Match reasoning
+   - Student notes (if any)
+5. Click "Accept" or "Decline" on a request
+6. Verify the action completes
+
+**Expected Results:**
+- ✅ Requests page loads
+- ✅ Student requests displayed correctly
+- ✅ Match scores shown
+- ✅ Accept/Decline buttons work
+- ✅ Status updates after action
+- ✅ No errors in console
+
+**Edge Cases:**
+- Test accepting a request (should create match)
+- Test declining a request
+- Test with no pending requests (should show empty state)
+- Test with multiple requests
+
+---
+
+#### **Test 9: Mentor Mentees** (`/mentorship/mentor/mentees`)
+**Prerequisites:** Mentor with at least one active mentee
+
+**Steps:**
+1. Log in as a mentor
+2. Navigate to `/mentorship/mentor/mentees`
+3. Verify statistics cards:
+   - Active Mentees count
+   - Healthy Matches count
+   - Needs Attention count
+4. Check mentee cards:
+   - Student name and email
+   - Match score
+   - Matched date
+   - Last meeting date
+   - Health score
+5. Click "View Details" on a mentee
+6. Click "Meetings" button
+
+**Expected Results:**
+- ✅ Mentees page loads
+- ✅ Statistics calculated correctly
+- ✅ All active mentees listed
+- ✅ At-risk matches highlighted
+- ✅ Links to match details work
+- ✅ Links to meetings work
+
+**Edge Cases:**
+- Test with no active mentees (should show empty state)
+- Test with at-risk match (should show warning)
+- Test with healthy matches only
+
+---
+
+#### **Test 10: Quick Questions - Mentor** (`/mentorship/mentor/questions`)
+**Steps:**
+1. Log in as a mentor
+2. Navigate to `/mentorship/mentor/questions`
+3. Verify statistics cards:
+   - Open Questions count
+   - Urgent (24h) count
+   - Available Now count
+4. Test search functionality:
+   - Type in search box
+   - Verify questions filter
+5. Test tag filtering:
+   - Click on tags to filter
+   - Click "Clear filters" to reset
+6. Click "Claim Question" on an open question
+7. Verify question status changes to "Claimed"
+
+**Expected Results:**
+- ✅ Questions marketplace loads
+- ✅ Open questions displayed
+- ✅ Search filters questions correctly
+- ✅ Tag filtering works
+- ✅ Urgent questions highlighted
+- ✅ Claim button works
+- ✅ Question status updates after claiming
+
+**Edge Cases:**
+- Test with no open questions (should show empty state)
+- Test search with no results
+- Test claiming already claimed question (should show error)
+- Test filtering by multiple tags
+
+---
+
+#### **Test 11: Mentor - Match Details**
+**Steps:**
+1. Log in as a mentor
+2. Navigate to a mentee's match details (`/mentorship/match/[id]`)
+3. Verify mentor view:
+   - Student profile displayed (not mentor)
+   - Match information shown
+   - Meeting statistics visible
+   - Can submit feedback
+
+**Expected Results:**
+- ✅ Match details page loads
+- ✅ Student profile shown (not mentor)
+- ✅ All features work as expected
+- ✅ Can log meetings
+- ✅ Can submit feedback
+
+---
+
+#### **Test 12: Mentor - Meeting Logs**
+**Steps:**
+1. As a mentor, navigate to `/mentorship/match/[id]/meetings`
+2. Click "Log Meeting"
+3. Fill out meeting form (mentor can add mentor notes)
+4. Submit meeting
+5. Verify meeting appears with both student and mentor notes
+
+**Expected Results:**
+- ✅ Can log meetings as mentor
+- ✅ Mentor notes field available
+- ✅ Student notes visible (if student added any)
+- ✅ Meeting displays correctly for both parties
+
+---
+
+### **✅ Phase 3: Admin Features**
+
+#### **Test 13: Admin Dashboard** (`/admin/mentorship`)
+**Prerequisites:** Admin account
+
+**Steps:**
+1. Log in as admin
+2. Navigate to `/admin/mentorship`
+3. Verify all statistics cards:
+   - Total Matches
+   - Active Matches
+   - At-Risk Matches
+   - Average Match Score
+   - Pending Batches
+   - Unmatched Students
+   - Recent Matches (30 days)
+4. Check At-Risk Matches section (if any)
+5. Test status filter:
+   - Select "Active" - verify table updates
+   - Select "Pending" - verify table updates
+   - Select "All Status" - verify all matches shown
+6. Test manual match creation:
+   - Click "Create Manual Match"
+   - Fill out form (Student ID, Mentor ID, optional score/notes)
+   - Submit
+   - Verify match appears in table
+
+**Expected Results:**
+- ✅ Dashboard loads with all statistics
+- ✅ Statistics calculated correctly
+- ✅ At-risk matches highlighted
+- ✅ Filter dropdown works
+- ✅ Matches table displays correctly
+- ✅ Manual match creation works
+- ✅ Links to match details work
+
+**Edge Cases:**
+- Test filtering by different statuses
+- Test creating manual match with invalid IDs (should show error)
+- Test with no matches (should show empty state)
+- Test with no at-risk matches
+
+---
+
+### **✅ Phase 4: Integration Tests**
+
+#### **Test 14: Complete Student Flow**
+**End-to-End Test:**
+
+1. **Request Mentor:**
+   - Student logs in
+   - Navigates to `/mentorship/request`
+   - Fills form and submits
+   - Waits for match batch creation
+
+2. **View Recommendations:**
+   - Student checks `/mentorship/request` or dashboard
+   - Sees 3 recommended mentors
+   - Views mentor details
+
+3. **Mentor Accepts:**
+   - Mentor logs in
+   - Sees student request
+   - Accepts the request
+   - Match is created
+
+4. **View Match:**
+   - Student navigates to match details
+   - Sees mentor information
+   - Checks match score
+
+5. **Log Meeting:**
+   - Student logs a meeting
+   - Mentor logs a meeting
+   - Both can see each other's meetings
+
+6. **Submit Feedback:**
+   - Student submits feedback
+   - Mentor submits feedback
+   - Both can see feedback in match details
+
+**Expected Results:**
+- ✅ Complete flow works end-to-end
+- ✅ No errors at any step
+- ✅ Data persists correctly
+- ✅ Both parties can interact
+
+---
+
+#### **Test 15: Quick Questions Flow**
+**End-to-End Test:**
+
+1. **Student Posts Question:**
+   - Student posts a question
+   - Question appears as "Open"
+
+2. **Mentor Claims Question:**
+   - Mentor browses questions
+   - Finds student's question
+   - Claims the question
+   - Question status changes to "Claimed"
+
+3. **Question Completion:**
+   - Mentor/Student marks question as completed
+   - Question status changes to "Completed"
+
+**Expected Results:**
+- ✅ Question lifecycle works correctly
+- ✅ Status updates properly
+- ✅ Both parties can see updates
+
+---
+
+## 🐛 **ERROR SCENARIOS TO TEST**
+
+### **1. Authentication Errors**
+- Test accessing mentorship pages without logging in (should redirect)
+- Test accessing admin pages as non-admin (should show error)
+
+### **2. Data Validation Errors**
+- Submit forms with invalid data
+- Submit required fields empty
+- Test character limits on text fields
+
+### **3. Edge Cases**
+- Access match details for match you don't belong to (should show access denied)
+- Submit duplicate feedback (should show error)
+- Claim already claimed question (should show error)
+
+### **4. Empty States**
+- View pages with no data (should show helpful empty states)
+- Test with no mentors available
+- Test with no matches
+
+---
+
+## 📊 **TESTING RESULTS TEMPLATE**
+
+### **Feature:** [Feature Name]
+**Date Tested:** [Date]
+**Tester:** [Your Name]
+
+**Test Results:**
+- [ ] Passed
+- [ ] Failed
+- [ ] Needs Fix
+
+**Issues Found:**
+1. [Issue description]
+2. [Issue description]
+
+**Browser/Device:**
+- Browser: [Chrome/Firefox/Safari]
+- Device: [Desktop/Mobile]
+- OS: [macOS/Windows/Linux]
+
+**Screenshots:** [Attach if issues found]
+
+---
+
+## 🔧 **TROUBLESHOOTING COMMON ISSUES**
+
+### **Issue: "Finding Mentors" Hangs**
+**Solution:**
+1. Check browser console for errors
+2. Run `DEBUG_MATCHING_ISSUE.sql` in Supabase
+3. Verify mentors exist in database
+4. Check if mentors are in matching pool
+5. Verify matching functions exist
+
+### **Issue: "Access Denied" Error**
+**Solution:**
+1. Verify you're logged in
+2. Check user role in database
+3. Verify you have access to the resource
+4. Check RLS policies
+
+### **Issue: Page 404 Error**
+**Solution:**
+1. Verify URL is correct
+2. Check if page file exists
+3. Verify route structure matches URL
+4. Restart development server
+
+### **Issue: Data Not Showing**
+**Solution:**
+1. Check browser console for errors
+2. Check Network tab for failed API calls
+3. Verify database has data
+4. Check RLS policies allow access
+5. Verify tRPC endpoints are working
+
+---
+
+## ✅ **TESTING COMPLETION CHECKLIST**
+
+### **Student Features:**
+- [ ] Dashboard loads correctly
+- [ ] Can request mentor
+- [ ] Match details page works
+- [ ] Can log meetings
+- [ ] Can post questions
+- [ ] Can submit feedback
+
+### **Mentor Features:**
+- [ ] Dashboard loads correctly
+- [ ] Can view/accept requests
+- [ ] Mentees page works
+- [ ] Can browse/claim questions
+- [ ] Can log meetings
+- [ ] Can submit feedback
+
+### **Admin Features:**
+- [ ] Dashboard loads with statistics
+- [ ] Can filter matches
+- [ ] Can create manual matches
+- [ ] At-risk matches visible
+
+### **Integration:**
+- [ ] Complete student flow works
+- [ ] Complete mentor flow works
+- [ ] Quick questions flow works
+
+---
+
+## 📝 **REPORTING ISSUES**
+
+When reporting issues, include:
+1. **Feature/Page:** Which feature or page has the issue
+2. **Steps to Reproduce:** Exact steps to trigger the issue
+3. **Expected Behavior:** What should happen
+4. **Actual Behavior:** What actually happens
+5. **Browser/Console Errors:** Any error messages
+6. **Screenshots:** Visual proof of the issue
+
+---
+
+## 🎯 **PRIORITY TESTING ORDER**
+
+1. **High Priority:**
+   - Student mentor request flow
+   - Match creation and viewing
+   - Meeting logs
+
+2. **Medium Priority:**
+   - Quick Questions
+   - Feedback system
+   - Mentor requests
+
+3. **Low Priority:**
+   - Admin dashboard
+   - Statistics and analytics
+   - Edge cases
 
 ---
 
 **Ready to start testing!** 🚀
 
-Follow this guide step by step and document any issues you find.
-
+Follow this guide systematically to ensure all features work correctly.

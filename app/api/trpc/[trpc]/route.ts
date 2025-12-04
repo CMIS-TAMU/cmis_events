@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 async function createContext(req: NextRequest) {
-  // Create Supabase client with cookie handling
+  // Create Supabase client with SSR cookie handling (same as middleware)
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -19,29 +19,34 @@ async function createContext(req: NextRequest) {
       setAll(cookiesToSet) {
         // In tRPC context, we can't set cookies directly
         // This is handled by middleware
+        cookiesToSet.forEach(({ name, value }) => {
+          req.cookies.set(name, value);
+        });
       },
     },
   });
 
-  // Get authenticated user
-  const { data: { user: authUser } } = await supabase.auth.getUser();
-  
-  // Get user role from database if authenticated
+  // Get user from session (reads from cookies automatically)
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Get user role from database if user exists
   let role = 'user';
-  if (authUser) {
+  if (user) {
     const { data: profile } = await supabase
       .from('users')
       .select('role')
-      .eq('id', authUser.id)
+      .eq('id', user.id)
       .single();
-    role = profile?.role || 'user';
+    
+    role = profile?.role || user.user_metadata?.role || 'user';
   }
 
   return {
     req,
-    user: authUser ? {
-      id: authUser.id,
-      email: authUser.email || '',
+    supabase, // Pass the Supabase client with cookie handling
+    user: user ? {
+      id: user.id,
+      email: user.email || '',
       role,
     } : undefined,
   };

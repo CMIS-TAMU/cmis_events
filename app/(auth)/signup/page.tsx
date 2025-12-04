@@ -113,10 +113,15 @@ export default function SignupPage() {
             Enter your information to create your account
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSignup}>
+        <form onSubmit={handleSignup} aria-label="Create account form">
           <CardContent className="space-y-4">
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div 
+                className="rounded-md bg-red-50 p-4"
+                role="alert"
+                aria-live="assertive"
+                id="signup-error"
+              >
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
@@ -130,6 +135,10 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'signup-error' : undefined}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -142,6 +151,10 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'signup-error' : undefined}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -154,8 +167,16 @@ export default function SignupPage() {
                 required
                 minLength={6}
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'signup-error' : password ? 'password-hint' : undefined}
+                autoComplete="new-password"
               />
-              <p className="text-xs text-muted-foreground">
+              <p 
+                id="password-hint"
+                className="text-xs text-muted-foreground"
+                role="note"
+              >
                 Password must be at least 6 characters
               </p>
             </div>
@@ -168,6 +189,8 @@ export default function SignupPage() {
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-label="Select your role"
               >
                 <option value="student">Student</option>
                 <option value="faculty">Faculty</option>
@@ -176,7 +199,12 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+              aria-label={loading ? 'Creating account, please wait' : 'Create a new account'}
+            >
               {loading ? 'Creating account...' : 'Create account'}
             </Button>
             <p className="text-center text-sm text-muted-foreground">

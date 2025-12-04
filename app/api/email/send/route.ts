@@ -4,6 +4,9 @@ import {
   registrationConfirmationEmail,
   cancellationEmail,
   adminRegistrationNotificationEmail,
+  mentorNotificationEmail,
+  miniMentorshipRequestNotificationEmail,
+  sponsorNewEventNotificationEmail,
 } from '@/lib/email/templates';
 import {
   missionPublishedEmail,
@@ -62,6 +65,25 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'mentor_notification': {
+        const { mentorName, studentName, studentEmail, studentMajor, studentSkills, matchScore, batchId, mentorPosition, studentNotes } = data;
+        html = mentorNotificationEmail({
+          mentorName,
+          studentName,
+          studentEmail,
+          studentMajor,
+          studentSkills,
+          matchScore,
+          batchId,
+          mentorPosition,
+          studentNotes,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = `New Mentorship Request - Match Score: ${matchScore}/100`;
+        to = data.mentorEmail;
+        break;
+      }
+
       case 'mission_published': {
         const { studentName, mission } = data;
         html = missionPublishedEmail({
@@ -117,6 +139,42 @@ export async function POST(request: NextRequest) {
         });
         subject = `🎉 Perfect Score! You earned bonus points`;
         to = data.studentEmail;
+        break;
+      }
+
+      case 'mini_mentorship_request': {
+        const { mentorName, requestTitle, requestDescription, sessionType, duration, urgency, studentName, preferredDates, tags } = data;
+        html = miniMentorshipRequestNotificationEmail({
+          mentorName,
+          requestTitle,
+          requestDescription,
+          sessionType,
+          duration,
+          urgency,
+          studentName,
+          preferredDates,
+          tags,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = urgency === 'urgent' 
+          ? `🚨 URGENT: New Mini Session Request - ${requestTitle}`
+          : urgency === 'high'
+            ? `⚠️ High Priority: New Mini Session Request - ${requestTitle}`
+            : `New Mini Session Request - ${requestTitle}`;
+        to = data.mentorEmail;
+        break;
+      }
+
+      case 'sponsor_new_event': {
+        const { sponsorName, event, eventId } = data;
+        html = sponsorNewEventNotificationEmail({
+          sponsorName,
+          event,
+          eventId,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = data.subject || `🎉 New Event: ${event.title}`;
+        to = data.to;
         break;
       }
 

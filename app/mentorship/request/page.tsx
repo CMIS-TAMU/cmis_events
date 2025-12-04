@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, User, Mail, Building, MapPin, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function RequestMentorPage() {
   const router = useRouter();
@@ -25,20 +26,90 @@ export default function RequestMentorPage() {
       refetch();
       setTimeout(() => refetch(), 1000); // Refetch after backend creates batch
     },
+    onError: (error) => {
+      console.error('Error requesting mentor:', error);
+      toastUtil.error(
+        'Failed to request mentor',
+        error.message || 'Please try again or contact support if the problem persists.'
+      );
+    },
   });
+
+  // Add timeout to prevent infinite spinning
+  useEffect(() => {
+    if (requestMentor.isPending) {
+      const timeout = setTimeout(() => {
+        if (requestMentor.isPending) {
+          requestMentor.reset();
+          toastUtil.error(
+            'Request timeout',
+            'The request is taking too long. This might mean there are no mentors available. Please contact support.'
+          );
+        }
+      }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [requestMentor.isPending]);
 
   useEffect(() => {
     // Auto-request if no batch exists and user doesn't have active match
-    if (!batchLoading && !matchBatch && !activeMatch) {
+    if (!batchLoading && !matchBatch && !activeMatch && !requestMentor.isPending && !requestMentor.isError) {
       requestMentor.mutate({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchLoading, matchBatch, activeMatch]);
 
+  // Show error state if request failed
+  if (requestMentor.isError) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              Request Failed
+            </CardTitle>
+            <CardDescription>
+              Unable to create mentor request
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800 font-medium mb-2">Error:</p>
+                <p className="text-sm text-red-600">{requestMentor.error?.message || 'Unknown error occurred'}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    requestMentor.reset();
+                    requestMentor.mutate({});
+                  }}
+                  variant="default"
+                >
+                  Try Again
+                </Button>
+                <Link href="/mentorship/dashboard">
+                  <Button variant="outline">
+                    Back to Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (batchLoading || requestMentor.isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Finding mentors...</p>
+        </div>
       </div>
     );
   }
@@ -78,9 +149,23 @@ export default function RequestMentorPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground mb-4">
               This may take a few moments. Please wait while we analyze your profile and match you with mentors.
             </p>
+            {requestMentor.isError && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800 font-medium">Error occurred:</p>
+                <p className="text-sm text-red-600">{requestMentor.error?.message || 'Unknown error'}</p>
+                <Button
+                  onClick={() => requestMentor.mutate({})}
+                  variant="outline"
+                  className="mt-2"
+                  size="sm"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

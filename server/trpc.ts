@@ -17,6 +17,7 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 // Context type
 export interface Context {
   req?: NextRequest;
+  supabase?: any; // Supabase client with cookie handling
   user?: {
     id: string;
     email: string;

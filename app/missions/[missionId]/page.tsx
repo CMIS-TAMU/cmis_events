@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase/client';
+import { toastUtil } from '@/lib/utils/toast';
 
 export default function MissionDetailPage() {
   const params = useParams();
@@ -87,8 +88,9 @@ export default function MissionDetailPage() {
   const handleStartMission = async () => {
     try {
       await startMissionMutation.mutateAsync({ missionId });
+      toastUtil.success('Mission started!', 'You can now begin working on your submission.');
     } catch (error: any) {
-      alert(error.message || 'Failed to start mission');
+      toastUtil.error('Failed to start mission', error.message || 'Please try again.');
     }
   };
 
@@ -99,7 +101,10 @@ export default function MissionDetailPage() {
       const maxSize = 100 * 1024 * 1024;
       const invalidFiles = files.filter(f => f.size > maxSize);
       if (invalidFiles.length > 0) {
-        alert(`Some files exceed 100 MB limit. Please select smaller files.`);
+        toastUtil.error(
+          'File too large',
+          'Some files exceed 100 MB limit. Please select smaller files.'
+        );
         return;
       }
       setSubmissionFiles([...submissionFiles, ...files]);
@@ -112,7 +117,10 @@ export default function MissionDetailPage() {
 
   const handleSubmit = async () => {
     if (!submissionUrl && !submissionText && submissionFiles.length === 0) {
-      alert('Please provide at least one submission method (URL, text, or files)');
+      toastUtil.warning(
+        'Submission required',
+        'Please provide at least one submission method (URL, text, or files).'
+      );
       return;
     }
 
@@ -163,8 +171,9 @@ export default function MissionDetailPage() {
       setSubmissionUrl('');
       setSubmissionText('');
       setSubmissionFiles([]);
+      toastUtil.success('Submission successful!', 'Your solution has been submitted successfully.');
     } catch (error: any) {
-      alert(error.message || 'Failed to submit solution');
+      toastUtil.error('Submission failed', error.message || 'Please try again.');
     } finally {
       setSubmitting(false);
       setUploading(false);

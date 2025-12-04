@@ -1,21 +1,21 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
-import { createClient } from '@supabase/supabase-js';
+import { TRPCError } from '@trpc/server';
 import { generateQRToken } from '@/lib/qr/generate';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const registrationsRouter = router({
   // Register for an event
   register: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       // Check if already registered
@@ -23,21 +23,27 @@ export const registrationsRouter = router({
         .from('event_registrations')
         .select('id')
         .eq('event_id', input.event_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .single();
 
       if (existing) {
-        throw new Error('Already registered for this event');
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'Already registered for this event',
+        });
       }
 
       // Use the database function to register (handles capacity and waitlist)
       const { data, error } = await supabase.rpc('register_for_event', {
         p_event_id: input.event_id,
-        p_user_id: user.id,
+        p_user_id: ctx.user.id,
       });
 
       if (error) {
-        throw new Error(`Registration failed: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Registration failed: ${error.message}`,
+        });
       }
 
       // Generate QR code token if registration was successful
@@ -45,7 +51,7 @@ export const registrationsRouter = router({
         const qrToken = generateQRToken(
           data.registration_id,
           input.event_id,
-          user.id
+          ctx.user.id
         );
 
         // Update registration with QR code token
@@ -64,14 +70,13 @@ export const registrationsRouter = router({
           .eq('id', input.event_id)
           .single();
 
-        const { data: userData } = await supabase.auth.getUser();
         const { data: userProfile } = await supabase
           .from('users')
           .select('full_name, email')
-          .eq('id', user?.id)
+          .eq('id', ctx.user.id)
           .single();
 
-        if (eventData && userData?.user && userProfile) {
+        if (eventData && userProfile) {
           // Get QR code token if registration was successful
           let qrToken = null;
           if (data.registration_id) {
@@ -89,8 +94,8 @@ export const registrationsRouter = router({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               type: 'registration_confirmation',
-              userName: userProfile.full_name || userData.user.email?.split('@')[0] || 'User',
-              userEmail: userProfile.email || userData.user.email || '',
+              userName: userProfile.full_name || ctx.user.email?.split('@')[0] || 'User',
+              userEmail: userProfile.email || ctx.user.email || '',
               event: {
                 title: eventData.title,
                 description: eventData.description,
@@ -114,21 +119,27 @@ export const registrationsRouter = router({
   cancel: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { error } = await supabase
         .from('event_registrations')
         .update({ status: 'cancelled' })
         .eq('event_id', input.event_id)
-        .eq('user_id', user.id);
+        .eq('user_id', ctx.user.id);
 
       if (error) {
-        throw new Error(`Failed to cancel registration: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to cancel registration: ${error.message}`,
+        });
       }
 
       // Promote next person from waitlist
@@ -143,22 +154,21 @@ export const registrationsRouter = router({
         .eq('id', input.event_id)
         .single();
 
-      const { data: userData } = await supabase.auth.getUser();
       const { data: userProfile } = await supabase
         .from('users')
         .select('full_name, email')
-        .eq('id', user?.id)
+        .eq('id', ctx.user.id)
         .single();
 
-      if (eventData && userData?.user && userProfile) {
+      if (eventData && userProfile) {
         // Send email in background (don't await)
         fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'cancellation',
-            userName: userProfile.full_name || userData.user.email?.split('@')[0] || 'User',
-            userEmail: userProfile.email || userData.user.email || '',
+            userName: userProfile.full_name || ctx.user.email?.split('@')[0] || 'User',
+            userEmail: userProfile.email || ctx.user.email || '',
             event: {
               title: eventData.title,
               description: eventData.description,
@@ -174,11 +184,14 @@ export const registrationsRouter = router({
 
   // Get user's registrations
   getMyRegistrations: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     const { data, error } = await supabase
@@ -187,11 +200,14 @@ export const registrationsRouter = router({
         *,
         events (*)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.user.id)
       .order('registered_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch registrations: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch registrations: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -201,22 +217,28 @@ export const registrationsRouter = router({
   getStatus: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { data, error } = await supabase
         .from('event_registrations')
         .select('*')
         .eq('event_id', input.event_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-        throw new Error(`Failed to check registration: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to check registration: ${error.message}`,
+        });
       }
 
       return data || null;
@@ -230,8 +252,16 @@ export const registrationsRouter = router({
         status: z.string().optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       let query = supabase
         .from('event_registrations')
@@ -258,7 +288,10 @@ export const registrationsRouter = router({
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Failed to fetch registrations: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch registrations: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -267,8 +300,16 @@ export const registrationsRouter = router({
   // Get registrations for a specific event (admin only)
   getByEvent: adminProcedure
     .input(z.object({ event_id: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('event_registrations')
@@ -286,7 +327,10 @@ export const registrationsRouter = router({
         .order('registered_at', { ascending: false });
 
       if (error) {
-        throw new Error(`Failed to fetch registrations: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch registrations: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -294,11 +338,14 @@ export const registrationsRouter = router({
 
   // Get user's waitlist entries
   getMyWaitlist: protectedProcedure.query(async ({ ctx }) => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Use context supabase and user (already authenticated via protectedProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
     }
 
     const { data, error } = await supabase
@@ -307,11 +354,14 @@ export const registrationsRouter = router({
         *,
         events (*)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', ctx.user.id)
       .order('position', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch waitlist: ${error.message}`);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to fetch waitlist: ${error.message}`,
+      });
     }
 
     return data || [];
@@ -321,22 +371,28 @@ export const registrationsRouter = router({
   getWaitlistStatus: protectedProcedure
     .input(z.object({ event_id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Use context supabase and user (already authenticated via protectedProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
       }
 
       const { data, error } = await supabase
         .from('waitlist')
         .select('*')
         .eq('event_id', input.event_id)
-        .eq('user_id', user.id)
+        .eq('user_id', ctx.user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-        throw new Error(`Failed to check waitlist: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to check waitlist: ${error.message}`,
+        });
       }
 
       return data || null;

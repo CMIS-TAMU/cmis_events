@@ -68,10 +68,15 @@ export default function ResetPasswordPage() {
             Enter your email address and we&apos;ll send you a link to reset your password
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleReset}>
+        <form onSubmit={handleReset} aria-label="Reset password form">
           <CardContent className="space-y-4">
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div 
+                className="rounded-md bg-red-50 p-4"
+                role="alert"
+                aria-live="assertive"
+                id="reset-error"
+              >
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
@@ -85,11 +90,20 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={error ? 'reset-error' : undefined}
+                autoComplete="email"
               />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+              aria-label={loading ? 'Sending password reset link, please wait' : 'Send password reset link'}
+            >
               {loading ? 'Sending...' : 'Send reset link'}
             </Button>
             <Link href="/login" className="text-center text-sm text-primary hover:underline">

@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { router, adminProcedure } from '../trpc';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { TRPCError } from '@trpc/server';
 
 export const analyticsRouter = router({
   // Get dashboard overview stats
@@ -13,8 +10,17 @@ export const analyticsRouter = router({
         days: z.number().min(1).max(365).default(30),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - (input?.days || 30));
       const startDate = daysAgo.toISOString();
@@ -61,7 +67,7 @@ export const analyticsRouter = router({
         .gte('created_at', startDate);
 
       const avgRating = feedbackData && feedbackData.length > 0
-        ? Math.round((feedbackData.reduce((sum, f) => sum + f.rating, 0) / feedbackData.length) * 100) / 100
+        ? Math.round((feedbackData.reduce((sum: number, f: { rating: number }) => sum + f.rating, 0) / feedbackData.length) * 100) / 100
         : 0;
 
       // Get check-in count
@@ -91,8 +97,17 @@ export const analyticsRouter = router({
         days: z.number().min(7).max(365).default(30),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - (input?.days || 30));
 
@@ -103,13 +118,16 @@ export const analyticsRouter = router({
         .order('registered_at', { ascending: true });
 
       if (error) {
-        throw new Error(`Failed to fetch registration trends: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch registration trends: ${error.message}`,
+        });
       }
 
       // Group by date
       const groupedData = new Map<string, { registrations: number; cancellations: number }>();
 
-      (registrations || []).forEach((r) => {
+      (registrations || []).forEach((r: { registered_at: string; status: string }) => {
         const date = new Date(r.registered_at).toISOString().split('T')[0];
 
         if (!groupedData.has(date)) {
@@ -137,8 +155,16 @@ export const analyticsRouter = router({
         limit: z.number().min(1).max(50).default(10),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data: events, error } = await supabase
         .from('events')
@@ -154,7 +180,10 @@ export const analyticsRouter = router({
         .limit(input?.limit || 10);
 
       if (error) {
-        throw new Error(`Failed to fetch event performance: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch event performance: ${error.message}`,
+        });
       }
 
       return (events || []).map((event: any) => {
@@ -188,8 +217,16 @@ export const analyticsRouter = router({
     }),
 
   // Get user role distribution
-  getUserDistribution: adminProcedure.query(async () => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  getUserDistribution: adminProcedure.query(async ({ ctx }) => {
+    // Use context supabase client (already authenticated via adminProcedure)
+    const supabase = ctx.supabase;
+    
+    if (!supabase) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Supabase client not available',
+      });
+    }
 
     const { data: users } = await supabase
       .from('users')
@@ -211,8 +248,16 @@ export const analyticsRouter = router({
         limit: z.number().min(1).max(20).default(5),
       }).optional()
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data: events, error } = await supabase
         .from('events')
@@ -227,7 +272,10 @@ export const analyticsRouter = router({
         .order('starts_at', { ascending: true });
 
       if (error) {
-        throw new Error(`Failed to fetch popular events: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch popular events: ${error.message}`,
+        });
       }
 
       const eventsWithCounts = (events || []).map((event: any) => {
@@ -245,7 +293,7 @@ export const analyticsRouter = router({
       });
 
       // Sort by registration count
-      eventsWithCounts.sort((a, b) => b.registered - a.registered);
+      eventsWithCounts.sort((a: { registered: number }, b: { registered: number }) => b.registered - a.registered);
 
       return eventsWithCounts.slice(0, input?.limit || 5);
     }),
@@ -258,8 +306,17 @@ export const analyticsRouter = router({
         days: z.number().min(1).max(365).default(365),
       })
     )
-    .query(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .query(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
+
       const daysAgo = new Date();
       daysAgo.setDate(daysAgo.getDate() - input.days);
       const startDate = daysAgo.toISOString();
@@ -272,7 +329,12 @@ export const analyticsRouter = router({
             .gte('created_at', startDate)
             .order('created_at', { ascending: false });
 
-          if (error) throw new Error(error.message);
+          if (error) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: error.message,
+            });
+          }
           return data || [];
         }
 
@@ -287,7 +349,12 @@ export const analyticsRouter = router({
             .gte('registered_at', startDate)
             .order('registered_at', { ascending: false });
 
-          if (error) throw new Error(error.message);
+          if (error) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: error.message,
+            });
+          }
           return (data || []).map((r: any) => ({
             ...r,
             event_title: r.events?.title,
@@ -303,7 +370,12 @@ export const analyticsRouter = router({
             .gte('created_at', startDate)
             .order('created_at', { ascending: false });
 
-          if (error) throw new Error(error.message);
+          if (error) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: error.message,
+            });
+          }
           return data || [];
         }
 
@@ -318,7 +390,12 @@ export const analyticsRouter = router({
             .gte('created_at', startDate)
             .order('created_at', { ascending: false });
 
-          if (error) throw new Error(error.message);
+          if (error) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: error.message,
+            });
+          }
           return (data || []).map((f: any) => ({
             ...f,
             event_title: f.events?.title,

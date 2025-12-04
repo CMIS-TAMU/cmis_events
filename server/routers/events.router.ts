@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
+import { dispatchToSponsors } from '@/lib/communications/notification-dispatcher';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -40,7 +42,10 @@ export const eventsRouter = router({
       const { data, error } = await query;
 
       if (error) {
-        throw new Error(`Failed to fetch events: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch events: ${error.message}`,
+        });
       }
 
       return data || [];
@@ -59,7 +64,17 @@ export const eventsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to fetch event: ${error.message}`);
+        throw new TRPCError({
+          code: error.code === 'PGRST116' ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR',
+          message: `Failed to fetch event: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Event not found',
+        });
       }
 
       return data;
@@ -69,20 +84,57 @@ export const eventsRouter = router({
   create: adminProcedure
     .input(eventSchema)
     .mutation(async ({ ctx, input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user } } = await supabase.auth.getUser();
+      // Use context supabase and user (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
 
       const { data, error } = await supabase
         .from('events')
         .insert({
           ...input,
-          created_by: user?.id || null,
+          created_by: ctx.user.id,
         })
         .select()
         .single();
 
       if (error) {
-        throw new Error(`Failed to create event: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create event: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Event creation succeeded but no data returned',
+        });
+      }
+
+      // 🔔 Auto-notify sponsors about the new event
+      try {
+        const notificationResult = await dispatchToSponsors({
+          eventType: 'new_event',
+          eventData: {
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            starts_at: data.starts_at,
+            ends_at: data.ends_at,
+            capacity: data.capacity,
+          },
+        });
+        
+        console.log(`📧 New event notification sent to sponsors:`, notificationResult);
+      } catch (notifyError) {
+        // Don't fail event creation if notification fails
+        console.error('Failed to notify sponsors about new event:', notifyError);
       }
 
       return data;
@@ -95,8 +147,16 @@ export const eventsRouter = router({
         id: z.string().uuid(),
       })
     )
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       const { id, ...updateData } = input;
       
@@ -108,7 +168,17 @@ export const eventsRouter = router({
         .single();
 
       if (error) {
-        throw new Error(`Failed to update event: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to update event: ${error.message}`,
+        });
+      }
+
+      if (!data) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Event not found',
+        });
       }
 
       return data;
@@ -117,8 +187,16 @@ export const eventsRouter = router({
   // Delete event (admin only - soft delete)
   delete: adminProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    .mutation(async ({ ctx, input }) => {
+      // Use context supabase client (already authenticated via adminProcedure)
+      const supabase = ctx.supabase;
+      
+      if (!supabase) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Supabase client not available',
+        });
+      }
       
       // Soft delete by updating deleted_at (if you add this column)
       // Or hard delete if preferred
@@ -128,7 +206,10 @@ export const eventsRouter = router({
         .eq('id', input.id);
 
       if (error) {
-        throw new Error(`Failed to delete event: ${error.message}`);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to delete event: ${error.message}`,
+        });
       }
 
       return { success: true };
