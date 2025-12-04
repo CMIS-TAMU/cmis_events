@@ -302,3 +302,133 @@ export function mentorNotificationEmail({
 </html>
   `;
 }
+
+// ========================================================================
+// MINI MENTORSHIP REQUEST NOTIFICATION
+// ========================================================================
+
+interface MiniMentorshipRequestNotificationEmailProps {
+  mentorName: string;
+  requestTitle: string;
+  requestDescription: string;
+  sessionType: string;
+  duration: number;
+  urgency: string;
+  studentName?: string;
+  preferredDates?: {
+    start?: string;
+    end?: string;
+  };
+  tags?: string[];
+  appUrl?: string;
+}
+
+const sessionTypeLabelsForEmail: Record<string, string> = {
+  interview_prep: 'Interview Preparation',
+  skill_learning: 'Skill Learning',
+  career_advice: 'Career Advice',
+  resume_review: 'Resume Review',
+  project_guidance: 'Project Guidance',
+  technical_help: 'Technical Help',
+  portfolio_review: 'Portfolio Review',
+  networking_advice: 'Networking Advice',
+  other: 'Other',
+};
+
+export function miniMentorshipRequestNotificationEmail({
+  mentorName,
+  requestTitle,
+  requestDescription,
+  sessionType,
+  duration,
+  urgency,
+  studentName,
+  preferredDates,
+  tags = [],
+  appUrl = 'http://localhost:3000',
+}: MiniMentorshipRequestNotificationEmailProps): string {
+  const urgencyColor = urgency === 'urgent' ? '#ef4444' : urgency === 'high' ? '#f59e0b' : '#667eea';
+  const urgencyText = urgency.charAt(0).toUpperCase() + urgency.slice(1);
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Mini Mentorship Request</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">CMIS Mini Mentorship</h1>
+  </div>
+  
+  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+    <h2 style="color: #333; margin-top: 0;">New Mini Session Request</h2>
+    
+    <p>Hello ${mentorName},</p>
+    
+    <p>A student needs quick help and is looking for a mentor! This is a perfect opportunity for a short, focused mentorship session.</p>
+    
+    <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: ${urgencyColor}; flex: 1;">${requestTitle}</h3>
+        ${urgency === 'urgent' || urgency === 'high' ? `
+        <span style="background: ${urgencyColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 10px;">
+          ${urgencyText}
+        </span>
+        ` : ''}
+      </div>
+      
+      <div style="margin: 15px 0; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+        <p style="margin: 8px 0;"><strong>Session Type:</strong> ${sessionTypeLabelsForEmail[sessionType] || sessionType}</p>
+        <p style="margin: 8px 0;"><strong>Duration:</strong> ${duration} minutes</p>
+        ${studentName ? `<p style="margin: 8px 0;"><strong>Student:</strong> ${studentName}</p>` : ''}
+        ${preferredDates?.start || preferredDates?.end ? `
+        <p style="margin: 8px 0;"><strong>Preferred Dates:</strong> 
+          ${preferredDates.start && preferredDates.end 
+            ? `${format(new Date(preferredDates.start), 'MMM d')} - ${format(new Date(preferredDates.end), 'MMM d, yyyy')}`
+            : preferredDates.start 
+              ? `From ${format(new Date(preferredDates.start), 'MMM d, yyyy')}`
+              : `Until ${format(new Date(preferredDates.end!), 'MMM d, yyyy')}`}
+        </p>
+        ` : ''}
+      </div>
+      
+      <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <p style="margin: 0 0 8px 0;"><strong>Request Details:</strong></p>
+        <p style="margin: 0; color: #555;">${requestDescription.length > 200 ? requestDescription.substring(0, 200) + '...' : requestDescription}</p>
+      </div>
+      
+      ${tags.length > 0 ? `
+      <div style="margin: 15px 0;">
+        <p style="margin: 0 0 8px 0;"><strong>Tags:</strong></p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          ${tags.map(tag => `
+            <span style="background: #e0e0e0; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${tag}</span>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+    </div>
+    
+    <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+      <p style="margin: 0;"><strong>💡 Quick Session:</strong> This is a focused 30-60 minute session. Perfect for targeted help like interview prep, resume review, or specific skill learning!</p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${appUrl}/mentorship/mini-sessions/browse" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Browse & Claim Request</a>
+    </div>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+      You can view all open mini session requests in your <a href="${appUrl}/mentorship/mini-sessions/browse" style="color: #667eea;">Mini Sessions Browse Page</a>.
+    </p>
+    
+    <p style="margin-top: 30px;">Thank you for helping students grow!</p>
+    
+    <p style="margin-top: 30px;">Best regards,<br>CMIS Mini Mentorship Team</p>
+  </div>
+</body>
+</html>
+  `;
+}

@@ -634,6 +634,52 @@ export default function MentorshipDashboardPage() {
           </Card>
         )}
 
+        {/* Mini Sessions - Mentor Only */}
+        {isMentor && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Mini Mentorship Sessions
+              </CardTitle>
+              <CardDescription>
+                Browse and claim student requests for quick 30-60 minute mentorship sessions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Students need quick help with specific topics. Browse open requests and claim one to help!
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Video className="h-3 w-3" />
+                        Video call
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        30-60 min
+                      </span>
+                      <span>•</span>
+                      <span>One-time sessions</span>
+                      <span>•</span>
+                      <span>Flexible scheduling</span>
+                    </div>
+                  </div>
+                  <Link href="/mentorship/mini-sessions/browse">
+                    <Button>
+                      <Video className="h-4 w-4 mr-2" />
+                      Browse Requests
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
         <Card className="md:col-span-2">
           <CardHeader>

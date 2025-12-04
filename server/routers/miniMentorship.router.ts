@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
+import { createAdminSupabase } from '@/lib/supabase/server';
+import { sendEmail } from '@/lib/email/client';
+import { miniMentorshipRequestNotificationEmail } from '@/lib/email/templates';
 
 export const miniMentorshipRouter = router({
   // ========================================================================
@@ -83,6 +86,113 @@ export const miniMentorshipRouter = router({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Failed to create request: ${error.message}`,
         });
+      }
+
+      // Send email notifications to all active mentors (async, don't block response)
+      if (data) {
+        console.log('[Mini Mentorship] Request created, preparing to send notifications...');
+        
+        // Get student info for email
+        const { data: student } = await supabase
+          .from('users')
+          .select('full_name, email')
+          .eq('id', ctx.user.id)
+          .single();
+
+        if (!student) {
+          console.warn('[Mini Mentorship] Student info not found, skipping email notifications');
+        }
+
+        // Get all active mentors (in matching pool)
+        // Use admin client to bypass RLS when querying mentors
+        const adminSupabase = createAdminSupabase();
+        const { data: activeMentors, error: mentorsError } = await adminSupabase
+          .from('mentorship_profiles')
+          .select(`
+            user_id,
+            users:user_id(id, email, full_name)
+          `)
+          .eq('profile_type', 'mentor')
+          .eq('in_matching_pool', true);
+
+        if (mentorsError) {
+          console.error('[Mini Mentorship] Failed to fetch active mentors for notification:', mentorsError);
+          // Don't throw error - notification failure shouldn't break request creation
+        } else {
+          console.log(`[Mini Mentorship] Found ${activeMentors?.length || 0} active mentors`);
+        }
+
+        // Send emails to all mentors asynchronously (fire and forget)
+        if (activeMentors && activeMentors.length > 0 && student) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          console.log(`[Mini Mentorship] Preparing to send notifications to ${activeMentors.length} mentors`);
+          
+          // Helper function to send email directly (more reliable than fetch)
+          const sendMentorNotification = async (mentor: any) => {
+            try {
+              const mentorUser = mentor.users;
+              if (!mentorUser || !mentorUser.email) {
+                console.warn(`[Mini Mentorship] Mentor ${mentor.user_id} has no email, skipping`);
+                return;
+              }
+
+              console.log(`[Mini Mentorship] Sending notification email to ${mentorUser.email}`);
+
+              // Generate email HTML
+              const html = miniMentorshipRequestNotificationEmail({
+                mentorName: mentorUser.full_name || 'Mentor',
+                requestTitle: input.title,
+                requestDescription: input.description,
+                sessionType: input.session_type,
+                duration: input.preferred_duration_minutes,
+                urgency: input.urgency,
+                studentName: student.full_name || undefined,
+                preferredDates: input.preferred_date_start || input.preferred_date_end ? {
+                  start: input.preferred_date_start?.toISOString().split('T')[0],
+                  end: input.preferred_date_end?.toISOString().split('T')[0],
+                } : undefined,
+                tags: input.tags || [],
+                appUrl,
+              });
+
+              // Generate subject line
+              const subject = input.urgency === 'urgent' 
+                ? `🚨 URGENT: New Mini Session Request - ${input.title}`
+                : input.urgency === 'high'
+                  ? `⚠️ High Priority: New Mini Session Request - ${input.title}`
+                  : `New Mini Session Request - ${input.title}`;
+
+              // Send email directly using sendEmail function (more reliable)
+              const result = await sendEmail({
+                to: mentorUser.email,
+                subject,
+                html,
+              });
+
+              if (!result.success) {
+                console.error(`[Mini Mentorship] ❌ Failed to send email to ${mentorUser.email}:`, result.error);
+              } else {
+                console.log(`[Mini Mentorship] ✅ Email sent successfully to ${mentorUser.email}`);
+              }
+            } catch (err: any) {
+              console.error(`[Mini Mentorship] ❌ Error sending email to ${mentor?.users?.email || 'unknown'}:`, err.message);
+            }
+          };
+
+          // Send emails to all mentors (async, fire and forget - don't block response)
+          activeMentors.forEach((mentor) => {
+            sendMentorNotification(mentor).catch((err) => {
+              console.error(`[Mini Mentorship] Unhandled error sending notification:`, err);
+            });
+          });
+        } else {
+          if (!activeMentors || activeMentors.length === 0) {
+            console.warn('[Mini Mentorship] ⚠️ No active mentors found in matching pool');
+          }
+          if (!student) {
+            console.warn('[Mini Mentorship] ⚠️ Student info missing, cannot send notifications');
+          }
+        }
       }
 
       return data;

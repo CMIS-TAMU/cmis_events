@@ -5,6 +5,7 @@ import {
   cancellationEmail,
   adminRegistrationNotificationEmail,
   mentorNotificationEmail,
+  miniMentorshipRequestNotificationEmail,
 } from '@/lib/email/templates';
 import {
   missionPublishedEmail,
@@ -137,6 +138,29 @@ export async function POST(request: NextRequest) {
         });
         subject = `🎉 Perfect Score! You earned bonus points`;
         to = data.studentEmail;
+        break;
+      }
+
+      case 'mini_mentorship_request': {
+        const { mentorName, requestTitle, requestDescription, sessionType, duration, urgency, studentName, preferredDates, tags } = data;
+        html = miniMentorshipRequestNotificationEmail({
+          mentorName,
+          requestTitle,
+          requestDescription,
+          sessionType,
+          duration,
+          urgency,
+          studentName,
+          preferredDates,
+          tags,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = urgency === 'urgent' 
+          ? `🚨 URGENT: New Mini Session Request - ${requestTitle}`
+          : urgency === 'high'
+            ? `⚠️ High Priority: New Mini Session Request - ${requestTitle}`
+            : `New Mini Session Request - ${requestTitle}`;
+        to = data.mentorEmail;
         break;
       }
 

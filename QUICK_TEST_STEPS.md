@@ -1,95 +1,51 @@
-# Quick Testing Steps - Phase 6 Changes
+# ⚡ Quick Test - Mini Mentorship (5 minutes)
 
-## 🚀 Start Testing
+## 🎯 Fastest Way to Verify It Works
 
-### Step 1: Start the Server (if not running)
-```bash
-pnpm dev
-```
+### Step 1: Create Student Request (2 min)
 
-### Step 2: Open Browser
-- Navigate to: `http://localhost:3000`
-- Log in with your account
+1. **Login as student**
+2. Go to `/mentorship/dashboard`
+3. Click "Request Mini Session"
+4. Fill minimal form:
+   - Title: "Test Mini Session"
+   - Session Type: Any
+   - Description: "This is a test request for mini mentorship"
+   - Duration: 60 min
+5. Submit
 
----
-
-## 🎯 Quick Test Scenarios
-
-### Test 1: Toast Notifications (2 minutes)
-1. **Profile Wizard Toast:**
-   - Go to `/profile/wizard` or click "Complete Profile"
-   - Try to complete without filling required fields
-   - ✅ **You should see:** Toast warning (NOT an alert popup)
-
-2. **Feedback Form Toast:**
-   - Go to any event → Click "Give Feedback"
-   - Try to submit without rating
-   - ✅ **You should see:** Toast warning "Rating Required" (NOT alert)
-
-3. **Competition Registration Toast:**
-   - Go to a competition → Click "Register"
-   - Try to submit without team name
-   - ✅ **You should see:** Toast warning (NOT alert)
-
-### Test 2: Loading States (2 minutes)
-1. **Profile Edit:**
-   - Go to `/profile/edit`
-   - Make a change and click "Save All Changes"
-   - ✅ **You should see:** Button shows spinner + "Saving..."
-
-2. **Form Submission:**
-   - Submit any form (profile, competition, etc.)
-   - ✅ **You should see:** Button disabled + loading spinner
-   - ✅ **You should see:** Form fields disabled during submission
-
-### Test 3: Success Messages (1 minute)
-1. **Complete any action successfully:**
-   - Save profile changes
-   - Submit feedback
-   - Register for event
-   - ✅ **You should see:** Toast success message (green)
+**✅ Check:** Success toast + request appears in list
 
 ---
 
-## ✅ What to Look For
+### Step 2: Claim as Mentor (2 min)
 
-### ✅ GOOD (What You Should See)
-- Toast notifications (small popups at top-right)
-- Loading spinners on buttons
-- Disabled buttons during loading
-- Success/error messages as toasts
+1. **Logout → Login as mentor** (must have mentor profile)
+2. Go to `/mentorship/dashboard`
+3. Click "Browse Requests"
+4. Find your test request
+5. Click "Claim Request"
+6. Confirm
 
-### ❌ BAD (What You Should NOT See)
-- Alert popup dialogs
-- Buttons that don't show loading state
-- Forms that allow double-submission
-- No feedback during async operations
+**✅ Check:** Success toast + request disappears from browse page
 
 ---
 
-## 🔍 Key Pages to Test
+### Step 3: Verify Status (1 min)
 
-1. **Profile Wizard:** `/profile/wizard`
-2. **Profile Edit:** `/profile/edit`
-3. **Feedback:** `/feedback/[eventId]`
-4. **Competition Register:** `/competitions/[id]/register`
-5. **Competition Submit:** `/competitions/[id]/submit`
-6. **Mission Submit:** `/missions/[missionId]`
-7. **Sessions:** `/sessions`
-8. **Mentorship:** `/mentorship/request`
+1. **Logout → Login as student**
+2. Go to `/mentorship/dashboard`
+3. Check your request status
+
+**✅ Check:** Status shows "Claimed" with mentor name
 
 ---
 
-## 📝 Test Checklist
+## ✅ If All Pass: System Working!
 
-- [ ] No alert() popups anywhere
-- [ ] All toasts appear and auto-dismiss
-- [ ] Loading states show on all buttons
-- [ ] Forms disable during submission
-- [ ] Success messages are clear
-- [ ] Error messages are helpful
+## ❌ If Issues: Check Full Guide
+See `TEST_MINI_MENTORSHIP_COMPLETE.md` for detailed troubleshooting
 
 ---
 
-**Quick test should take ~5 minutes!** ⏱️
-
+**Ready! Start testing now!** 🚀
