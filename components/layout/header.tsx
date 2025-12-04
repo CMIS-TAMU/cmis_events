@@ -6,13 +6,26 @@ import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Calendar, User, LogOut, Shield } from 'lucide-react';
+import { useUserRole } from '@/lib/hooks/useUserRole';
+import { hasPermission } from '@/lib/auth/permissions';
+import type { UserRole } from '@/lib/auth/roles';
+
+interface NavLink {
+  href: string;
+  label: string;
+  requiresAuth?: boolean;
+  allowedRoles?: UserRole[];
+  requiredPermission?: string;
+}
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { role, isLoading: roleLoading } = useUserRole();
 
+  // Get user auth state
   useEffect(() => {
     async function getUser() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -20,7 +33,6 @@ export function Header() {
     }
     getUser();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -36,46 +48,90 @@ export function Header() {
 
   const isActive = (path: string) => pathname === path;
 
-  const [userRole, setUserRole] = useState<string>('');
-
-  useEffect(() => {
-    async function getUserRole() {
-      if (user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        setUserRole(profile?.role || 'user');
-      } else {
-        setUserRole(''); // Clear role when logged out
-      }
-    }
-    getUserRole();
-    
-    // Also listen for auth state changes to refresh role
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      getUserRole();
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [user]);
-
-  const navLinks = [
+  // Define all navigation links with access requirements
+  const allNavLinks: NavLink[] = [
     { href: '/', label: 'Home' },
     { href: '/events', label: 'Events' },
     { href: '/competitions', label: 'Competitions' },
-    ...(user ? [
-      { href: '/missions', label: 'Missions' },
-      { href: '/leaderboard', label: 'Leaderboard' },
-      { href: '/dashboard', label: 'Dashboard' },
-      { href: '/mentorship/dashboard', label: 'Mentorship' },
-      { href: '/registrations', label: 'My Registrations' },
-      { href: '/sessions', label: 'My Sessions' },
-      ...(userRole === 'sponsor' || userRole === 'admin' ? [{ href: '/sponsor/dashboard', label: 'Sponsor' }] : []),
-      ...(userRole === 'admin' ? [{ href: '/admin/dashboard', label: 'Admin' }] : [])
-    ] : []),
+    // Authenticated-only links
+    { 
+      href: '/missions', 
+      label: 'Missions', 
+      requiresAuth: true 
+    },
+    { 
+      href: '/leaderboard', 
+      label: 'Leaderboard', 
+      requiresAuth: true 
+    },
+    { 
+      href: '/dashboard', 
+      label: 'Dashboard', 
+      requiresAuth: true 
+    },
+    { 
+      href: '/mentorship/dashboard', 
+      label: 'Mentorship', 
+      requiresAuth: true,
+      requiredPermission: 'mentorship.view'
+    },
+    { 
+      href: '/registrations', 
+      label: 'My Registrations', 
+      requiresAuth: true,
+      requiredPermission: 'registrations.view'
+    },
+    { 
+      href: '/sessions', 
+      label: 'My Sessions', 
+      requiresAuth: true,
+      requiredPermission: 'events.view'
+    },
+    // Role-specific links
+    { 
+      href: '/sponsor/dashboard', 
+      label: 'Sponsor', 
+      requiresAuth: true,
+      allowedRoles: ['sponsor', 'admin'],
+      requiredPermission: 'sponsor.portal'
+    },
+    { 
+      href: '/admin/dashboard', 
+      label: 'Admin', 
+      requiresAuth: true,
+      allowedRoles: ['admin'],
+      requiredPermission: 'admin.panel'
+    },
   ];
+
+  // Filter navigation links based on auth and role
+  const navLinks = allNavLinks.filter((link) => {
+    // Public links always show
+    if (!link.requiresAuth) {
+      return true;
+    }
+
+    // If link requires auth, user must be logged in
+    if (!user || roleLoading) {
+      return false;
+    }
+
+    // Check role restrictions
+    if (link.allowedRoles && role) {
+      if (!link.allowedRoles.includes(role)) {
+        return false;
+      }
+    }
+
+    // Check permission requirements
+    if (link.requiredPermission && role) {
+      if (!hasPermission(role, link.requiredPermission as any)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -106,7 +162,7 @@ export function Header() {
         <div className="hidden md:flex items-center gap-4">
           {user ? (
             <>
-              {userRole === 'admin' && (
+              {role === 'admin' && (
                 <Link href="/admin/dashboard">
                   <Button variant="ghost" size="sm">
                     <Shield className="h-4 w-4 mr-2" />
@@ -201,4 +257,3 @@ export function Header() {
     </header>
   );
 }
-

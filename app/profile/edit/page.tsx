@@ -9,21 +9,55 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, ArrowLeft, Save, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { 
+  WorkExperienceForm, 
+  WorkExperienceCard, 
+  type WorkExperienceEntry 
+} from '@/components/profile/work-experience-form';
+import { 
+  EducationForm, 
+  EducationCard, 
+  type EducationEntry 
+} from '@/components/profile/education-form';
 
 export default function EditProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('basic');
 
-  // Form state
+  // Form state - Academic
   const [major, setMajor] = useState('');
   const [skills, setSkills] = useState('');
   const [researchInterests, setResearchInterests] = useState('');
   const [careerGoals, setCareerGoals] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [gpa, setGpa] = useState('');
+  const [degreeType, setDegreeType] = useState('');
+
+  // Form state - Contact
+  const [phone, setPhone] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [address, setAddress] = useState('');
+
+  // Form state - Professional
+  const [preferredIndustry, setPreferredIndustry] = useState('');
+
+  // Work Experience state
+  const [workExperience, setWorkExperience] = useState<WorkExperienceEntry[]>([]);
+  const [workExpFormOpen, setWorkExpFormOpen] = useState(false);
+  const [editingWorkExp, setEditingWorkExp] = useState<WorkExperienceEntry | null>(null);
+
+  // Education state
+  const [education, setEducation] = useState<EducationEntry[]>([]);
+  const [educationFormOpen, setEducationFormOpen] = useState(false);
+  const [editingEducation, setEditingEducation] = useState<EducationEntry | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -42,50 +76,89 @@ export default function EditProfilePage() {
     },
   });
 
-  useEffect(() => {
-    async function loadProfile() {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        router.push('/login');
-        return;
-      }
+  const updateWorkExperienceMutation = trpc.auth.updateWorkExperience.useMutation({
+    onSuccess: () => {
+      // Refresh work experience data
+      loadProfile();
+    },
+    onError: (err) => {
+      setError(err.message);
+    },
+  });
 
-      setUser(authUser);
+  const updateEducationMutation = trpc.auth.updateEducation.useMutation({
+    onSuccess: () => {
+      // Refresh education data
+      loadProfile();
+    },
+    onError: (err) => {
+      setError(err.message);
+    },
+  });
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        setLoading(false);
-        return;
-      }
-
-      setUserRole(profile?.role || 'user');
-
-      // Load existing data
-      if (profile) {
-        setMajor(profile.major || '');
-        setSkills((profile.skills || []).join(', '));
-        
-        // Load research interests from metadata
-        const metadata = profile.metadata || {};
-        const interests = metadata.research_interests || [];
-        setResearchInterests(Array.isArray(interests) ? interests.join(', ') : '');
-        
-        setCareerGoals(metadata.career_goals || '');
-        setGraduationYear(profile.graduation_year?.toString() || '');
-        setGpa(profile.gpa?.toString() || '');
-      }
-
-      setLoading(false);
+  const loadProfile = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!authUser) {
+      router.push('/login');
+      return;
     }
 
+    setUser(authUser);
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      setLoading(false);
+      return;
+    }
+
+    setUserRole(profile?.role || 'user');
+
+    // Load existing data
+    if (profile) {
+      // Academic fields
+      setMajor(profile.major || '');
+      setSkills((profile.skills || []).join(', '));
+      
+      const metadata = profile.metadata || {};
+      const interests = metadata.research_interests || [];
+      setResearchInterests(Array.isArray(interests) ? interests.join(', ') : '');
+      
+      setCareerGoals(metadata.career_goals || '');
+      setGraduationYear(profile.graduation_year?.toString() || '');
+      setGpa(profile.gpa?.toString() || '');
+      setDegreeType(profile.degree_type || '');
+
+      // Contact details
+      setPhone(profile.phone || '');
+      setLinkedinUrl(profile.linkedin_url || '');
+      setGithubUrl(profile.github_url || '');
+      setWebsiteUrl(profile.website_url || '');
+      setAddress(profile.address || '');
+
+      // Professional
+      setPreferredIndustry(profile.preferred_industry || '');
+
+      // Work experience (JSONB array)
+      const workExp = profile.work_experience || [];
+      setWorkExperience(Array.isArray(workExp) ? workExp : []);
+
+      // Education (JSONB array)
+      const edu = profile.education || [];
+      setEducation(Array.isArray(edu) ? edu : []);
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadProfile();
   }, [router]);
 
@@ -99,6 +172,11 @@ export default function EditProfilePage() {
     const skillsArray = skills.split(',').map(s => s.trim()).filter(s => s);
     const interestsArray = researchInterests.split(',').map(s => s.trim()).filter(s => s);
 
+    // Clean URLs (remove empty strings)
+    const linkedin = linkedinUrl.trim() || undefined;
+    const github = githubUrl.trim() || undefined;
+    const website = websiteUrl.trim() || undefined;
+
     updateProfile.mutate({
       major: major || undefined,
       skills: skillsArray.length > 0 ? skillsArray : undefined,
@@ -106,7 +184,48 @@ export default function EditProfilePage() {
       career_goals: careerGoals || undefined,
       graduation_year: graduationYear ? parseInt(graduationYear) : undefined,
       gpa: gpa ? parseFloat(gpa) : undefined,
+      degree_type: degreeType || undefined,
+      phone: phone || undefined,
+      linkedin_url: linkedin,
+      github_url: github,
+      website_url: website,
+      address: address || undefined,
+      preferred_industry: preferredIndustry || undefined,
     });
+  };
+
+  const handleWorkExperienceSave = (entry: WorkExperienceEntry) => {
+    const updated = editingWorkExp
+      ? workExperience.map((e) => (e.id === editingWorkExp.id ? entry : e))
+      : [...workExperience, entry];
+
+    updateWorkExperienceMutation.mutate({ work_experience: updated });
+    setWorkExpFormOpen(false);
+    setEditingWorkExp(null);
+  };
+
+  const handleWorkExperienceDelete = (entry: WorkExperienceEntry) => {
+    if (confirm('Are you sure you want to delete this work experience entry?')) {
+      const updated = workExperience.filter((e) => e.id !== entry.id);
+      updateWorkExperienceMutation.mutate({ work_experience: updated });
+    }
+  };
+
+  const handleEducationSave = (entry: EducationEntry) => {
+    const updated = editingEducation
+      ? education.map((e) => (e.id === editingEducation.id ? entry : e))
+      : [...education, entry];
+
+    updateEducationMutation.mutate({ education: updated });
+    setEducationFormOpen(false);
+    setEditingEducation(null);
+  };
+
+  const handleEducationDelete = (entry: EducationEntry) => {
+    if (confirm('Are you sure you want to delete this education entry?')) {
+      const updated = education.filter((e) => e.id !== entry.id);
+      updateEducationMutation.mutate({ education: updated });
+    }
   };
 
   if (loading) {
@@ -140,7 +259,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-8">
         <Link href="/profile" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -148,162 +267,396 @@ export default function EditProfilePage() {
         </Link>
         <h1 className="text-4xl font-bold mb-2">Edit Student Profile</h1>
         <p className="text-muted-foreground">
-          Update your information to help us match you with the right mentors
+          Update your information to help us match you with the right mentors and opportunities
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Student Information</CardTitle>
-          <CardDescription>
-            Fill in your academic and professional details
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Major */}
-            <div className="space-y-2">
-              <Label htmlFor="major">Major *</Label>
-              <Input
-                id="major"
-                value={major}
-                onChange={(e) => setMajor(e.target.value)}
-                placeholder="e.g., Computer Science"
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="contact">Contact</TabsTrigger>
+            <TabsTrigger value="professional">Professional</TabsTrigger>
+            <TabsTrigger value="education">Education</TabsTrigger>
+          </TabsList>
 
-            {/* Skills */}
-            <div className="space-y-2">
-              <Label htmlFor="skills">Technical Skills</Label>
-              <Input
-                id="skills"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="e.g., Python, JavaScript, React (comma-separated)"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate multiple skills with commas
-              </p>
-            </div>
+          {/* Tab 1: Basic Information */}
+          <TabsContent value="basic" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Academic Information</CardTitle>
+                <CardDescription>
+                  Your academic background and interests
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="major">Major *</Label>
+                    <Input
+                      id="major"
+                      value={major}
+                      onChange={(e) => setMajor(e.target.value)}
+                      placeholder="e.g., Computer Science"
+                      required
+                    />
+                  </div>
 
-            {/* Research Interests */}
-            <div className="space-y-2">
-              <Label htmlFor="researchInterests">Research Interests</Label>
-              <Input
-                id="researchInterests"
-                value={researchInterests}
-                onChange={(e) => setResearchInterests(e.target.value)}
-                placeholder="e.g., Machine Learning, Web Development, IoT (comma-separated)"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate multiple interests with commas. Used for mentor matching.
-              </p>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="degreeType">Degree Type</Label>
+                    <select
+                      id="degreeType"
+                      value={degreeType}
+                      onChange={(e) => setDegreeType(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="">Select degree type</option>
+                      <option value="bachelor">Bachelor's</option>
+                      <option value="master">Master's</option>
+                      <option value="phd">PhD</option>
+                      <option value="associate">Associate</option>
+                      <option value="certificate">Certificate</option>
+                    </select>
+                  </div>
+                </div>
 
-            {/* Career Goals */}
-            <div className="space-y-2">
-              <Label htmlFor="careerGoals">Career Goals</Label>
-              <textarea
-                id="careerGoals"
-                value={careerGoals}
-                onChange={(e) => setCareerGoals(e.target.value)}
-                placeholder="e.g., Software Engineering, Research in AI, Product Management"
-                rows={3}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <p className="text-xs text-muted-foreground">
-                Describe your career aspirations. Used for mentor matching.
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="skills">Technical Skills</Label>
+                  <Input
+                    id="skills"
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                    placeholder="e.g., Python, JavaScript, React (comma-separated)"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Separate multiple skills with commas
+                  </p>
+                </div>
 
-            {/* Graduation Year and GPA */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="graduationYear">Graduation Year</Label>
-                <Input
-                  id="graduationYear"
-                  type="number"
-                  min="2020"
-                  max="2030"
-                  value={graduationYear}
-                  onChange={(e) => setGraduationYear(e.target.value)}
-                  placeholder="e.g., 2025"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="researchInterests">Research Interests</Label>
+                  <Input
+                    id="researchInterests"
+                    value={researchInterests}
+                    onChange={(e) => setResearchInterests(e.target.value)}
+                    placeholder="e.g., Machine Learning, Web Development, IoT (comma-separated)"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Separate multiple interests with commas. Used for mentor matching.
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="gpa">GPA (Optional)</Label>
-                <Input
-                  id="gpa"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="4.0"
-                  value={gpa}
-                  onChange={(e) => setGpa(e.target.value)}
-                  placeholder="e.g., 3.75"
-                />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="careerGoals">Career Goals</Label>
+                  <textarea
+                    id="careerGoals"
+                    value={careerGoals}
+                    onChange={(e) => setCareerGoals(e.target.value)}
+                    placeholder="e.g., Software Engineering, Research in AI, Product Management"
+                    rows={3}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Describe your career aspirations. Used for mentor matching.
+                  </p>
+                </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-destructive/10 border border-destructive rounded-md flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="graduationYear">Graduation Year</Label>
+                    <Input
+                      id="graduationYear"
+                      type="number"
+                      min="2020"
+                      max="2030"
+                      value={graduationYear}
+                      onChange={(e) => setGraduationYear(e.target.value)}
+                      placeholder="e.g., 2025"
+                    />
+                  </div>
 
-            {/* Success Message */}
-            {success && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-md flex items-start gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                <p className="text-sm text-green-600">
-                  Profile updated successfully! Redirecting...
-                </p>
-              </div>
-            )}
+                  <div className="space-y-2">
+                    <Label htmlFor="gpa">GPA (Optional)</Label>
+                    <Input
+                      id="gpa"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="4.0"
+                      value={gpa}
+                      onChange={(e) => setGpa(e.target.value)}
+                      placeholder="e.g., 3.75"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            {/* Submit Button */}
-            <div className="flex gap-4">
-              <Button
-                type="submit"
-                disabled={saving || !major}
-                className="flex-1"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
+          {/* Tab 2: Contact Details */}
+          <TabsContent value="contact" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+                <CardDescription>
+                  How others can reach you
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g., +1 (555) 123-4567"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g., City, State, Country"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="linkedinUrl">LinkedIn Profile URL</Label>
+                  <Input
+                    id="linkedinUrl"
+                    type="url"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    placeholder="e.g., https://linkedin.com/in/yourprofile"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="githubUrl">GitHub Profile URL</Label>
+                  <Input
+                    id="githubUrl"
+                    type="url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="e.g., https://github.com/yourusername"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="websiteUrl">Personal Website/Portfolio URL</Label>
+                  <Input
+                    id="websiteUrl"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="e.g., https://yourwebsite.com"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 3: Professional */}
+          <TabsContent value="professional" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Professional Information</CardTitle>
+                <CardDescription>
+                  Your professional background and career preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="preferredIndustry">Preferred Industry</Label>
+                  <Input
+                    id="preferredIndustry"
+                    value={preferredIndustry}
+                    onChange={(e) => setPreferredIndustry(e.target.value)}
+                    placeholder="e.g., Software, Finance, Healthcare, Consulting"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The industry you're most interested in pursuing
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">Work Experience</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Add your professional work experience
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setEditingWorkExp(null);
+                        setWorkExpFormOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Experience
+                    </Button>
+                  </div>
+
+                  {workExperience.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No work experience added yet. Click &quot;Add Experience&quot; to get started.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {workExperience.map((entry) => (
+                        <WorkExperienceCard
+                          key={entry.id || entry.company}
+                          entry={entry}
+                          onEdit={(e) => {
+                            setEditingWorkExp(e);
+                            setWorkExpFormOpen(true);
+                          }}
+                          onDelete={handleWorkExperienceDelete}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 4: Education */}
+          <TabsContent value="education" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Education History</CardTitle>
+                <CardDescription>
+                  Your educational background
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Education</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Add your educational qualifications
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setEditingEducation(null);
+                      setEducationFormOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Education
+                  </Button>
+                </div>
+
+                {education.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No education history added yet. Click &quot;Add Education&quot; to get started.
+                  </div>
                 ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </>
+                  <div className="space-y-4">
+                    {education.map((entry) => (
+                      <EducationCard
+                        key={entry.id || entry.institution}
+                        entry={entry}
+                        onEdit={(e) => {
+                          setEditingEducation(e);
+                          setEducationFormOpen(true);
+                        }}
+                        onDelete={handleEducationDelete}
+                      />
+                    ))}
+                  </div>
                 )}
-              </Button>
-              <Link href="/profile">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </Link>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Error and Success Messages */}
+        <div className="mt-6">
+          {error && (
+            <div className="p-4 bg-destructive/10 border border-destructive rounded-md flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          )}
+
+          {success && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-md flex items-start gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+              <p className="text-sm text-green-600">
+                Profile updated successfully! Redirecting...
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Submit Buttons */}
+        <div className="flex gap-4 mt-6">
+          <Button
+            type="submit"
+            disabled={saving || !major}
+            className="flex-1"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save All Changes
+              </>
+            )}
+          </Button>
+          <Link href="/profile">
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </Link>
+        </div>
+      </form>
+
+      {/* Work Experience Form Dialog */}
+      <WorkExperienceForm
+        entry={editingWorkExp}
+        onSave={handleWorkExperienceSave}
+        onCancel={() => {
+          setWorkExpFormOpen(false);
+          setEditingWorkExp(null);
+        }}
+        isOpen={workExpFormOpen}
+      />
+
+      {/* Education Form Dialog */}
+      <EducationForm
+        entry={editingEducation}
+        onSave={handleEducationSave}
+        onCancel={() => {
+          setEducationFormOpen(false);
+          setEditingEducation(null);
+        }}
+        isOpen={educationFormOpen}
+      />
 
       {/* Info Card */}
-      <Card className="mt-6 border-blue-200 bg-blue-50">
+      <Card className="mt-6 border-blue-200 bg-blue-50 dark:bg-blue-950">
         <CardContent className="pt-6">
-          <p className="text-sm text-blue-900">
-            <strong>💡 Tip:</strong> The more information you provide (skills, research interests, career goals), 
-            the better we can match you with mentors who share your interests and can help guide your career path.
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong>💡 Tip:</strong> The more information you provide, the better we can match you with mentors, 
+            opportunities, and resources that align with your interests and career goals.
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
