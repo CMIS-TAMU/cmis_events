@@ -1,380 +1,386 @@
+/**
+ * Sponsors tRPC Router
+ * Handles sponsor tier management and preferences
+ */
+
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
+import { createServerSupabase } from '@/lib/supabase/server';
+import {
+  getSponsorTier,
+  updateSponsorTier,
+  getSponsorPreferences,
+  updateSponsorPreferences,
+  getSponsorEngagementStats,
+  changeSponsorTier,
+  getTierHistory,
+  canAccessFeature,
+  checkLimit,
+  type SponsorTier,
+  type NotificationFrequency,
+  type EventType,
+} from '@/lib/communications/sponsor-tiers';
 
-// Helper to check if user is sponsor (uses role from context)
-function isSponsor(role?: string): boolean {
-  return role === 'sponsor' || role === 'admin';
-}
+// ============================================================================
+// INPUT SCHEMAS
+// ============================================================================
+
+const updateTierSchema = z.object({
+  sponsorId: z.string().uuid(),
+  tier: z.enum(['basic', 'standard', 'premium']),
+  reason: z.string().optional(),
+});
+
+const bulkUpdateTiersSchema = z.object({
+  sponsorIds: z.array(z.string().uuid()),
+  tier: z.enum(['basic', 'standard', 'premium']),
+  reason: z.string().optional(),
+});
+
+const updatePreferencesSchema = z.object({
+  email_frequency: z.enum(['real-time', 'batched', 'daily', 'weekly', 'never']).optional(),
+  notification_preferences: z.record(z.string(), z.enum(['real-time', 'batched', 'daily', 'weekly', 'never'])).optional(),
+  student_filters: z.object({
+    majors: z.array(z.string()).optional(),
+    graduation_years: z.array(z.number()).optional(),
+    min_gpa: z.number().min(0).max(4).optional(),
+    skills: z.array(z.string()).optional(),
+    industries: z.array(z.string()).optional(),
+  }).optional(),
+  unsubscribed_from: z.array(z.string()).optional(),
+  contact_preferences: z.object({
+    email: z.boolean(),
+    phone: z.boolean().optional(),
+    sms: z.boolean().optional(),
+  }).optional(),
+});
+
+const sponsorFilterSchema = z.object({
+  tier: z.enum(['basic', 'standard', 'premium', 'all']).optional(),
+  search: z.string().optional(),
+  limit: z.number().min(1).max(100).optional().default(50),
+  offset: z.number().min(0).optional().default(0),
+});
+
+// ============================================================================
+// ROUTER
+// ============================================================================
 
 export const sponsorsRouter = router({
-  // Get sponsor dashboard stats
-  getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
-    // Use context supabase and user (already authenticated via protectedProcedure)
-    const supabase = ctx.supabase;
-    
-    if (!supabase) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Supabase client not available',
-      });
-    }
+  // ========== SPONSOR-ACCESSIBLE ENDPOINTS ==========
 
-    if (!isSponsor(ctx.user.role)) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Access denied. Sponsor role required.',
-      });
-    }
-
-    // Get total events
-    const { data: events } = await supabase
-      .from('events')
-      .select('id')
-      .gt('starts_at', new Date().toISOString());
-
-    // Get total registrations
-    const { data: registrations } = await supabase
-      .from('event_registrations')
-      .select('id')
-      .eq('status', 'registered');
-
-    // Get total resumes
-    const { data: resumes } = await supabase
-      .from('users')
-      .select('id')
-      .not('resume_filename', 'is', null);
-
-    // Get event attendance stats
-    const { data: attendance } = await supabase
-      .from('event_registrations')
-      .select('id')
-      .eq('status', 'checked_in');
-
-    return {
-      upcomingEvents: events?.length || 0,
-      totalRegistrations: registrations?.length || 0,
-      totalResumes: resumes?.length || 0,
-      totalAttendance: attendance?.length || 0,
-    };
+  /**
+   * Get current user's sponsor tier and config
+   */
+  getMyTier: protectedProcedure.query(async ({ ctx }) => {
+    const tier = await getSponsorTier(ctx.user.id);
+    const config = (await import('@/lib/communications/sponsor-tiers')).getTierConfig(tier);
+    return { tier, config };
   }),
 
-  // Get event attendance for sponsor
-  getEventAttendance: protectedProcedure
-    .input(z.object({ event_id: z.string().uuid() }))
-    .query(async ({ input, ctx }) => {
-      // Use context supabase and user (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
+  /**
+   * Get current user's notification preferences
+   */
+  getMyPreferences: protectedProcedure.query(async ({ ctx }) => {
+    const preferences = await getSponsorPreferences(ctx.user.id);
+    return preferences;
+  }),
+
+  /**
+   * Update current user's notification preferences
+   */
+  updateMyPreferences: protectedProcedure
+    .input(updatePreferencesSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await updateSponsorPreferences(ctx.user.id, input);
       
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update preferences');
       }
 
-      if (!isSponsor(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Access denied. Sponsor role required.',
-        });
-      }
-
-      const { data, error } = await supabase
-        .from('event_registrations')
-        .select(`
-          id,
-          status,
-          registered_at,
-          checked_in_at,
-          users (
-            id,
-            email,
-            full_name,
-            major,
-            gpa,
-            graduation_year,
-            resume_filename
-          )
-        `)
-        .eq('event_id', input.event_id)
-        .order('registered_at', { ascending: false });
-
-      if (error) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to fetch attendance: ${error.message}`,
-        });
-      }
-
-      return data || [];
+      return result.data;
     }),
 
-  // Search resumes (for sponsors)
-  searchResumes: protectedProcedure
-    .input(
-      z.object({
-        search: z.string().optional(),
-        major: z.string().optional(),
-        skills: z.array(z.string()).optional(),
-        minGpa: z.number().optional(),
-        maxGpa: z.number().optional(),
-        graduationYear: z.number().optional(),
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      // Use context supabase and user (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
-      
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
-      }
+  /**
+   * Get current user's engagement stats
+   */
+  getMyEngagementStats: protectedProcedure.query(async ({ ctx }) => {
+    const stats = await getSponsorEngagementStats(ctx.user.id);
+    return stats;
+  }),
 
-      if (!isSponsor(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Access denied. Sponsor role required.',
-        });
-      }
+  /**
+   * Check if current user can access a feature
+   */
+  canAccessFeature: protectedProcedure
+    .input(z.object({ feature: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const canAccess = await canAccessFeature(ctx.user.id, input.feature as any);
+      return { canAccess };
+    }),
+
+  /**
+   * Check if current user has reached a limit
+   */
+  checkLimit: protectedProcedure
+    .input(z.object({
+      limitType: z.enum(['student_filters', 'saved_searches', 'monthly_exports']),
+      currentCount: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const result = await checkLimit(ctx.user.id, input.limitType, input.currentCount);
+      return result;
+    }),
+
+  // ========== ADMIN-ONLY ENDPOINTS ==========
+
+  /**
+   * Get all sponsors with their tiers and stats
+   */
+  getAllSponsors: adminProcedure
+    .input(sponsorFilterSchema)
+    .query(async ({ input }) => {
+      const supabase = await createServerSupabase();
 
       let query = supabase
         .from('users')
-        .select('id, email, full_name, major, gpa, skills, graduation_year, resume_uploaded_at, resume_filename')
-        .not('resume_filename', 'is', null)
-        .order('resume_uploaded_at', { ascending: false });
+        .select(`
+          id,
+          email,
+          full_name,
+          sponsor_tier,
+          created_at,
+          metadata
+        `)
+        .eq('role', 'sponsor')
+        .order('created_at', { ascending: false });
 
+      // Apply tier filter
+      if (input.tier && input.tier !== 'all') {
+        query = query.eq('sponsor_tier', input.tier);
+      }
+
+      // Apply search filter
       if (input.search) {
-        query = query.or(`full_name.ilike.%${input.search}%,email.ilike.%${input.search}%,major.ilike.%${input.search}%`);
+        query = query.or(`email.ilike.%${input.search}%,full_name.ilike.%${input.search}%`);
       }
 
-      if (input.major) {
-        query = query.eq('major', input.major);
-      }
+      // Apply pagination
+      query = query.range(input.offset!, input.offset! + input.limit! - 1);
 
-      if (input.skills && input.skills.length > 0) {
-        query = query.contains('skills', input.skills);
-      }
-
-      if (input.minGpa !== undefined) {
-        query = query.gte('gpa', input.minGpa);
-      }
-
-      if (input.maxGpa !== undefined) {
-        query = query.lte('gpa', input.maxGpa);
-      }
-
-      if (input.graduationYear) {
-        query = query.eq('graduation_year', input.graduationYear);
-      }
-
-      query = query.range(input.offset, input.offset + input.limit - 1);
-
-      const { data, error } = await query;
+      const { data: sponsors, error } = await query;
 
       if (error) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to search resumes: ${error.message}`,
-        });
+        throw new Error(`Failed to fetch sponsors: ${error.message}`);
       }
 
-      return data || [];
+      // Get engagement stats for each sponsor
+      const sponsorsWithStats = await Promise.all(
+        (sponsors || []).map(async (sponsor) => {
+          const stats = await getSponsorEngagementStats(sponsor.id);
+          return {
+            ...sponsor,
+            stats,
+          };
+        })
+      );
+
+      // Get total count
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'sponsor');
+
+      return {
+        sponsors: sponsorsWithStats,
+        total: count || 0,
+      };
     }),
 
-  // Track resume view (for analytics)
-  trackResumeView: protectedProcedure
-    .input(z.object({ userId: z.string().uuid(), eventId: z.string().uuid().optional() }))
-    .mutation(async ({ input, ctx }) => {
-      // Use context supabase and user (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
-      
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
-      }
+  /**
+   * Get sponsor tier statistics
+   */
+  getTierStats: adminProcedure.query(async () => {
+    const supabase = await createServerSupabase();
 
-      if (!isSponsor(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Access denied. Sponsor role required.',
-        });
-      }
-
-      const { error } = await supabase.from('resume_views').insert({
-        user_id: input.userId,
-        viewed_by: ctx.user.id,
-        event_id: input.eventId || null,
-      });
-
-      if (error) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to track view: ${error.message}`,
-        });
-      }
-
-      return { success: true };
-    }),
-
-  // Get shortlisted candidates (stored in metadata or separate table)
-  getShortlist: protectedProcedure.query(async ({ ctx }) => {
-    // Use context supabase and user (already authenticated via protectedProcedure)
-    const supabase = ctx.supabase;
-    
-    if (!supabase) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Supabase client not available',
-      });
-    }
-
-    if (!isSponsor(ctx.user.role)) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Access denied. Sponsor role required.',
-      });
-    }
-
-    // Get sponsor's shortlist from metadata
-    const { data: sponsorData } = await supabase
+    // Get counts by tier
+    const { data: tierCounts } = await supabase
       .from('users')
-      .select('metadata')
-      .eq('id', ctx.user.id)
-      .single();
+      .select('sponsor_tier')
+      .eq('role', 'sponsor');
 
-    const shortlistIds = (sponsorData?.metadata as any)?.shortlist || [];
+    const stats = {
+      total: tierCounts?.length || 0,
+      basic: tierCounts?.filter(s => s.sponsor_tier === 'basic').length || 0,
+      standard: tierCounts?.filter(s => s.sponsor_tier === 'standard').length || 0,
+      premium: tierCounts?.filter(s => s.sponsor_tier === 'premium').length || 0,
+    };
 
-    if (shortlistIds.length === 0) {
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, full_name, major, gpa, skills, graduation_year, resume_filename, resume_uploaded_at')
-      .in('id', shortlistIds)
-      .not('resume_filename', 'is', null);
-
-    if (error) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: `Failed to fetch shortlist: ${error.message}`,
-      });
-    }
-
-    return data || [];
+    return stats;
   }),
 
-  // Add to shortlist
-  addToShortlist: protectedProcedure
-    .input(z.object({ userId: z.string().uuid() }))
-    .mutation(async ({ input, ctx }) => {
-      // Use context supabase and user (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
-      
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
-      }
+  /**
+   * Get detailed sponsor information
+   */
+  getSponsorDetails: adminProcedure
+    .input(z.object({ sponsorId: z.string().uuid() }))
+    .query(async ({ input }) => {
+      const supabase = await createServerSupabase();
 
-      if (!isSponsor(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Access denied. Sponsor role required.',
-        });
-      }
-
-      // Get current shortlist
-      const { data: sponsorData } = await supabase
+      const { data: sponsor, error } = await supabase
         .from('users')
-        .select('metadata')
-        .eq('id', ctx.user.id)
+        .select('*')
+        .eq('id', input.sponsorId)
         .single();
 
-      const currentShortlist = (sponsorData?.metadata as any)?.shortlist || [];
-      
-      if (currentShortlist.includes(input.userId)) {
-        return { success: true, message: 'Already in shortlist' };
+      if (error || !sponsor) {
+        throw new Error('Sponsor not found');
       }
 
-      const newShortlist = [...currentShortlist, input.userId];
-      const newMetadata = {
-        ...(sponsorData?.metadata || {}),
-        shortlist: newShortlist,
+      const [tier, preferences, stats, tierHistory] = await Promise.all([
+        getSponsorTier(input.sponsorId),
+        getSponsorPreferences(input.sponsorId),
+        getSponsorEngagementStats(input.sponsorId),
+        getTierHistory(input.sponsorId),
+      ]);
+
+      return {
+        sponsor,
+        tier,
+        preferences,
+        stats,
+        tierHistory,
       };
-
-      const { error } = await supabase
-        .from('users')
-        .update({ metadata: newMetadata })
-        .eq('id', ctx.user.id);
-
-      if (error) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to add to shortlist: ${error.message}`,
-        });
-      }
-
-      return { success: true };
     }),
 
-  // Remove from shortlist
-  removeFromShortlist: protectedProcedure
-    .input(z.object({ userId: z.string().uuid() }))
-    .mutation(async ({ input, ctx }) => {
-      // Use context supabase and user (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
-      
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
+  /**
+   * Update sponsor tier (admin only)
+   */
+  updateSponsorTier: adminProcedure
+    .input(updateTierSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await changeSponsorTier(
+        input.sponsorId,
+        input.tier,
+        input.reason,
+        ctx.user.id
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update sponsor tier');
       }
 
-      if (!isSponsor(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Access denied. Sponsor role required.',
-        });
-      }
+      return result.change;
+    }),
 
-      // Get current shortlist
-      const { data: sponsorData } = await supabase
-        .from('users')
-        .select('metadata')
-        .eq('id', ctx.user.id)
-        .single();
+  /**
+   * Bulk update sponsor tiers (admin only)
+   */
+  bulkUpdateTiers: adminProcedure
+    .input(bulkUpdateTiersSchema)
+    .mutation(async ({ ctx, input }) => {
+      const results = await Promise.all(
+        input.sponsorIds.map(async (sponsorId) => {
+          const result = await changeSponsorTier(
+            sponsorId,
+            input.tier,
+            input.reason,
+            ctx.user.id
+          );
+          return {
+            sponsorId,
+            success: result.success,
+            error: result.error,
+          };
+        })
+      );
 
-      const currentShortlist = (sponsorData?.metadata as any)?.shortlist || [];
-      const newShortlist = currentShortlist.filter((id: string) => id !== input.userId);
-      
-      const newMetadata = {
-        ...(sponsorData?.metadata || {}),
-        shortlist: newShortlist,
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+
+      return {
+        total: input.sponsorIds.length,
+        successful,
+        failed,
+        results,
       };
+    }),
 
-      const { error } = await supabase
+  /**
+   * Get engagement analytics across all sponsors
+   */
+  getEngagementAnalytics: adminProcedure
+    .input(z.object({
+      tier: z.enum(['basic', 'standard', 'premium', 'all']).optional().default('all'),
+      days: z.number().min(1).max(365).optional().default(30),
+    }))
+    .query(async ({ input }) => {
+      const supabase = await createServerSupabase();
+
+      // Get sponsors filtered by tier
+      let query = supabase
         .from('users')
-        .update({ metadata: newMetadata })
-        .eq('id', ctx.user.id);
+        .select('id, sponsor_tier')
+        .eq('role', 'sponsor');
 
-      if (error) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to remove from shortlist: ${error.message}`,
-        });
+      if (input.tier !== 'all') {
+        query = query.eq('sponsor_tier', input.tier);
       }
 
-      return { success: true };
+      const { data: sponsors } = await query;
+
+      if (!sponsors || sponsors.length === 0) {
+        return {
+          totalSponsors: 0,
+          totalNotifications: 0,
+          totalOpens: 0,
+          totalClicks: 0,
+          totalResumesViewed: 0,
+          avgEngagementRate: 0,
+          byTier: {},
+        };
+      }
+
+      // Get engagement stats for all sponsors
+      const statsPromises = sponsors.map(s => getSponsorEngagementStats(s.id));
+      const allStats = await Promise.all(statsPromises);
+
+      const totalNotifications = allStats.reduce((sum, s) => sum + s.notifications_sent, 0);
+      const totalOpens = allStats.reduce((sum, s) => sum + s.notifications_opened, 0);
+      const totalClicks = allStats.reduce((sum, s) => sum + s.notifications_clicked, 0);
+      const totalResumesViewed = allStats.reduce((sum, s) => sum + s.resumes_viewed, 0);
+
+      const avgEngagementRate = totalNotifications > 0
+        ? ((totalOpens + totalClicks) / (totalNotifications * 2)) * 100
+        : 0;
+
+      // Group by tier
+      const byTier: Record<string, any> = {};
+      ['basic', 'standard', 'premium'].forEach(tier => {
+        const tierStats = allStats.filter(s => s.tier === tier);
+        const tierNotifications = tierStats.reduce((sum, s) => sum + s.notifications_sent, 0);
+        const tierOpens = tierStats.reduce((sum, s) => sum + s.notifications_opened, 0);
+        const tierClicks = tierStats.reduce((sum, s) => sum + s.notifications_clicked, 0);
+
+        byTier[tier] = {
+          count: tierStats.length,
+          notifications: tierNotifications,
+          opens: tierOpens,
+          clicks: tierClicks,
+          engagementRate: tierNotifications > 0
+            ? ((tierOpens + tierClicks) / (tierNotifications * 2)) * 100
+            : 0,
+        };
+      });
+
+      return {
+        totalSponsors: sponsors.length,
+        totalNotifications,
+        totalOpens,
+        totalClicks,
+        totalResumesViewed,
+        avgEngagementRate: Math.round(avgEngagementRate * 100) / 100,
+        byTier,
+      };
     }),
 });
-
