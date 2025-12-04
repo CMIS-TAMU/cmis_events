@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
+import { dispatchToSponsors } from '@/lib/communications/notification-dispatcher';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -114,6 +115,26 @@ export const eventsRouter = router({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Event creation succeeded but no data returned',
         });
+      }
+
+      // 🔔 Auto-notify sponsors about the new event
+      try {
+        const notificationResult = await dispatchToSponsors({
+          eventType: 'new_event',
+          eventData: {
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            starts_at: data.starts_at,
+            ends_at: data.ends_at,
+            capacity: data.capacity,
+          },
+        });
+        
+        console.log(`📧 New event notification sent to sponsors:`, notificationResult);
+      } catch (notifyError) {
+        // Don't fail event creation if notification fails
+        console.error('Failed to notify sponsors about new event:', notifyError);
       }
 
       return data;

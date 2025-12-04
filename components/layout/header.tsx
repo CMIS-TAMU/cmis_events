@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Calendar, User, LogOut, Shield } from 'lucide-react';
+import { Menu, X, Calendar, User, LogOut, Shield, GraduationCap } from 'lucide-react';
 import { useUserRole } from '@/lib/hooks/useUserRole';
 import { hasPermission } from '@/lib/auth/permissions';
 import type { UserRole } from '@/lib/auth/roles';
@@ -135,23 +135,28 @@ export function Header() {
 
   return (
     <header 
-      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b border-[#500000]/10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm"
       role="banner"
     >
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link 
             href="/" 
-            className="flex items-center gap-2 font-bold text-xl"
+            className="flex items-center gap-2.5 font-bold text-xl text-[#500000] hover:opacity-90 transition-opacity"
             aria-label="CMIS Events home page"
           >
-            <Calendar className="h-6 w-6" aria-hidden="true" />
-            <span>CMIS Events</span>
+            <div className="w-9 h-9 rounded-lg bg-[#500000] flex items-center justify-center shadow-md">
+              <Calendar className="h-5 w-5 text-white" aria-hidden="true" />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold tracking-tight">CMIS Events</span>
+              <span className="text-[10px] font-normal text-[#500000]/60 -mt-0.5">Texas A&M Mays</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav 
-            className="hidden md:flex items-center gap-6"
+            className="hidden lg:flex items-center gap-1"
             role="navigation"
             aria-label="Main navigation"
           >
@@ -159,8 +164,10 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(link.href) ? 'text-primary' : 'text-muted-foreground'
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  isActive(link.href) 
+                    ? 'bg-[#500000] text-white shadow-md' 
+                    : 'text-[#500000]/80 hover:bg-[#500000]/10 hover:text-[#500000]'
                 }`}
                 aria-current={isActive(link.href) ? 'page' : undefined}
               >
@@ -171,20 +178,30 @@ export function Header() {
         </div>
 
         {/* Desktop Auth */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
               {role === 'admin' && (
                 <Link href="/admin/dashboard">
-                  <Button variant="ghost" size="sm" aria-label="Go to admin dashboard">
-                    <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-[#500000] hover:bg-[#500000]/10"
+                    aria-label="Go to admin dashboard"
+                  >
+                    <Shield className="h-4 w-4 mr-1.5" aria-hidden="true" />
                     Admin
                   </Button>
                 </Link>
               )}
               <Link href="/profile">
-                <Button variant="ghost" size="sm" aria-label="Go to your profile">
-                  <User className="h-4 w-4 mr-2" aria-hidden="true" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-[#500000] hover:bg-[#500000]/10"
+                  aria-label="Go to your profile"
+                >
+                  <User className="h-4 w-4 mr-1.5" aria-hidden="true" />
                   Profile
                 </Button>
               </Link>
@@ -192,21 +209,32 @@ export function Header() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
+                className="border-[#500000]/30 text-[#500000] hover:bg-[#500000] hover:text-white hover:border-[#500000]"
                 aria-label="Sign out of your account"
               >
-                <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
+                <LogOut className="h-4 w-4 mr-1.5" aria-hidden="true" />
                 Sign out
               </Button>
             </>
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-[#500000] hover:bg-[#500000]/10"
+                >
                   Sign in
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm">Sign up</Button>
+                <Button 
+                  size="sm"
+                  className="bg-[#500000] hover:bg-[#6b0000] text-white shadow-md"
+                >
+                  <GraduationCap className="h-4 w-4 mr-1.5" />
+                  Sign up
+                </Button>
               </Link>
             </>
           )}
@@ -216,7 +244,7 @@ export function Header() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="lg:hidden text-[#500000] hover:bg-[#500000]/10"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={mobileMenuOpen}
@@ -228,9 +256,9 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="border-t md:hidden" id="mobile-navigation">
+        <div className="border-t border-[#500000]/10 lg:hidden bg-white" id="mobile-navigation">
           <nav 
-            className="container flex flex-col gap-4 px-4 py-4"
+            className="container flex flex-col gap-1 px-4 py-4"
             role="navigation"
             aria-label="Mobile navigation"
           >
@@ -238,8 +266,10 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(link.href) ? 'text-primary' : 'text-muted-foreground'
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  isActive(link.href) 
+                    ? 'bg-[#500000] text-white' 
+                    : 'text-[#500000]/80 hover:bg-[#500000]/10'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
                 aria-current={isActive(link.href) ? 'page' : undefined}
@@ -247,16 +277,24 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <div className="flex flex-col gap-2 pt-4 border-t">
+            <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-[#500000]/10">
               {user ? (
                 <>
                   <Link href="/profile">
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-[#500000] hover:bg-[#500000]/10" 
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
                       <User className="h-4 w-4 mr-2" />
                       Profile
                     </Button>
                   </Link>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start border-[#500000]/30 text-[#500000] hover:bg-[#500000] hover:text-white" 
+                    onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                  >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign out
                   </Button>
@@ -264,12 +302,20 @@ export function Header() {
               ) : (
                 <>
                   <Link href="/login">
-                    <Button variant="ghost" className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full text-[#500000] hover:bg-[#500000]/10" 
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
                       Sign in
                     </Button>
                   </Link>
                   <Link href="/signup">
-                    <Button className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      className="w-full bg-[#500000] hover:bg-[#6b0000] text-white" 
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <GraduationCap className="h-4 w-4 mr-2" />
                       Sign up
                     </Button>
                   </Link>

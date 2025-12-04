@@ -8,6 +8,75 @@ interface Event {
   capacity?: number;
 }
 
+// ========================================================================
+// SPONSOR NEW EVENT NOTIFICATION
+// ========================================================================
+
+interface SponsorNewEventNotificationProps {
+  sponsorName: string;
+  event: Event;
+  eventId: string;
+  appUrl?: string;
+}
+
+export function sponsorNewEventNotificationEmail({
+  sponsorName,
+  event,
+  eventId,
+  appUrl = 'http://localhost:3000',
+}: SponsorNewEventNotificationProps): string {
+  const startDate = new Date(event.starts_at);
+  const endDate = event.ends_at ? new Date(event.ends_at) : null;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Event Created</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">🎉 New Event Alert!</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">CMIS Event Management</p>
+  </div>
+  
+  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
+    <h2 style="color: #333; margin-top: 0;">A New Event Has Been Created!</h2>
+    
+    <p>Hello ${sponsorName},</p>
+    
+    <p>We're excited to let you know that a new event has been created that may interest you and your organization!</p>
+    
+    <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea;">
+      <h3 style="margin-top: 0; color: #667eea;">${event.title}</h3>
+      <p><strong>📅 Date:</strong> ${format(startDate, 'EEEE, MMMM d, yyyy')}</p>
+      <p><strong>🕐 Time:</strong> ${format(startDate, 'h:mm a')}${endDate ? ` - ${format(endDate, 'h:mm a')}` : ''}</p>
+      ${event.capacity ? `<p><strong>👥 Capacity:</strong> ${event.capacity} attendees</p>` : ''}
+      ${event.description ? `<p style="margin-top: 15px; color: #555;">${event.description}</p>` : ''}
+    </div>
+    
+    <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+      <p style="margin: 0;"><strong>💡 Sponsor Opportunity:</strong> This could be a great opportunity to connect with talented students! Consider sponsoring this event or attending to network with participants.</p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${appUrl}/events/${eventId}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View Event Details</a>
+    </div>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+      You received this notification because you're a registered sponsor. 
+      <a href="${appUrl}/sponsor/preferences" style="color: #667eea;">Manage your notification preferences</a>.
+    </p>
+    
+    <p style="margin-top: 30px;">Best regards,<br>CMIS Event Management Team</p>
+  </div>
+</body>
+</html>
+  `;
+}
+
 interface RegistrationConfirmationEmailProps {
   userName: string;
   event: Event;

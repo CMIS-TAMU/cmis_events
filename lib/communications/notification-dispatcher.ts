@@ -238,6 +238,22 @@ function buildEmailData(sponsor: any, payload: NotificationPayload): any {
         },
         submissionId: eventData.submission_id,
       };
+
+    case 'new_event':
+      return {
+        type: 'sponsor_new_event',
+        to: sponsor.email,
+        subject: `🎉 New Event: ${eventData.title}`,
+        sponsorName: sponsor.full_name || 'Sponsor',
+        event: {
+          title: eventData.title,
+          description: eventData.description,
+          starts_at: eventData.starts_at,
+          ends_at: eventData.ends_at,
+          capacity: eventData.capacity,
+        },
+        eventId: eventData.id,
+      };
       
     default:
       return {
