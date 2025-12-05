@@ -42,6 +42,31 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
+            {/* Official University Logos */}
+            <div className="flex items-center justify-center gap-6 mb-8">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white p-2 shadow-xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logos/tamu-seal.png"
+                  alt="Texas A&M University Seal"
+                  width={88}
+                  height={88}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+              <div className="h-16 w-px bg-white/30" />
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-white/10 backdrop-blur-sm p-2 shadow-xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logos/cmis-logo.jpeg"
+                  alt="CMIS Mays Business School"
+                  width={88}
+                  height={88}
+                  className="object-contain w-full h-full rounded"
+                />
+              </div>
+            </div>
+
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm mb-8">
               <GraduationCap className="h-4 w-4" />
@@ -304,6 +329,18 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
+            {/* Mays Logo */}
+            <div className="mb-8">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/mays-horizontal.png"
+                alt="Mays Business School - Texas A&M University"
+                width={280}
+                height={68}
+                className="object-contain mx-auto brightness-0 invert opacity-90"
+              />
+            </div>
+            
             <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
               From Good Bull to Great Careers
             </h2>
@@ -324,8 +361,18 @@ export default function Home() {
               </Link>
             </div>
             
-            {/* Gig 'em */}
-            <div className="mt-16 pt-10 border-t border-white/20">
+            {/* Gig 'em with ATM Logo */}
+            <div className="mt-16 pt-10 border-t border-white/20 flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-white/10 backdrop-blur-sm p-2 shadow-lg overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logos/atm-mays.jpg"
+                  alt="Texas A&M"
+                  width={56}
+                  height={56}
+                  className="object-contain w-full h-full"
+                />
+              </div>
               <p className="text-3xl md:text-4xl font-bold text-white tracking-wider">
                 Gig &apos;em, Aggies! 👍
               </p>

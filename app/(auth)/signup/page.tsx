@@ -91,10 +91,30 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Check your email</CardTitle>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-12 sm:px-6 lg:px-8 relative">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#500000] via-[#6b0000] to-[#500000]" />
+        <Card className="w-full max-w-md shadow-xl border-t-4 border-t-[#500000]">
+          <CardHeader className="space-y-4">
+            <div className="flex items-center justify-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/tamu-seal.png"
+                alt="Texas A&M University Seal"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
+              <div className="h-8 w-px bg-gray-200" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/cmis-logo.jpeg"
+                alt="CMIS Mays Business School"
+                width={48}
+                height={48}
+                className="object-contain rounded"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center text-[#500000]">Check your email</CardTitle>
             <CardDescription className="text-center">
               We&apos;ve sent you a verification link. Please check your email to verify your account.
             </CardDescription>
@@ -105,13 +125,45 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
-          <CardDescription className="text-center">
-            Enter your information to create your account
-          </CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-12 sm:px-6 lg:px-8 relative">
+      {/* Decorative maroon accent */}
+      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#500000] via-[#6b0000] to-[#500000]" />
+      
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-[#500000]">
+        <CardHeader className="space-y-4 pb-2">
+          {/* Official Logos */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/tamu-seal.png"
+                alt="Texas A&M University Seal"
+                width={56}
+                height={56}
+                className="object-contain"
+              />
+              <div className="h-10 w-px bg-gray-200" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/cmis-logo.jpeg"
+                alt="CMIS Mays Business School"
+                width={56}
+                height={56}
+                className="object-contain rounded"
+              />
+            </div>
+            <div className="text-center">
+              <h1 className="text-lg font-bold text-[#500000]">CMIS Events</h1>
+              <p className="text-xs text-muted-foreground">Mays Business School • Texas A&M University</p>
+            </div>
+          </div>
+          
+          <div className="border-t pt-4">
+            <CardTitle className="text-2xl font-bold text-center text-gray-800">Create an account</CardTitle>
+            <CardDescription className="text-center">
+              Enter your information to create your account
+            </CardDescription>
+          </div>
         </CardHeader>
         <form onSubmit={handleSignup} aria-label="Create account form">
           <CardContent className="space-y-4">

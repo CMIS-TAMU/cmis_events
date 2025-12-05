@@ -16,7 +16,6 @@ import {
 import {
   Menu,
   X,
-  Calendar,
   User,
   LogOut,
   Shield,
@@ -82,15 +81,24 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link 
             href="/" 
-            className="flex items-center gap-2.5 font-bold text-xl text-[#500000] hover:opacity-90 transition-opacity"
+            className="flex items-center gap-3 font-bold text-xl text-[#500000] hover:opacity-90 transition-opacity"
             aria-label="CMIS Events home page"
           >
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#500000] to-[#6b0000] flex items-center justify-center shadow-md">
-              <Calendar className="h-5 w-5 text-white" aria-hidden="true" />
+            <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md bg-[#500000] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logos/atm-mays.jpg"
+                alt="Texas A&M"
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
             <div className="flex flex-col leading-tight">
               <span className="font-bold tracking-tight">CMIS Events</span>
-              <span className="text-[10px] font-medium text-[#500000]/50 -mt-0.5 tracking-wide">TEXAS A&M MAYS</span>
+              <span className="text-[10px] font-medium text-[#500000]/60 -mt-0.5 tracking-wide uppercase">
+                Mays Business School
+              </span>
             </div>
           </Link>
 
