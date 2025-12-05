@@ -1394,5 +1394,243 @@ export const mentorshipRouter = router({
 
       return data;
     }),
+
+  // ========================================================================
+  // INTELLIGENT MENTOR RECOMMENDATIONS
+  // ========================================================================
+
+  // Get recommended mentors for current student
+  getRecommendedMentors: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const supabase = createAdminSupabase();
+
+    // Verify user is a student
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', ctx.user.id)
+      .single();
+
+    if (!userProfile || userProfile.role !== 'student') {
+      throw new Error('Only students can view mentor recommendations');
+    }
+
+    // Get current active recommendation (not expired, not dismissed)
+    const { data: recommendation, error } = await supabase
+      .from('mentor_recommendations')
+      .select('*')
+      .eq('student_id', ctx.user.id)
+      .eq('status', 'recommended')
+      .gt('expires_at', new Date().toISOString())
+      .order('recommended_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch recommendations: ${error.message}`);
+    }
+
+    if (!recommendation) {
+      return null; // No active recommendations
+    }
+
+    // Fetch mentor details for each recommended mentor
+    const mentors = [];
+    const mentorIds = [recommendation.mentor_1_id, recommendation.mentor_2_id, recommendation.mentor_3_id].filter(Boolean);
+    const scores = [recommendation.mentor_1_score, recommendation.mentor_2_score, recommendation.mentor_3_score];
+
+    for (let i = 0; i < mentorIds.length; i++) {
+      const mentorId = mentorIds[i];
+      if (!mentorId) continue;
+
+      // Get user details
+      const { data: mentorUser } = await supabase
+        .from('users')
+        .select('id, full_name, email')
+        .eq('id', mentorId)
+        .single();
+
+      // Get mentor profile
+      const { data: mentorProfile } = await supabase
+        .from('mentorship_profiles')
+        .select('industry, organization, job_designation, bio, areas_of_expertise')
+        .eq('user_id', mentorId)
+        .single();
+
+      if (mentorUser) {
+        const matchReasons = recommendation.match_reasons?.[mentorId] || [];
+        
+        mentors.push({
+          id: mentorId,
+          name: mentorUser.full_name || mentorUser.email,
+          email: mentorUser.email,
+          industry: mentorProfile?.industry,
+          organization: mentorProfile?.organization,
+          job_designation: mentorProfile?.job_designation,
+          bio: mentorProfile?.bio,
+          areas_of_expertise: mentorProfile?.areas_of_expertise || [],
+          match_score: scores[i],
+          match_reasons: Array.isArray(matchReasons) ? matchReasons : [],
+        });
+      }
+    }
+
+    return {
+      id: recommendation.id,
+      recommended_at: recommendation.recommended_at,
+      expires_at: recommendation.expires_at,
+      mentors: mentors.sort((a, b) => (b.match_score || 0) - (a.match_score || 0)),
+    };
+  }),
+
+  // Generate mentor recommendations (called automatically on profile update)
+  generateRecommendations: protectedProcedure.mutation(async ({ ctx }) => {
+    if (!ctx.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const supabase = createAdminSupabase();
+
+    // Verify user is a student
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', ctx.user.id)
+      .single();
+
+    if (!userProfile || userProfile.role !== 'student') {
+      throw new Error('Only students can generate mentor recommendations');
+    }
+
+    // Call database function to generate recommendations
+    const { data, error } = await supabase.rpc('generate_mentor_recommendations', {
+      p_student_id: ctx.user.id,
+    });
+
+    if (error) {
+      throw new Error(`Failed to generate recommendations: ${error.message}`);
+    }
+
+    if (!data?.ok) {
+      throw new Error(data?.error || 'Failed to generate recommendations');
+    }
+
+    return {
+      success: true,
+      recommendation_id: data.recommendation_id,
+    };
+  }),
+
+  // Accept a recommendation (creates match batch with selected mentor)
+  acceptRecommendation: protectedProcedure
+    .input(
+      z.object({
+        recommendation_id: z.string().uuid(),
+        mentor_id: z.string().uuid(), // Selected mentor from the recommendation
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const supabase = createAdminSupabase();
+
+      // Verify recommendation belongs to current user
+      const { data: recommendation, error: recError } = await supabase
+        .from('mentor_recommendations')
+        .select('*')
+        .eq('id', input.recommendation_id)
+        .eq('student_id', ctx.user.id)
+        .eq('status', 'recommended')
+        .single();
+
+      if (recError || !recommendation) {
+        throw new Error('Recommendation not found or already processed');
+      }
+
+      // Verify selected mentor is in the recommendation
+      if (
+        recommendation.mentor_1_id !== input.mentor_id &&
+        recommendation.mentor_2_id !== input.mentor_id &&
+        recommendation.mentor_3_id !== input.mentor_id
+      ) {
+        throw new Error('Selected mentor is not in this recommendation');
+      }
+
+      // Create match batch with only the selected mentor
+      const { data: batchResult, error: batchError } = await supabase.rpc('create_match_batch', {
+        p_student_id: ctx.user.id,
+        p_request_id: null,
+      });
+
+      if (batchError) {
+        throw new Error(`Failed to create match batch: ${batchError.message}`);
+      }
+
+      if (!batchResult?.ok) {
+        throw new Error(batchResult?.error || 'Failed to create match batch');
+      }
+
+      // Update recommendation status
+      await supabase
+        .from('mentor_recommendations')
+        .update({
+          status: 'accepted',
+          selected_mentor_id: input.mentor_id,
+          accepted_at: new Date().toISOString(),
+        })
+        .eq('id', input.recommendation_id);
+
+      // Send email notifications to mentors (reuse existing logic from requestMentor)
+      // This will be handled by the create_match_batch function's email notifications
+
+      return {
+        success: true,
+        batch_id: batchResult.batch_id,
+      };
+    }),
+
+  // Dismiss a recommendation
+  dismissRecommendation: protectedProcedure
+    .input(z.object({ recommendation_id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const supabase = createAdminSupabase();
+
+      // Verify recommendation belongs to current user
+      const { data: recommendation, error } = await supabase
+        .from('mentor_recommendations')
+        .select('id')
+        .eq('id', input.recommendation_id)
+        .eq('student_id', ctx.user.id)
+        .eq('status', 'recommended')
+        .single();
+
+      if (error || !recommendation) {
+        throw new Error('Recommendation not found or already processed');
+      }
+
+      // Update status to dismissed
+      const { error: updateError } = await supabase
+        .from('mentor_recommendations')
+        .update({
+          status: 'dismissed',
+          dismissed_at: new Date().toISOString(),
+        })
+        .eq('id', input.recommendation_id);
+
+      if (updateError) {
+        throw new Error(`Failed to dismiss recommendation: ${updateError.message}`);
+      }
+
+      return { success: true };
+    }),
 });
 

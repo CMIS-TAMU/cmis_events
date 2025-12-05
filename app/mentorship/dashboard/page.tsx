@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Loader2, UserPlus, Users, MessageSquare, Calendar, AlertCircle, CheckCircle2, ArrowRight, Video, Clock, Zap } from 'lucide-react';
 import { MiniSessionRequestDialog } from '@/components/mentorship/MiniSessionRequestDialog';
+import { RecommendedMentorsCard } from '@/components/mentorship/RecommendedMentorsCard';
 import { format } from 'date-fns';
 
 export default function MentorshipDashboardPage() {
@@ -280,6 +281,13 @@ export default function MentorshipDashboardPage() {
             <p className="text-sm text-red-800">{error}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Recommended Mentors - Student Only (when no active match) */}
+      {isStudent && !hasActiveMatch && (
+        <div className="mb-6">
+          <RecommendedMentorsCard />
+        </div>
       )}
 
       <div className="grid gap-6 md:grid-cols-2">

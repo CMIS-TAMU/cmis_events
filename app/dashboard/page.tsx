@@ -22,11 +22,14 @@ import {
   AlertCircle,
   TrendingUp,
   Award,
-  ExternalLink
+  ExternalLink,
+  Zap,
+  Video
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
+import { RecommendedMentorsCard } from '@/components/mentorship/RecommendedMentorsCard';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -290,16 +293,16 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Mentorship Status Card */}
-            <Card className="border-primary bg-primary/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🎓 Mentorship Program
-                </CardTitle>
-                <CardDescription>Connect with mentors</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activeMatch ? (
+            {/* Mentorship Status Card - Show active match OR recommendations */}
+            {activeMatch ? (
+              <Card className="border-primary bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🎓 Mentorship Program
+                  </CardTitle>
+                  <CardDescription>Connect with mentors</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -316,20 +319,11 @@ export default function DashboardPage() {
                       </Button>
                     </Link>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Get matched with experienced mentors to guide your career
-                    </p>
-                    <Link href="/mentorship/dashboard">
-                      <Button className="w-full mt-2">
-                        Request a Mentor
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <RecommendedMentorsCard />
+            )}
           </div>
 
           {/* Third Row - Quick Actions and Discover */}
@@ -364,6 +358,14 @@ export default function DashboardPage() {
                     My Sessions
                   </Button>
                 </Link>
+                {(role === 'student' || role === 'user' || role === 'faculty') && (
+                  <Link href="/mentorship/dashboard" className="block">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Zap className="h-4 w-4 mr-2" />
+                      Mini Mentorship
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
 

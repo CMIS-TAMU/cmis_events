@@ -216,6 +216,37 @@ export const authRouter = router({
         });
       }
 
+      // Automatically generate mentor recommendations after profile update
+      // This runs asynchronously and doesn't block the response
+      if (data.role === 'student') {
+        // Check if profile data changed significantly (major, skills, research_interests)
+        const significantFieldsChanged = 
+          input.major !== undefined ||
+          input.skills !== undefined ||
+          input.research_interests !== undefined ||
+          input.career_goals !== undefined ||
+          input.preferred_industry !== undefined;
+
+        if (significantFieldsChanged) {
+          // Generate recommendations asynchronously (fire and forget)
+          // We'll call the database function directly to avoid circular dependencies
+          supabaseAdmin
+            .rpc('generate_mentor_recommendations', {
+              p_student_id: userId,
+            })
+            .then(({ error: recError }) => {
+              if (recError) {
+                console.warn('Failed to generate recommendations after profile update:', recError);
+                // Don't throw - this is non-critical
+              }
+            })
+            .catch((err) => {
+              console.warn('Error generating recommendations:', err);
+              // Silent fail - recommendations can be generated manually later
+            });
+        }
+      }
+
       return data;
     }),
 
