@@ -16,6 +16,7 @@ import {
   getTierHistory,
   canAccessFeature,
   checkLimit,
+  getTierConfig,
   type SponsorTier,
   type NotificationFrequency,
   type EventType,
@@ -74,7 +75,7 @@ export const sponsorsRouter = router({
    */
   getMyTier: protectedProcedure.query(async ({ ctx }) => {
     const tier = await getSponsorTier(ctx.user.id);
-    const config = (await import('@/lib/communications/sponsor-tiers')).getTierConfig(tier);
+    const config = getTierConfig(tier);
     return { tier, config };
   }),
 
@@ -107,6 +108,92 @@ export const sponsorsRouter = router({
   getMyEngagementStats: protectedProcedure.query(async ({ ctx }) => {
     const stats = await getSponsorEngagementStats(ctx.user.id);
     return stats;
+  }),
+
+  /**
+   * Get comprehensive dashboard stats for the current sponsor
+   */
+  getDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+    const supabase = await createServerSupabase();
+    
+    // Verify user is a sponsor
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', ctx.user.id)
+      .single();
+
+    if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+      throw new Error('Access denied. Sponsor role required.');
+    }
+
+    // Get sponsor engagement stats
+    const engagementStats = await getSponsorEngagementStats(ctx.user.id);
+    
+    // Get sponsor tier and config
+    const tier = await getSponsorTier(ctx.user.id);
+    const tierConfig = getTierConfig(tier);
+
+    // Get upcoming events (next 7 days)
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    
+    const { data: upcomingEvents, error: eventsError } = await supabase
+      .from('events')
+      .select('id, title, starts_at, capacity, image_url')
+      .gt('starts_at', new Date().toISOString())
+      .lte('starts_at', sevenDaysFromNow.toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(5);
+
+    if (eventsError) {
+      console.error('Error fetching upcoming events:', eventsError);
+    }
+
+    // Get total event registrations
+    const { count: totalRegistrations } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'registered');
+
+    // Get total resumes available
+    const { count: totalResumes } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .not('resume_url', 'is', null)
+      .eq('role', 'student');
+
+    // Get total attendance (checked in)
+    const { count: totalAttendance } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'checked_in');
+
+    // Get shortlisted students count
+    const { count: shortlistedCount } = await supabase
+      .from('sponsor_shortlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('sponsor_id', ctx.user.id);
+
+    return {
+      // Engagement stats
+      engagement: engagementStats,
+      
+      // Tier information
+      tier,
+      tierConfig,
+      
+      // Event stats
+      upcomingEvents: upcomingEvents || [],
+      totalRegistrations: totalRegistrations || 0,
+      totalAttendance: totalAttendance || 0,
+      
+      // Resume stats
+      totalResumes: totalResumes || 0,
+      
+      // Shortlist stats
+      shortlistedCount: shortlistedCount || 0,
+    };
   }),
 
   /**
