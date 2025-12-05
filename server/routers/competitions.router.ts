@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
+import { createAdminSupabase } from '@/lib/supabase/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -569,17 +570,10 @@ export const competitionsRouter = router({
   getRubrics: protectedProcedure
     .input(z.object({ competition_id: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      // Use context supabase client (already authenticated via protectedProcedure)
-      const supabase = ctx.supabase;
+      // Use admin client to bypass RLS for consistent access
+      const adminSupabase = createAdminSupabase();
       
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
-      }
-      
-      const { data, error } = await supabase
+      const { data, error } = await adminSupabase
         .from('competition_rubrics')
         .select('*')
         .eq('competition_id', input.competition_id)
@@ -608,17 +602,10 @@ export const competitionsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Use context supabase client (already authenticated via adminProcedure)
-      const supabase = ctx.supabase;
+      // Use admin client to bypass RLS for competition_rubrics
+      const adminSupabase = createAdminSupabase();
       
-      if (!supabase) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Supabase client not available',
-        });
-      }
-      
-      const { data, error } = await supabase
+      const { data, error } = await adminSupabase
         .from('competition_rubrics')
         .insert(input)
         .select()

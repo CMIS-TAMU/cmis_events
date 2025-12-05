@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { toastUtil } from '@/lib/utils/toast';
 
 interface RubricsTabProps {
   competitionId: string;
@@ -37,19 +38,19 @@ export function RubricsTab({ competitionId }: RubricsTabProps) {
         weight: 1.0,
         order_index: 0,
       });
+      toastUtil.success('Rubric created successfully!');
+    },
+    onError: (error) => {
+      toastUtil.error('Failed to create rubric', error.message || 'Please try again.');
     },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await createRubricMutation.mutateAsync({
-        competition_id: competitionId,
-        ...formData,
-      });
-    } catch (error: any) {
-      alert(error.message || 'Failed to create rubric');
-    }
+    await createRubricMutation.mutateAsync({
+      competition_id: competitionId,
+      ...formData,
+    });
   };
 
   if (isLoading) {
