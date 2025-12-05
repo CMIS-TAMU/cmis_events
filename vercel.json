@@ -1,0 +1,18 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-queue",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/send-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sponsor-digest",
+      "schedule": "0 8 * * 1"
+    }
+  ]
+}
+
+
