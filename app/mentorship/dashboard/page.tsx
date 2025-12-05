@@ -8,7 +8,25 @@ import { trpc } from '@/lib/trpc/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Users, MessageSquare, Calendar, AlertCircle, CheckCircle2, ArrowRight, Video, Clock, Zap } from 'lucide-react';
+import { 
+  Loader2, 
+  UserPlus, 
+  Users, 
+  MessageSquare, 
+  Calendar, 
+  AlertCircle, 
+  CheckCircle2, 
+  ArrowRight, 
+  Video, 
+  Clock, 
+  Zap,
+  Sparkles,
+  GraduationCap,
+  User,
+  ChevronRight,
+  ExternalLink,
+  Heart
+} from 'lucide-react';
 import { MiniSessionRequestDialog } from '@/components/mentorship/MiniSessionRequestDialog';
 import { RecommendedMentorsCard } from '@/components/mentorship/RecommendedMentorsCard';
 import { format } from 'date-fns';
@@ -40,13 +58,12 @@ export default function MentorshipDashboardPage() {
   const isStudent = userRole === 'student';
 
   // Fetch user's mentorship profile (only for mentors - students don't need it)
-  // For students, this will return null, which is fine
   const { data: profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = trpc.mentorship.getProfile.useQuery(undefined, {
-    enabled: userRole !== 'student', // Only fetch for non-students
+    enabled: userRole !== 'student',
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: 60000, // Cache for 1 minute
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 60000,
+    gcTime: 5 * 60 * 1000,
     refetchOnMount: false,
   });
   
@@ -57,11 +74,10 @@ export default function MentorshipDashboardPage() {
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
     refetchOnMount: false,
-    // Add timeout
     networkMode: 'online',
   });
   
-  // Fetch match batch (pending recommendations) - for students (works without profile)
+  // Fetch match batch (pending recommendations) - for students
   const { data: matchBatch, isLoading: batchLoading, error: batchError } = trpc.mentorship.getMatchBatch.useQuery(undefined, {
     enabled: userRole === 'student',
     retry: false,
@@ -69,11 +85,10 @@ export default function MentorshipDashboardPage() {
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
     refetchOnMount: false,
-    // Add timeout
     networkMode: 'online',
   });
   
-  // Fetch mentor match batches (where they're recommended) - for mentors (need profile)
+  // Fetch mentor match batches - for mentors
   const { data: mentorMatchBatches, isLoading: mentorBatchLoading, error: mentorBatchError } = trpc.mentorship.getMentorMatchBatch.useQuery(undefined, {
     enabled: userRole !== 'student' && !!profile?.profile_type && profile.profile_type === 'mentor',
     retry: false,
@@ -81,7 +96,7 @@ export default function MentorshipDashboardPage() {
     staleTime: 30000,
   });
   
-  // Fetch all matches for mentors (to show all their mentees)
+  // Fetch all matches for mentors
   const { data: allMatches, isLoading: allMatchesLoading, error: allMatchesError } = trpc.mentorship.getMatches.useQuery(undefined, {
     enabled: userRole !== 'student' && !!profile?.profile_type && profile.profile_type === 'mentor',
     retry: false,
@@ -89,7 +104,6 @@ export default function MentorshipDashboardPage() {
     staleTime: 30000,
   });
 
-  // Determine if user is mentor (isStudent already defined above)
   const isMentor = userRole !== 'student' && profile?.profile_type === 'mentor';
 
   // Fetch mini session requests for students
@@ -105,7 +119,6 @@ export default function MentorshipDashboardPage() {
   const requestMentor = trpc.mentorship.requestMentor.useMutation({
     onSuccess: () => {
       refetchMatch();
-      // Refetch batch after a delay to allow backend to create it
       setTimeout(() => {
         router.push('/mentorship/request');
       }, 1000);
@@ -120,46 +133,41 @@ export default function MentorshipDashboardPage() {
     await requestMentor.mutateAsync({});
   };
 
-  // Show loading only if essential queries are loading
-  // Don't wait forever - allow page to load even if some queries fail
-  // Only wait for role check - everything else can fail gracefully
   const isEssentialLoading = isLoadingRole;
-
-  // Only show error for critical failures (ignore profile error for students)
   const hasCriticalError = matchError || (userRole === 'student' ? batchError : false);
   
-  // Add timeout to prevent infinite loading - shorter timeout
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   useEffect(() => {
     if (isEssentialLoading) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 8000); // 8 second timeout (shorter)
+      }, 8000);
       return () => clearTimeout(timer);
     } else {
       setLoadingTimeout(false);
     }
   }, [isEssentialLoading]);
   
-  // Show content even if some queries are still loading after timeout
   const shouldShowContent = !isEssentialLoading || loadingTimeout;
   
   if (isEssentialLoading && !loadingTimeout && !hasCriticalError) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#500000]/5 to-background">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">Loading mentorship dashboard...</p>
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#500000] to-[#800000] flex items-center justify-center shadow-lg">
+            <Users className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <Loader2 className="h-6 w-6 animate-spin text-[#500000] mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Loading your mentorship dashboard...</p>
         </div>
       </div>
     );
   }
   
-  // If timeout, show error but allow user to continue
   if (loadingTimeout && !shouldShowContent) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
+        <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
@@ -189,11 +197,10 @@ export default function MentorshipDashboardPage() {
     );
   }
 
-  // Show timeout or error state
   if (loadingTimeout || hasCriticalError) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
+        <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-600" />
@@ -224,25 +231,22 @@ export default function MentorshipDashboardPage() {
     );
   }
 
-  // isStudent and isMentor already defined above
-
-  // Mentors need a profile, students don't
   if (isMentor && !profile) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome to Mentorship Matching</CardTitle>
+        <Card className="border-2 border-dashed">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#500000] to-[#800000] flex items-center justify-center">
+              <UserPlus className="h-8 w-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl">Welcome to Mentorship</CardTitle>
             <CardDescription>
-              Create your mentor profile to get started
+              Create your mentor profile to start receiving mentorship requests
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              You need to create a mentor profile before you can receive mentorship requests.
-            </p>
+          <CardContent className="text-center pb-8">
             <Link href="/mentorship/profile">
-              <Button>
+              <Button size="lg" className="bg-[#500000] hover:bg-[#6b0000]">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Create Mentor Profile
               </Button>
@@ -253,476 +257,514 @@ export default function MentorshipDashboardPage() {
     );
   }
   
-  // For students: check their active match (with mentor)
-  // For mentors: check their active matches (with mentees)
   const hasActiveMatch = activeMatch && activeMatch.status === 'active';
   const hasPendingBatch = matchBatch && matchBatch.status === 'pending';
   
-  // For mentors: get active matches where they are the mentor
   const mentorActiveMatches = isMentor && allMatches && profile?.user_id
     ? allMatches.filter((m: any) => m.mentor_id === profile.user_id && m.status === 'active')
     : [];
   
-  // For mentors: check if they have pending match batches (students requesting them)
   const hasPendingMentorBatch = isMentor && mentorMatchBatches && mentorMatchBatches.length > 0;
 
+  // Helper for status badges
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'open':
+        return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Open</Badge>;
+      case 'claimed':
+        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Claimed</Badge>;
+      case 'scheduled':
+        return <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Scheduled</Badge>;
+      case 'completed':
+        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Completed</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="text-gray-500">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const sessionTypeLabels: Record<string, string> = {
+    interview_prep: 'Interview Prep',
+    skill_learning: 'Skill Learning',
+    career_advice: 'Career Advice',
+    resume_review: 'Resume Review',
+    project_guidance: 'Project Guidance',
+    technical_help: 'Technical Help',
+    portfolio_review: 'Portfolio Review',
+    networking_advice: 'Networking',
+    other: 'Other',
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Mentorship Dashboard</h1>
-        <p className="text-muted-foreground">
-          Manage your mentorship connections and requests
-        </p>
+    <div className="min-h-screen bg-gradient-to-b from-[#500000]/5 via-background to-background">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-[#500000] to-[#6b0000] text-white">
+        <div className="container mx-auto px-4 py-12 max-w-6xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center">
+              <Users className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Mentorship Dashboard</h1>
+              <p className="text-white/80">Connect with experienced professionals to accelerate your career</p>
+            </div>
+          </div>
+          
+          {/* Quick Stats for Students */}
+          {isStudent && (
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold">{hasActiveMatch ? '1' : '0'}</div>
+                <div className="text-sm text-white/70">Active Mentor</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold">{miniSessionRequests?.filter((r: any) => r.status === 'open').length || 0}</div>
+                <div className="text-sm text-white/70">Open Sessions</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold">{miniSessionRequests?.filter((r: any) => r.status === 'completed').length || 0}</div>
+                <div className="text-sm text-white/70">Completed</div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {error && (
-        <Card className="mb-6 border-red-500 bg-red-50">
-          <CardContent className="p-4">
-            <p className="text-sm text-red-800">{error}</p>
-          </CardContent>
-        </Card>
-      )}
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {error && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <p className="text-sm text-red-800 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Recommended Mentors - Student Only (when no active match) */}
-      {isStudent && !hasActiveMatch && (
-        <div className="mb-6">
-          <RecommendedMentorsCard />
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Current Match Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Current Match
-            </CardTitle>
-            <CardDescription>
-              {isMentor ? 'Your current mentees and requests' : 'Your active mentorship connection'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* STUDENT VIEW */}
-            {isStudent && hasActiveMatch && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Matched with Mentor</span>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Mentor</p>
-                  <p className="font-medium">
-                    {activeMatch.mentor?.full_name || activeMatch.mentor?.email || 'Unknown'}
-                  </p>
-                </div>
-                {activeMatch.match_score && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Match Score</p>
-                    <p className="font-medium">{activeMatch.match_score}/100</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm text-muted-foreground">Matched On</p>
-                  <p className="text-sm">
-                    {new Date(activeMatch.matched_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Link href={`/mentorship/match/${activeMatch.id}`}>
-                  <Button variant="outline" className="w-full">
-                    View Match Details
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            )}
+        {/* STUDENT VIEW */}
+        {isStudent && (
+          <div className="space-y-8">
             
-            {isStudent && hasPendingBatch && !hasActiveMatch && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  <span className="font-medium">Pending Recommendations</span>
+            {/* Active Mentor Connection */}
+            {hasActiveMatch && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Heart className="h-5 w-5 text-[#500000]" />
+                  <h2 className="text-xl font-semibold">Your Mentor</h2>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  We&apos;ve sent your profile to {matchBatch.mentor_1_id ? '3' : matchBatch.mentor_2_id ? '2' : '1'} potential mentors. 
-                  You&apos;ll be notified when one accepts.
-                </p>
-                <Link href="/mentorship/request">
-                  <Button variant="outline" className="w-full">
-                    View Recommendations
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            )}
-            
-            {isStudent && !hasActiveMatch && !hasPendingBatch && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">No Active Match</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Request a mentor to get matched with experienced professionals.
-                </p>
-                <Button onClick={handleRequestMentor} disabled={requestMentor.isPending} className="w-full">
-                  {requestMentor.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Requesting...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Request a Mentor
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-            
-            {/* MENTOR VIEW */}
-            {isMentor && mentorActiveMatches.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Active Mentees ({mentorActiveMatches.length})</span>
-                </div>
-                <div className="space-y-3">
-                  {mentorActiveMatches.map((match: any) => (
-                      <div key={match.id} className="p-3 border rounded-lg">
-                        <p className="font-medium">
-                          {match.student?.full_name || match.student?.email || 'Unknown Student'}
-                        </p>
-                        {match.match_score && (
-                          <p className="text-xs text-muted-foreground">
-                            Match Score: {match.match_score}/100
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Matched: {new Date(match.matched_at).toLocaleDateString()}
-                        </p>
-                        <Link href={`/mentorship/match/${match.id}`}>
-                          <Button variant="outline" size="sm" className="w-full mt-2">
-                            View Details
-                          </Button>
-                        </Link>
+                <Card className="border-2 border-[#500000]/20 bg-gradient-to-r from-[#500000]/5 to-transparent overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#500000] to-[#800000] flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                          {(activeMatch.mentor?.full_name || 'M')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">{activeMatch.mentor?.full_name || 'Your Mentor'}</h3>
+                          <p className="text-sm text-muted-foreground">{activeMatch.mentor?.email}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Active Match
+                            </Badge>
+                            {activeMatch.match_score && (
+                              <Badge variant="secondary">{activeMatch.match_score}% Match</Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                </div>
-              </div>
+                      <Link href={`/mentorship/match/${activeMatch.id}`}>
+                        <Button className="bg-[#500000] hover:bg-[#6b0000]">
+                          View Details
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
             )}
-            
-            {isMentor && hasPendingMentorBatch && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  <span className="font-medium">Pending Student Requests</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  You have {mentorMatchBatches?.length || 0} student{mentorMatchBatches?.length !== 1 ? 's' : ''} waiting for your response.
-                </p>
-                <Link href="/mentorship/mentor/requests">
-                  <Button variant="outline" className="w-full">
-                    View Requests
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            )}
-            
-            {isMentor && mentorActiveMatches.length === 0 && !hasPendingMentorBatch && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">No Active Mentees</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {profile?.in_matching_pool 
-                    ? "You're in the matching pool. Students will be able to request you as a mentor."
-                    : "Join the matching pool to help students find mentorship."}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Profile Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              {isStudent ? 'Account Information' : 'Profile Status'}
-            </CardTitle>
-            <CardDescription>
-              {isStudent ? 'Your account details' : 'Your mentorship profile information'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isStudent ? (
-                <>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Role</p>
-                    <Badge variant="default">Student</Badge>
+            {/* Mentor Recommendations - Only when no active match */}
+            {!hasActiveMatch && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="h-5 w-5 text-[#500000]" />
+                  <h2 className="text-xl font-semibold">Find Your Mentor</h2>
+                </div>
+                <RecommendedMentorsCard />
+              </section>
+            )}
+
+            {/* Pending Batch Status - Only show if pending and no active match */}
+            {hasPendingBatch && !hasActiveMatch && (
+              <Card className="border-yellow-200 bg-yellow-50/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Pending Mentor Recommendations</h3>
+                        <p className="text-sm text-muted-foreground">
+                          We've sent your profile to potential mentors. You'll be notified when one accepts.
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/mentorship/request">
+                      <Button variant="outline">
+                        View Status
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </Link>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <p className="font-medium">Ready to request a mentor</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      No profile needed. We&apos;ll use your existing account data to match you with mentors.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Profile Type</p>
-                    <Badge variant="secondary">Mentor</Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Industry</p>
-                    <p className="font-medium">{profile?.industry || 'Not set'}</p>
-                  </div>
-                  {profile && profile.current_mentees !== undefined && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Current Mentees</p>
-                      <p className="font-medium">
-                        {profile.current_mentees} / {profile.max_mentees || 3}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mini Mentorship Sessions */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-[#500000]" />
+                  <h2 className="text-xl font-semibold">Mini Sessions</h2>
+                </div>
+                <MiniSessionRequestDialog
+                  onSuccess={() => refetchMiniRequests()}
+                  trigger={
+                    <Button className="bg-[#500000] hover:bg-[#6b0000]">
+                      <Video className="h-4 w-4 mr-2" />
+                      Request Session
+                    </Button>
+                  }
+                />
+              </div>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardDescription className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Video className="h-4 w-4" />
+                      Video call
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      30-60 min
+                    </span>
+                    <span>One-time sessions for targeted help</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {miniRequestsError ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">
+                        Mini mentorship feature is not available yet.
                       </p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-muted-foreground">Matching Pool</p>
-                    <Badge variant={profile?.in_matching_pool ? 'default' : 'secondary'}>
-                      {profile?.in_matching_pool ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <Link href="/mentorship/profile">
-                    <Button variant="outline" className="w-full">
-                      Edit Profile
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Mini Sessions - Student Only */}
-        {isStudent && (
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Mini Mentorship Sessions
-              </CardTitle>
-              <CardDescription>
-                Request quick 30-60 minute sessions for specific help (interview prep, skill learning, resume review, etc.)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Need quick help with something specific? Request a mini session with a mentor for targeted assistance.
-                    </p>
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Video className="h-3 w-3" />
-                        Video call
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        30-60 min
-                      </span>
-                      <span>•</span>
-                      <span>One-time session</span>
-                      <span>•</span>
-                      <span>No long-term commitment</span>
+                  ) : miniRequestsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
-                  </div>
-                  <MiniSessionRequestDialog
-                    onSuccess={() => {
-                      refetchMiniRequests();
-                    }}
-                    trigger={
-                      <Button>
-                        <Video className="h-4 w-4 mr-2" />
-                        Request Mini Session
-                      </Button>
-                    }
-                  />
-                </div>
-
-                {/* Mini Session Requests List */}
-                {miniRequestsError ? (
-                  <div className="pt-4 border-t">
-                    <p className="text-xs text-muted-foreground text-center">
-                      Mini mentorship feature is not available yet. Please run the database migration first.
-                    </p>
-                  </div>
-                ) : miniRequestsLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                ) : miniSessionRequests && miniSessionRequests.length > 0 ? (
-                  <div className="space-y-2 pt-4 border-t">
-                    <p className="text-sm font-medium">Your Mini Session Requests</p>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {miniSessionRequests.slice(0, 5).map((request: any) => {
-                        const getStatusBadge = (status: string) => {
-                          switch (status) {
-                            case 'open':
-                              return <Badge variant="default">Open</Badge>;
-                            case 'claimed':
-                              return <Badge variant="secondary">Claimed</Badge>;
-                            case 'scheduled':
-                              return <Badge variant="outline" className="bg-blue-50 text-blue-700">Scheduled</Badge>;
-                            case 'completed':
-                              return <Badge variant="outline" className="bg-green-50 text-green-700">Completed</Badge>;
-                            case 'cancelled':
-                              return <Badge variant="outline" className="bg-gray-50 text-gray-700">Cancelled</Badge>;
-                            default:
-                              return <Badge variant="outline">{status}</Badge>;
-                          }
-                        };
-
-                        const sessionTypeLabels: Record<string, string> = {
-                          interview_prep: 'Interview Prep',
-                          skill_learning: 'Skill Learning',
-                          career_advice: 'Career Advice',
-                          resume_review: 'Resume Review',
-                          project_guidance: 'Project Guidance',
-                          technical_help: 'Technical Help',
-                          portfolio_review: 'Portfolio Review',
-                          networking_advice: 'Networking',
-                          other: 'Other',
-                        };
-
-                        return (
-                          <div key={request.id} className="p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="font-medium text-sm truncate">{request.title}</p>
-                                  {getStatusBadge(request.status)}
-                                </div>
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  {sessionTypeLabels[request.session_type] || request.session_type} • {request.preferred_duration_minutes} min
-                                </p>
-                                {request.claimed_mentor && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Claimed by: {request.claimed_mentor?.full_name || request.claimed_mentor?.email || 'Mentor'}
-                                  </p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Created {format(new Date(request.created_at), 'MMM d, yyyy')}
-                                </p>
+                  ) : miniSessionRequests && miniSessionRequests.length > 0 ? (
+                    <div className="space-y-3">
+                      {miniSessionRequests.slice(0, 4).map((request: any) => (
+                        <div 
+                          key={request.id} 
+                          className="flex items-center justify-between p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center flex-shrink-0">
+                              <Video className="h-5 w-5 text-[#500000]" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium truncate">{request.title}</p>
+                                {getStatusBadge(request.status)}
                               </div>
+                              <p className="text-sm text-muted-foreground">
+                                {sessionTypeLabels[request.session_type] || request.session_type} • {request.preferred_duration_minutes} min
+                              </p>
+                              {request.claimed_mentor && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Mentor: {request.claimed_mentor?.full_name || 'Assigned'}
+                                </p>
+                              )}
                             </div>
                           </div>
-                        );
-                      })}
+                          <div className="text-right text-xs text-muted-foreground pl-4">
+                            {format(new Date(request.created_at), 'MMM d')}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {miniSessionRequests.length > 4 && (
+                        <div className="text-center pt-2">
+                          <p className="text-xs text-muted-foreground">
+                            + {miniSessionRequests.length - 4} more sessions
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {miniSessionRequests.length > 5 && (
-                      <p className="text-xs text-muted-foreground text-center pt-2">
-                        Showing 5 of {miniSessionRequests.length} requests
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="pt-4 border-t text-center">
-                    <p className="text-sm text-muted-foreground">No mini session requests yet. Create your first one above!</p>
-                  </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
+                        <Video className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">No mini sessions yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Request a session for quick help with specific topics</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Quick Actions */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <GraduationCap className="h-5 w-5 text-[#500000]" />
+                <h2 className="text-xl font-semibold">Quick Actions</h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Link href="/mentorship/questions" className="block">
+                  <Card className="h-full hover:border-[#500000]/30 hover:shadow-md transition-all cursor-pointer group">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center group-hover:bg-[#500000]/20 transition-colors">
+                          <MessageSquare className="h-5 w-5 text-[#500000]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Quick Questions</h3>
+                          <p className="text-sm text-muted-foreground">Ask the community</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                {hasActiveMatch && (
+                  <Link href={`/mentorship/match/${activeMatch.id}/meetings`} className="block">
+                    <Card className="h-full hover:border-[#500000]/30 hover:shadow-md transition-all cursor-pointer group">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center group-hover:bg-[#500000]/20 transition-colors">
+                            <Calendar className="h-5 w-5 text-[#500000]" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">Meeting Logs</h3>
+                            <p className="text-sm text-muted-foreground">Track your meetings</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )}
+
+                {!hasActiveMatch && !hasPendingBatch && (
+                  <Card 
+                    className="h-full hover:border-[#500000]/30 hover:shadow-md transition-all cursor-pointer group"
+                    onClick={handleRequestMentor}
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center group-hover:bg-[#500000]/20 transition-colors">
+                          {requestMentor.isPending ? (
+                            <Loader2 className="h-5 w-5 text-[#500000] animate-spin" />
+                          ) : (
+                            <UserPlus className="h-5 w-5 text-[#500000]" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Request Mentor</h3>
+                          <p className="text-sm text-muted-foreground">Get matched</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </section>
+          </div>
         )}
 
-        {/* Mini Sessions - Mentor Only */}
+        {/* MENTOR VIEW */}
         {isMentor && (
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Mini Mentorship Sessions
-              </CardTitle>
-              <CardDescription>
-                Browse and claim student requests for quick 30-60 minute mentorship sessions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Students need quick help with specific topics. Browse open requests and claim one to help!
+          <div className="space-y-8">
+            {/* Active Mentees */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="h-5 w-5 text-[#500000]" />
+                <h2 className="text-xl font-semibold">Your Mentees</h2>
+              </div>
+              
+              {mentorActiveMatches.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {mentorActiveMatches.map((match: any) => (
+                    <Card key={match.id} className="border-2 hover:border-[#500000]/30 transition-colors">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#500000] to-[#800000] flex items-center justify-center text-white text-lg font-bold">
+                              {(match.student?.full_name || 'S')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{match.student?.full_name || 'Student'}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Matched: {new Date(match.matched_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <Link href={`/mentorship/match/${match.id}`}>
+                            <Button variant="outline" size="sm">
+                              View
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="border-2 border-dashed">
+                  <CardContent className="p-8 text-center">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted flex items-center justify-center">
+                      <Users className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">No active mentees</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {profile?.in_matching_pool 
+                        ? "You're in the matching pool - students can request you as a mentor" 
+                        : "Join the matching pool to receive mentorship requests"}
                     </p>
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Video className="h-3 w-3" />
-                        Video call
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        30-60 min
-                      </span>
-                      <span>•</span>
-                      <span>One-time sessions</span>
-                      <span>•</span>
-                      <span>Flexible scheduling</span>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+
+            {/* Pending Requests */}
+            {hasPendingMentorBatch && (
+              <Card className="border-yellow-200 bg-yellow-50/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
+                        <AlertCircle className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Pending Requests</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {mentorMatchBatches?.length || 0} student{mentorMatchBatches?.length !== 1 ? 's' : ''} waiting for your response
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/mentorship/mentor/requests">
+                      <Button className="bg-[#500000] hover:bg-[#6b0000]">
+                        Review Requests
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mini Sessions Browse */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-[#500000]" />
+                  <h2 className="text-xl font-semibold">Mini Sessions</h2>
+                </div>
+                <Link href="/mentorship/mini-sessions/browse">
+                  <Button className="bg-[#500000] hover:bg-[#6b0000]">
+                    Browse Requests
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#500000]/10 flex items-center justify-center">
+                      <Video className="h-6 w-6 text-[#500000]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Help Students with Quick Sessions</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Browse open requests for 30-60 minute mentorship sessions
+                      </p>
                     </div>
                   </div>
-                  <Link href="/mentorship/mini-sessions/browse">
-                    <Button>
-                      <Video className="h-4 w-4 mr-2" />
-                      Browse Requests
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            </section>
 
-        {/* Quick Actions */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common mentorship tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Link href="/mentorship/questions">
-                <Button variant="outline" className="w-full justify-start">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Quick Questions
-                </Button>
-              </Link>
-              {hasActiveMatch && (
-                <Link href={`/mentorship/match/${activeMatch.id}/meetings`}>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Meeting Logs
-                  </Button>
+            {/* Profile & Quick Actions */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <User className="h-5 w-5 text-[#500000]" />
+                <h2 className="text-xl font-semibold">Profile & Actions</h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Link href="/mentorship/profile" className="block">
+                  <Card className="h-full hover:border-[#500000]/30 hover:shadow-md transition-all cursor-pointer group">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center group-hover:bg-[#500000]/20 transition-colors">
+                          <UserPlus className="h-5 w-5 text-[#500000]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Edit Profile</h3>
+                          <p className="text-sm text-muted-foreground">Update your info</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </Link>
-              )}
-              {!isStudent && (
-                <Link href="/mentorship/profile">
-                  <Button variant="outline" className="w-full justify-start">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Update Profile
-                  </Button>
+
+                <Link href="/mentorship/questions" className="block">
+                  <Card className="h-full hover:border-[#500000]/30 hover:shadow-md transition-all cursor-pointer group">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#500000]/10 flex items-center justify-center group-hover:bg-[#500000]/20 transition-colors">
+                          <MessageSquare className="h-5 w-5 text-[#500000]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Answer Questions</h3>
+                          <p className="text-sm text-muted-foreground">Help students</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </Link>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                <Card className="h-full border-2">
+                  <CardContent className="p-5">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Badge variant={profile?.in_matching_pool ? 'default' : 'secondary'}>
+                          {profile?.in_matching_pool ? 'In Pool' : 'Not in Pool'}
+                        </Badge>
+                        {profile && profile.current_mentees !== undefined && (
+                          <span className="text-sm text-muted-foreground">
+                            {profile.current_mentees}/{profile.max_mentees || 3} mentees
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {profile?.industry || 'Industry not set'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
