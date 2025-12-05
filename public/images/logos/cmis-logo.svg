@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <style>
+      .bg { fill: #500000; }
+      .white { fill: #FFFFFF; }
+      .accent { fill: #FFFFFF; opacity: 0.9; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" class="bg" rx="8"/>
+  
+  <!-- ATM Logo -->
+  <g transform="translate(100, 70)">
+    <!-- Outer T frame -->
+    <rect x="-50" y="-40" width="100" height="10" class="white"/>
+    <rect x="-50" y="-40" width="10" height="75" class="white"/>
+    <rect x="40" y="-40" width="10" height="75" class="white"/>
+    
+    <!-- Inner block (maroon shows through) -->
+    <rect x="-40" y="-30" width="80" height="5" class="bg"/>
+    <rect x="-40" y="-30" width="5" height="65" class="bg"/>
+    <rect x="35" y="-30" width="5" height="65" class="bg"/>
+    
+    <!-- A -->
+    <polygon class="white" points="-30,-25 -22,30 -17,30 -15,20 -7,20 -5,30 0,30 -8,-25 -14,-25"/>
+    <polygon class="bg" points="-11,12 -14,12 -12,2 -9,2"/>
+    
+    <!-- T (center) -->
+    <rect x="2" y="-25" width="20" height="5" class="white"/>
+    <rect x="8" y="-25" width="8" height="55" class="white"/>
+    
+    <!-- M -->
+    <polygon class="white" points="26,-25 26,30 31,30 31,0 38,18 43,18 50,0 50,30 55,30 55,-25 47,-25 40.5,2 34,-25"/>
+  </g>
+  
+  <!-- Divider line -->
+  <rect x="30" y="115" width="140" height="2" class="accent"/>
+  
+  <!-- CMIS text -->
+  <text x="100" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="32" class="white">CMIS</text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" class="accent">MAYS BUSINESS SCHOOL</text>
+</svg>
+

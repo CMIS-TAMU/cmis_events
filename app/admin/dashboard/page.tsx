@@ -718,7 +718,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link href="/admin/sponsors">
               <Button variant="outline" className="w-full justify-start">
-                <Users className="h-4 w-4 mr-2" />
+                <Building2 className="h-4 w-4 mr-2" />
                 Sponsors
               </Button>
             </Link>

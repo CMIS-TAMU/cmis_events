@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, ArrowRight, Users, Trophy, Briefcase, GraduationCap, Sparkles, Building2, Star, ChevronRight } from 'lucide-react';
+import { Calendar, ArrowRight, Users, Trophy, Briefcase, GraduationCap, Sparkles, Building2, Star, ChevronRight, Mail } from 'lucide-react';
 import { EventCard } from '@/components/events/event-card';
 import { trpc } from '@/lib/trpc/trpc';
+import { NewsletterSignup } from '@/components/newsletter/newsletter-signup';
 
 export default function Home() {
   const { data: upcomingEvents, isLoading } = trpc.events.getAll.useQuery({
@@ -315,6 +316,39 @@ export default function Home() {
                 </Link>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-20 bg-gradient-to-br from-[#500000] via-[#600000] to-[#400000] relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
+          {/* Animated circles */}
+          <div className="absolute top-1/2 left-10 w-4 h-4 bg-white/20 rounded-full animate-pulse" />
+          <div className="absolute top-1/3 right-20 w-3 h-3 bg-white/15 rounded-full animate-pulse delay-300" />
+          <div className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-white/20 rounded-full animate-pulse delay-500" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm mb-6">
+                <Mail className="h-8 w-8 text-white" />
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                Stay in the Loop
+              </h2>
+              <p className="text-lg text-white/80 max-w-2xl mx-auto">
+                Get the latest on CMIS events, career opportunities, and exclusive updates delivered straight to your inbox.
+              </p>
+            </div>
+
+            {/* Newsletter Form */}
+            <NewsletterSignup />
           </div>
         </div>
       </section>
