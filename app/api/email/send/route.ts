@@ -7,6 +7,8 @@ import {
   mentorNotificationEmail,
   miniMentorshipRequestNotificationEmail,
   sponsorNewEventNotificationEmail,
+  studentNewEventNotificationEmail,
+  mentorNewEventNotificationEmail,
 } from '@/lib/email/templates';
 import {
   missionPublishedEmail,
@@ -169,6 +171,32 @@ export async function POST(request: NextRequest) {
         const { sponsorName, event, eventId } = data;
         html = sponsorNewEventNotificationEmail({
           sponsorName,
+          event,
+          eventId,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = data.subject || `🎉 New Event: ${event.title}`;
+        to = data.to;
+        break;
+      }
+
+      case 'student_new_event': {
+        const { studentName, event, eventId } = data;
+        html = studentNewEventNotificationEmail({
+          studentName,
+          event,
+          eventId,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = data.subject || `🎉 New Event: ${event.title}`;
+        to = data.to;
+        break;
+      }
+
+      case 'mentor_new_event': {
+        const { mentorName, event, eventId } = data;
+        html = mentorNewEventNotificationEmail({
+          mentorName,
           event,
           eventId,
           appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',

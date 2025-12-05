@@ -9,11 +9,12 @@ interface Event {
 }
 
 // ========================================================================
-// SPONSOR NEW EVENT NOTIFICATION
+// NEW EVENT NOTIFICATION (ROLE-SPECIFIC)
 // ========================================================================
 
-interface SponsorNewEventNotificationProps {
-  sponsorName: string;
+interface NewEventNotificationProps {
+  recipientName: string;
+  recipientRole: 'sponsor' | 'student' | 'mentor';
   event: Event;
   eventId: string;
   appUrl?: string;
@@ -24,54 +25,243 @@ export function sponsorNewEventNotificationEmail({
   event,
   eventId,
   appUrl = 'http://localhost:3000',
-}: SponsorNewEventNotificationProps): string {
+}: {
+  sponsorName: string;
+  event: Event;
+  eventId: string;
+  appUrl?: string;
+}): string {
+  return newEventNotificationEmail({
+    recipientName: sponsorName,
+    recipientRole: 'sponsor',
+    event,
+    eventId,
+    appUrl,
+  });
+}
+
+export function studentNewEventNotificationEmail({
+  studentName,
+  event,
+  eventId,
+  appUrl = 'http://localhost:3000',
+}: {
+  studentName: string;
+  event: Event;
+  eventId: string;
+  appUrl?: string;
+}): string {
+  return newEventNotificationEmail({
+    recipientName: studentName,
+    recipientRole: 'student',
+    event,
+    eventId,
+    appUrl,
+  });
+}
+
+export function mentorNewEventNotificationEmail({
+  mentorName,
+  event,
+  eventId,
+  appUrl = 'http://localhost:3000',
+}: {
+  mentorName: string;
+  event: Event;
+  eventId: string;
+  appUrl?: string;
+}): string {
+  return newEventNotificationEmail({
+    recipientName: mentorName,
+    recipientRole: 'mentor',
+    event,
+    eventId,
+    appUrl,
+  });
+}
+
+function newEventNotificationEmail({
+  recipientName,
+  recipientRole,
+  event,
+  eventId,
+  appUrl = 'http://localhost:3000',
+}: NewEventNotificationProps): string {
   const startDate = new Date(event.starts_at);
   const endDate = event.ends_at ? new Date(event.ends_at) : null;
+  
+  // Extract first name from full name
+  const firstName = recipientName?.split(' ')[0] || recipientName || 'there';
+  const eventDateFull = format(startDate, 'EEEE, MMMM d, yyyy');
+  const eventTime = format(startDate, 'h:mm a') + (endDate ? ` - ${format(endDate, 'h:mm a')}` : '');
+  const eventLink = `${appUrl}/events/${eventId}`;
+  const preferencesLink = recipientRole === 'sponsor' 
+    ? `${appUrl}/sponsor/preferences`
+    : `${appUrl}/dashboard`;
+  const dashboardLink = `${appUrl}/dashboard`;
 
+  // Mentor Template
+  if (recipientRole === 'mentor') {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Event Alert!</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f9f9fb;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9fb; border-radius: 12px; overflow: hidden;">
+    <tr>
+      <td style="background: linear-gradient(135deg, #6B48FF, #9D7CFF); padding: 24px; text-align: center; color: white;">
+        <h1 style="margin:0; font-size:22px; font-weight:600;">New Event Alert!</h1>
+        <p style="margin:4px 0 0; font-size:14px; opacity:0.9;">CMIS Event Management</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px 28px; background: white;">
+        <h2 style="margin:0 0 16px; font-size:20px; color:#1a1a1a;">Hey ${firstName}, we need your expertise!</h2>
+        <p style="color:#444; line-height:1.6; margin-bottom:20px;">
+          You've shaped careers before, and now here's a chance to do it again. We're hosting a small, high impact session where students are eager for real world insights from experienced professionals like you.
+        </p>
+
+        <div style="background:#f0f0ff; border-left:4px solid #6B48FF; padding:16px; margin:20px 0; border-radius:0 8px 8px 0;">
+          <p style="margin:0; font-weight:600; color:#6B48FF; font-size:16px;">${event.title}</p>
+          <p style="margin:8px 0 4px;"><strong>Date:</strong> ${eventDateFull}</p>
+          <p style="margin:0;"><strong>Time:</strong> ${eventTime}</p>
+        </div>
+
+        <div style="background:#fff8e1; border-radius:8px; padding:16px; margin:20px 0;">
+          <p style="margin:0; color:#d97706; font-weight:500;">
+            💡 <strong>Mentorship Moment:</strong> Last time, a mentor's five minute story about a failed project changed how three students approached risk. Your story could be next.
+          </p>
+        </div>
+
+        <div style="text-align:center; margin:28px 0;">
+          <a href="${eventLink}" style="background:#6B48FF; color:white; padding:12px 32px; border-radius:50px; text-decoration:none; font-weight:600; display:inline-block;">View Event & RSVP</a>
+        </div>
+
+        <p style="color:#666; font-size:14px; margin-top:24px;">
+          P.S. You're getting this because you're a registered mentor. Want fewer emails? <a href="${preferencesLink}" style="color:#6B48FF;">Tweak your preferences</a>.
+        </p>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:32px 0;">
+
+        <p style="color:#888; font-size:13px; margin:0;">Warm regards,<br><strong>CMIS Event Crew</strong></p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+  }
+
+  // Student Template
+  if (recipientRole === 'student') {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Event Alert!</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f9f9fb;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9fb; border-radius: 12px; overflow: hidden;">
+    <tr>
+      <td style="background: linear-gradient(135deg, #00C2A2, #34D9B8); padding: 24px; text-align: center; color: white;">
+        <h1 style="margin:0; font-size:22px; font-weight:600;">New Event Alert!</h1>
+        <p style="margin:4px 0 0; font-size:14px; opacity:0.9;">CMIS Event Management</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px 28px; background: white;">
+        <h2 style="margin:0 0 16px; font-size:20px; color:#1a1a1a;">${firstName}, your next breakthrough is coming up!</h2>
+        <p style="color:#444; line-height:1.6; margin-bottom:20px;">
+          Forget boring lectures. This is a live session with professionals who have been where you want to go, and they're ready to share real insights and practical advice.
+        </p>
+
+        <div style="background:#e6f7f5; border-left:4px solid #00C2A2; padding:16px; margin:20px 0; border-radius:0 8px 8px 0;">
+          <p style="margin:0; font-weight:600; color:#00C2A2; font-size:16px;">${event.title}</p>
+          <p style="margin:8px 0 4px;"><strong>Date:</strong> ${eventDateFull}</p>
+          <p style="margin:0;"><strong>Time:</strong> ${eventTime}</p>
+        </div>
+
+        <div style="background:#ecfdf5; border-radius:8px; padding:16px; margin:20px 0;">
+          <p style="margin:0; color:#059669; font-weight:500;">
+            🎯 <strong>Learning Boost:</strong> Eighty seven percent of last attendees said they left with at least one actionable idea. Don't be the one who missed it.
+          </p>
+        </div>
+
+        <div style="text-align:center; margin:28px 0;">
+          <a href="${eventLink}" style="background:#00C2A2; color:white; padding:12px 32px; border-radius:50px; text-decoration:none; font-weight:600; display:inline-block;">Grab Your Spot</a>
+        </div>
+
+        <p style="color:#666; font-size:14px; margin-top:24px;">
+          P.S. You're on this list because you're a registered student. See all events on your <a href="${dashboardLink}" style="color:#00C2A2;">dashboard</a>.
+        </p>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:32px 0;">
+
+        <p style="color:#888; font-size:13px; margin:0;">Cheers to growth,<br><strong>CMIS Event Crew</strong></p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+  }
+
+  // Sponsor Template (default)
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Event Created</title>
+  <title>New Event Alert!</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0;">🎉 New Event Alert!</h1>
-    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">CMIS Event Management</p>
-  </div>
-  
-  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
-    <h2 style="color: #333; margin-top: 0;">A New Event Has Been Created!</h2>
-    
-    <p>Hello ${sponsorName},</p>
-    
-    <p>We're excited to let you know that a new event has been created that may interest you and your organization!</p>
-    
-    <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea;">
-      <h3 style="margin-top: 0; color: #667eea;">${event.title}</h3>
-      <p><strong>📅 Date:</strong> ${format(startDate, 'EEEE, MMMM d, yyyy')}</p>
-      <p><strong>🕐 Time:</strong> ${format(startDate, 'h:mm a')}${endDate ? ` - ${format(endDate, 'h:mm a')}` : ''}</p>
-      ${event.capacity ? `<p><strong>👥 Capacity:</strong> ${event.capacity} attendees</p>` : ''}
-      ${event.description ? `<p style="margin-top: 15px; color: #555;">${event.description}</p>` : ''}
-    </div>
-    
-    <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
-      <p style="margin: 0;"><strong>💡 Sponsor Opportunity:</strong> This could be a great opportunity to connect with talented students! Consider sponsoring this event or attending to network with participants.</p>
-    </div>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${appUrl}/events/${eventId}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View Event Details</a>
-    </div>
-    
-    <p style="margin-top: 30px; font-size: 14px; color: #666;">
-      You received this notification because you're a registered sponsor. 
-      <a href="${appUrl}/sponsor/preferences" style="color: #667eea;">Manage your notification preferences</a>.
-    </p>
-    
-    <p style="margin-top: 30px;">Best regards,<br>CMIS Event Management Team</p>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #f9f9fb;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9fb; border-radius: 12px; overflow: hidden;">
+    <tr>
+      <td style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); padding: 24px; text-align: center; color: white;">
+        <h1 style="margin:0; font-size:22px; font-weight:600;">New Event Alert!</h1>
+        <p style="margin:4px 0 0; font-size:14px; opacity:0.9;">CMIS Event Management</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px 28px; background: white;">
+        <h2 style="margin:0 0 16px; font-size:20px; color:#1a1a1a;">Hello ${firstName}, a talent pipeline is forming</h2>
+        <p style="color:#444; line-height:1.6; margin-bottom:20px;">
+          We're curating a focused event with top tier students and mentors. This is prime visibility and a direct line to future hires who are actively seeking opportunities.
+        </p>
+
+        <div style="background:#ebf1ff; border-left:4px solid #3B82F6; padding:16px; margin:20px 0; border-radius:0 8px 8px 0;">
+          <p style="margin:0; font-weight:600; color:#3B82F6; font-size:16px;">${event.title}</p>
+          <p style="margin:8px 0 4px;"><strong>Date:</strong> ${eventDateFull}</p>
+          <p style="margin:0;"><strong>Time:</strong> ${eventTime}</p>
+        </div>
+
+        <div style="background:#f0f9ff; border-radius:8px; padding:16px; margin:20px 0;">
+          <p style="margin:0; color:#0369a1; font-weight:500;">
+            💼 <strong>Sponsor Spotlight:</strong> Last event, one sponsor hired two interns on the spot. Your logo combined with a three minute pitch equals high intent talent ready to engage.
+          </p>
+        </div>
+
+        <div style="text-align:center; margin:28px 0;">
+          <a href="${eventLink}" style="background:#3B82F6; color:white; padding:12px 32px; border-radius:50px; text-decoration:none; font-weight:600; display:inline-block;">Explore Sponsorship</a>
+        </div>
+
+        <p style="color:#666; font-size:14px; margin-top:24px;">
+          P.S. You're receiving this as a registered sponsor. Manage alerts <a href="${preferencesLink}" style="color:#3B82F6;">here</a>.
+        </p>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:32px 0;">
+
+        <p style="color:#888; font-size:13px; margin:0;">Best regards,<br><strong>CMIS Event Partnerships</strong></p>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `;

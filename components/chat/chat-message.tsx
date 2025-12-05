@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType } from '@/lib/types/chat';
 import { format } from 'date-fns';
 import { Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -46,7 +47,53 @@ export function ChatMessage({ message }: ChatMessageProps) {
             message.isStreaming && 'animate-pulse'
           )}
         >
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          {isUser ? (
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          ) : (
+            <div className="markdown-content break-words">
+              <ReactMarkdown
+                components={{
+                  a: ({ node, ...props }) => (
+                    <a
+                      {...props}
+                      className="text-primary hover:text-primary/80 underline font-medium transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  ),
+                  strong: ({ node, ...props }) => (
+                    <strong {...props} className="font-semibold text-foreground" />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul {...props} className="list-disc list-inside space-y-1.5 my-2 ml-1" />
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <ol {...props} className="list-decimal list-inside space-y-1.5 my-2 ml-1" />
+                  ),
+                  li: ({ node, ...props }) => (
+                    <li {...props} className="ml-2 leading-relaxed" />
+                  ),
+                  p: ({ node, ...props }) => (
+                    <p {...props} className="my-2 first:mt-0 last:mb-0 leading-relaxed" />
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <h3 {...props} className="font-semibold text-base mt-4 mb-2 first:mt-0 text-foreground" />
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <h2 {...props} className="font-semibold text-lg mt-4 mb-2 first:mt-0 text-foreground" />
+                  ),
+                  code: ({ node, ...props }) => (
+                    <code {...props} className="bg-muted/50 px-1.5 py-0.5 rounded text-xs font-mono" />
+                  ),
+                  blockquote: ({ node, ...props }) => (
+                    <blockquote {...props} className="border-l-2 border-primary/30 pl-3 my-2 italic text-muted-foreground" />
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
         <span className="text-[10px] text-muted-foreground px-1">

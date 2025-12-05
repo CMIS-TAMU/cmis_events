@@ -217,6 +217,11 @@ export async function shouldNotifyImmediately(
   sponsorId: string,
   eventType: EventType
 ): Promise<boolean> {
+  // Always send new_event notifications immediately - they're important!
+  if (eventType === 'new_event') {
+    return true;
+  }
+  
   const frequency = await getNotificationFrequency(sponsorId, eventType);
   return frequency === 'real-time';
 }

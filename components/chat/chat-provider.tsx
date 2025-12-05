@@ -32,17 +32,38 @@ export function ChatProvider({
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
         if (response.status === 429) {
           return "You're sending messages too quickly. Please wait a moment and try again.";
         }
+        // Use the error message from the API if available
+        if (data.message) {
+          return data.message;
+        }
+        if (data.error) {
+          return `I encountered an error: ${data.error}. Please try again or contact cmis@tamu.edu for assistance.`;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return data.message;
+      // Return the message from the API
+      if (data.message) {
+        return data.message;
+      }
+
+      // Fallback if no message in response
+      return "I received your message but couldn't generate a response. Please try again.";
     } catch (error) {
       console.error('Chat API error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Provide more helpful error messages
+      if (errorMessage.includes('fetch')) {
+        return "I'm having trouble connecting to the server. Please check your internet connection and try again.";
+      }
+      
       return "I'm sorry, I couldn't process your request. Please try again or contact cmis@tamu.edu for assistance.";
     }
   };
