@@ -410,7 +410,7 @@ export default function MentorshipDashboardPage() {
                       <div>
                         <h3 className="font-semibold">Pending Mentor Recommendations</h3>
                         <p className="text-sm text-muted-foreground">
-                          We've sent your profile to potential mentors. You'll be notified when one accepts.
+                          We&apos;ve sent your profile to potential mentors. You&apos;ll be notified when one accepts.
                         </p>
                       </div>
                     </div>

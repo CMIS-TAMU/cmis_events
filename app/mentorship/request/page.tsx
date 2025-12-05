@@ -50,7 +50,7 @@ export default function RequestMentorPage() {
 
       return () => clearTimeout(timeout);
     }
-  }, [requestMentor.isPending]);
+  }, [requestMentor]);
 
   useEffect(() => {
     // Auto-request if no batch exists and user doesn't have active match

@@ -77,7 +77,7 @@ export default function BeASponsorPage() {
           The Aggie Advantage 🎓
         </h2>
         <p className="text-center text-muted-foreground mb-8 max-w-3xl mx-auto">
-          Texas A&M students aren't just talented—they're Aggies. That means loyalty, work ethic, and a built-in network of 450,000+ alumni worldwide.
+          Texas A&M students aren&apos;t just talented—they&apos;re Aggies. That means loyalty, work ethic, and a built-in network of 450,000+ alumni worldwide.
         </p>
         <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
           <Card className="border-2" style={{borderColor: '#500101'}}>
@@ -92,7 +92,7 @@ export default function BeASponsorPage() {
                 Hire an Aggie, get access to 450,000+ alumni. <strong>68% of Aggies help fellow Aggies get hired.</strong>
               </p>
               <p className="text-xs italic" style={{color: '#500101'}}>
-                "Once an Aggie, always an Aggie" - They'll recruit for you
+                &quot;Once an Aggie, always an Aggie&quot; - They&apos;ll recruit for you
               </p>
             </CardContent>
           </Card>
@@ -106,10 +106,10 @@ export default function BeASponsorPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                A&M students balance <strong>15+ credit hours, leadership roles, and internships</strong> - they're built different.
+                A&M students balance <strong>15+ credit hours, leadership roles, and internships</strong> - they&apos;re built different.
               </p>
               <p className="text-xs italic text-green-700">
-                "12th Man mentality" - Always ready to step up
+                &quot;12th Man mentality&quot; - Always ready to step up
               </p>
             </CardContent>
           </Card>
@@ -549,9 +549,9 @@ export default function BeASponsorPage() {
                 ))}
               </div>
               <p className="text-sm italic mb-4">
-                "We hired 6 Aggie interns through CMIS last year. 4 became full-time hires. The Aggie work ethic and loyalty is unmatched."
+                &quot;We hired 6 Aggie interns through CMIS last year. 4 became full-time hires. The Aggie work ethic and loyalty is unmatched.&quot;
               </p>
-              <p className="text-xs font-semibold">Sarah Chen '09</p>
+              <p className="text-xs font-semibold">Sarah Chen &apos;09</p>
               <p className="text-xs text-muted-foreground">VP of Recruiting, Microsoft</p>
               <Badge variant="outline" className="mt-2 text-xs">ExaByte Sponsor</Badge>
             </CardContent>
@@ -565,9 +565,9 @@ export default function BeASponsorPage() {
                 ))}
               </div>
               <p className="text-sm italic mb-4">
-                "$5K investment led to 2 senior hires from Mays. Aggies hit the ground running - no hand-holding needed. Gig 'em!"
+                &quot;$5K investment led to 2 senior hires from Mays. Aggies hit the ground running - no hand-holding needed. Gig &apos;em!&quot;
               </p>
-              <p className="text-xs font-semibold">Michael Rodriguez '12</p>
+              <p className="text-xs font-semibold">Michael Rodriguez &apos;12</p>
               <p className="text-xs text-muted-foreground">Talent Acquisition Lead, Deloitte</p>
               <Badge variant="outline" className="mt-2 text-xs">PetaByte Sponsor</Badge>
             </CardContent>
@@ -581,9 +581,9 @@ export default function BeASponsorPage() {
                 ))}
               </div>
               <p className="text-sm italic mb-4">
-                "As an Aggie-owned startup, CMIS connected us to fellow Aggies who believed in our mission. Hired our first engineer in 3 weeks."
+                &quot;As an Aggie-owned startup, CMIS connected us to fellow Aggies who believed in our mission. Hired our first engineer in 3 weeks.&quot;
               </p>
-              <p className="text-xs font-semibold">Alex Thompson '15</p>
+              <p className="text-xs font-semibold">Alex Thompson &apos;15</p>
               <p className="text-xs text-muted-foreground">Aggie Co-Founder & CTO, DataFlow AI</p>
               <Badge variant="outline" className="mt-2 text-xs">TeraByte Sponsor</Badge>
             </CardContent>
@@ -619,7 +619,7 @@ export default function BeASponsorPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">What's the average time-to-hire?</CardTitle>
+              <CardTitle className="text-lg">What&apos;s the average time-to-hire?</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
@@ -645,7 +645,7 @@ export default function BeASponsorPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Our smart notification system, pre-vetted students, and direct engagement opportunities. Plus, we're 80% cheaper than traditional recruiting.
+                Our smart notification system, pre-vetted students, and direct engagement opportunities. Plus, we&apos;re 80% cheaper than traditional recruiting.
               </p>
             </CardContent>
           </Card>
@@ -699,13 +699,13 @@ export default function BeASponsorPage() {
       <section className="text-center text-white rounded-lg p-12 shadow-xl" style={{background: 'linear-gradient(135deg, #500101 0%, #000 100%)'}}>
         <div className="mb-4">
           <h3 className="text-3xl font-bold mb-2">Ready to Build Your Aggie Team?</h3>
-          <p className="text-xl opacity-90">👍 Howdy! Let's talk about your hiring needs.</p>
+          <p className="text-xl opacity-90">👍 Howdy! Let&apos;s talk about your hiring needs.</p>
         </div>
         <p className="text-lg mb-2 opacity-90">
           Join 50+ companies (including 30 Aggie-owned businesses) hiring through CMIS
         </p>
         <p className="text-base mb-8 opacity-80">
-          Schedule a 15-minute call with our team - we're here to help, Aggie to Aggie
+          Schedule a 15-minute call with our team - we&apos;re here to help, Aggie to Aggie
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Button size="lg" className="bg-white hover:bg-gray-100 font-semibold px-8" style={{color: '#500101'}}>

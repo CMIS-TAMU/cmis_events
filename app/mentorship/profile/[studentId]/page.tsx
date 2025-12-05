@@ -85,7 +85,7 @@ export default function StudentProfileViewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Student Not Found</CardTitle>
-            <CardDescription>The student profile you're looking for doesn't exist</CardDescription>
+            <CardDescription>The student profile you&apos;re looking for doesn&apos;t exist</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/mentorship/mentor/requests">
@@ -171,7 +171,7 @@ export default function StudentProfileViewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Contact & Links</CardTitle>
-            <CardDescription>Student's online presence</CardDescription>
+            <CardDescription>Student&apos;s online presence</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {profile?.linkedin_url && (

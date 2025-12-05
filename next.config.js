@@ -46,4 +46,12 @@ module.exports = withSentryConfig(module.exports, {
   // https://docs.sentry.io/product/crons/
   // https://vercel.com/docs/cron-jobs
   automaticVercelMonitors: true,
+
+  // Don't fail build if Sentry token is missing
+  errorHandler: (err, invokeErr, compilation) => {
+    console.warn('Sentry error (non-blocking):', err.message);
+  },
+
+  // Only upload source maps if auth token is available
+  dryRun: !process.env.SENTRY_AUTH_TOKEN,
 });
