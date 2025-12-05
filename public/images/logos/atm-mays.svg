@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <style>
+      .maroon { fill: #500000; }
+      .gray { fill: #6B6B6B; }
+      .white { fill: #FFFFFF; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="140" class="maroon"/>
+  <rect y="140" width="200" height="60" class="gray"/>
+  
+  <!-- ATM Logo -->
+  <g transform="translate(100, 70)">
+    <!-- Outer T shape -->
+    <rect x="-60" y="-45" width="120" height="12" class="white"/>
+    <rect x="-60" y="-45" width="12" height="90" class="white"/>
+    <rect x="48" y="-45" width="12" height="90" class="white"/>
+    
+    <!-- Inner block -->
+    <rect x="-48" y="-33" width="96" height="6" class="maroon"/>
+    <rect x="-48" y="-33" width="6" height="78" class="maroon"/>
+    <rect x="42" y="-33" width="6" height="78" class="maroon"/>
+    
+    <!-- A -->
+    <polygon class="white" points="-35,-27 -25,39 -19,39 -17,27 -7,27 -5,39 1,39 -9,-27 -15,-27"/>
+    <polygon class="maroon" points="-12,15 -16,15 -14,3 -10,3"/>
+    
+    <!-- T (center) -->
+    <rect x="-2" y="-27" width="28" height="6" class="white"/>
+    <rect x="8" y="-27" width="8" height="66" class="white"/>
+    
+    <!-- M -->
+    <polygon class="white" points="30,-27 30,39 36,39 36,-3 44,21 50,21 58,-3 58,39 64,39 64,-27 54,-27 47,3 40,-27"/>
+    
+    <!-- Registered trademark -->
+    <circle cx="52" cy="39" r="6" fill="none" stroke="white" stroke-width="1"/>
+    <text x="52" y="42" text-anchor="middle" font-size="8" class="white" font-family="serif">®</text>
+  </g>
+  
+  <!-- MAYS text -->
+  <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" letter-spacing="8" class="white">MAYS</text>
+</svg>
+

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">
+  <defs>
+    <style>
+      .maroon { fill: #500000; }
+      .gray { fill: #333333; }
+      .white { fill: #FFFFFF; }
+    </style>
+  </defs>
+  
+  <!-- ATM Logo Box -->
+  <rect x="5" y="15" width="70" height="70" class="maroon" rx="4"/>
+  
+  <!-- ATM Letters in box -->
+  <g transform="translate(40, 50)">
+    <!-- Outer T frame -->
+    <rect x="-25" y="-22" width="50" height="5" class="white"/>
+    <rect x="-25" y="-22" width="5" height="40" class="white"/>
+    <rect x="20" y="-22" width="5" height="40" class="white"/>
+    
+    <!-- A -->
+    <polygon class="white" points="-17,-17 -13,14 -11,14 -10,8 -6,8 -5,14 -3,14 -7,-17 -9,-17" transform="scale(0.8)"/>
+    
+    <!-- T -->
+    <rect x="-4" y="-14" width="10" height="3" class="white"/>
+    <rect x="-1" y="-14" width="4" height="28" class="white"/>
+    
+    <!-- M -->
+    <polygon class="white" points="8,-17 8,14 10,14 10,-2 14,10 17,10 21,-2 21,14 23,14 23,-17 19,-17 15.5,0 12,-17" transform="scale(0.8) translate(8,0)"/>
+  </g>
+  
+  <!-- Text: TEXAS A&M UNIVERSITY -->
+  <text x="90" y="38" font-family="Georgia, serif" font-size="12" class="maroon" letter-spacing="0.5">TEXAS A&amp;M UNIVERSITY</text>
+  
+  <!-- Text: Mays Business School -->
+  <text x="90" y="65" font-family="Georgia, serif" font-size="22" font-weight="normal" class="gray">Mays Business School</text>
+</svg>
+
