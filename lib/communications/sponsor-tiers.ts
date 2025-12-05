@@ -1,71 +1,146 @@
 /**
- * Sponsor Tier Management Functions
- * Handles sponsor tier operations, preferences, and engagement stats
+ * Sponsor Tier System
+ * Handles tier-based access control and notification preferences
  */
 
-import { createAdminSupabase } from '@/lib/supabase/server';
+import { createServerSupabase } from '@/lib/supabase/server';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export type SponsorTier = 'basic' | 'standard' | 'premium';
-export type NotificationFrequency = 'real-time' | 'batched' | 'daily' | 'weekly' | 'never';
-export type EventType = string;
 
-interface SponsorEngagementStats {
-  tier: SponsorTier;
-  notifications_sent: number;
-  notifications_opened: number;
-  notifications_clicked: number;
-  resumes_viewed: number;
-  resumes_downloaded: number;
-  students_contacted: number;
-  students_shortlisted: number;
-  last_login: string | null;
+export type NotificationFrequency = 'real-time' | 'batched' | 'daily' | 'weekly' | 'never';
+
+export type EventType = 
+  | 'resume_upload'
+  | 'new_student'
+  | 'profile_update'
+  | 'mission_submission'
+  | 'event_registration'
+  | 'mentor_request'
+  | 'new_event';  // Added for event creation notifications
+
+export interface TierConfig {
+  name: string;
+  defaultFrequency: NotificationFrequency;
+  maxFilters: number;
+  maxSavedSearches: number;
+  maxMonthlyExports: number;
+  features: string[];
+  batchDuringSurge: boolean;
 }
 
+// ============================================================================
+// TIER CONFIGURATIONS
+// ============================================================================
+
+export const TIER_CONFIGS: Record<SponsorTier, TierConfig> = {
+  basic: {
+    name: 'Basic',
+    defaultFrequency: 'weekly',
+    maxFilters: 3,
+    maxSavedSearches: 5,
+    maxMonthlyExports: 10,
+    features: ['view_students', 'basic_filters'],
+    batchDuringSurge: true,
+  },
+  standard: {
+    name: 'Standard',
+    defaultFrequency: 'batched',
+    maxFilters: 10,
+    maxSavedSearches: 20,
+    maxMonthlyExports: 50,
+    features: ['view_students', 'basic_filters', 'advanced_filters', 'analytics'],
+    batchDuringSurge: true,
+  },
+  premium: {
+    name: 'Premium',
+    defaultFrequency: 'real-time',
+    maxFilters: -1, // Unlimited
+    maxSavedSearches: -1,
+    maxMonthlyExports: -1,
+    features: ['view_students', 'basic_filters', 'advanced_filters', 'analytics', 'api_access', 'priority_support'],
+    batchDuringSurge: false,
+  },
+};
+
+// ============================================================================
+// CORE FUNCTIONS
+// ============================================================================
+
 /**
- * Get sponsor tier for a user
+ * Get a sponsor's current tier
  */
-export async function getSponsorTier(userId: string): Promise<SponsorTier> {
-  const supabase = createAdminSupabase();
+export async function getSponsorTier(sponsorId: string): Promise<SponsorTier> {
+  const supabase = await createServerSupabase();
   
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('users')
     .select('sponsor_tier')
-    .eq('id', userId)
+    .eq('id', sponsorId)
     .single();
 
-  if (error || !data) {
-    return 'basic'; // Default tier
-  }
-
-  return (data.sponsor_tier as SponsorTier) || 'basic';
+  return (data?.sponsor_tier as SponsorTier) || 'basic';
 }
 
 /**
- * Update sponsor tier (deprecated - use changeSponsorTier instead)
+ * Get tier configuration
+ */
+export function getTierConfig(tier: SponsorTier): TierConfig {
+  return TIER_CONFIGS[tier] || TIER_CONFIGS.basic;
+}
+
+/**
+ * Update a sponsor's tier
  */
 export async function updateSponsorTier(
-  userId: string,
-  tier: SponsorTier
-): Promise<{ success: boolean; error?: string }> {
-  return changeSponsorTier(userId, tier, 'Updated via updateSponsorTier', 'system');
+  sponsorId: string,
+  tier: SponsorTier,
+  reason?: string
+): Promise<boolean> {
+  const supabase = await createServerSupabase();
+
+  const { error } = await supabase
+    .from('users')
+    .update({ sponsor_tier: tier })
+    .eq('id', sponsorId);
+
+  if (error) {
+    console.error('Error updating sponsor tier:', error);
+    return false;
+  }
+
+  // Log tier change
+  await supabase.from('notification_logs').insert({
+    sponsor_id: sponsorId,
+    notification_type: 'tier_change',
+    event_type: 'profile_update',
+    metadata: { new_tier: tier, reason },
+  });
+
+  return true;
 }
 
 /**
  * Get sponsor preferences
  */
-export async function getSponsorPreferences(userId: string) {
-  const supabase = createAdminSupabase();
-  
-  const { data, error } = await supabase
+export async function getSponsorPreferences(sponsorId: string): Promise<any> {
+  const supabase = await createServerSupabase();
+
+  const { data } = await supabase
     .from('sponsor_preferences')
     .select('*')
-    .eq('sponsor_id', userId)
+    .eq('sponsor_id', sponsorId)
     .single();
 
-  if (error || !data) {
-    // Return default preferences
+  // Return defaults if no preferences exist
+  if (!data) {
+    const tier = await getSponsorTier(sponsorId);
+    const config = getTierConfig(tier);
     return {
-      email_frequency: 'weekly' as NotificationFrequency,
+      email_frequency: config.defaultFrequency,
       notification_preferences: {},
       student_filters: {},
       unsubscribed_from: [],
@@ -73,82 +148,218 @@ export async function getSponsorPreferences(userId: string) {
     };
   }
 
-  return {
-    email_frequency: data.email_frequency || 'weekly',
-    notification_preferences: data.notification_preferences || {},
-    student_filters: data.student_filters || {},
-    unsubscribed_from: data.unsubscribed_from || [],
-    contact_preferences: data.contact_preferences || { email: true },
-  };
+  return data;
 }
 
 /**
  * Update sponsor preferences
  */
 export async function updateSponsorPreferences(
-  userId: string,
-  preferences: any
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  const supabase = createAdminSupabase();
-  
-  const { data, error } = await supabase
+  sponsorId: string,
+  preferences: Partial<any>
+): Promise<boolean> {
+  const supabase = await createServerSupabase();
+
+  // Check if preferences exist
+  const { data: existing } = await supabase
     .from('sponsor_preferences')
-    .upsert({
-      sponsor_id: userId,
-      ...preferences,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
+    .select('id')
+    .eq('sponsor_id', sponsorId)
     .single();
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (existing) {
+    const { error } = await supabase
+      .from('sponsor_preferences')
+      .update({ ...preferences, updated_at: new Date().toISOString() })
+      .eq('sponsor_id', sponsorId);
+    return !error;
+  } else {
+    const { error } = await supabase
+      .from('sponsor_preferences')
+      .insert({ sponsor_id: sponsorId, ...preferences });
+    return !error;
   }
-
-  return { success: true, data };
 }
 
 /**
- * Get sponsor engagement statistics
+ * Get notification frequency for a specific event type
  */
-export async function getSponsorEngagementStats(userId: string): Promise<SponsorEngagementStats> {
-  const supabase = createAdminSupabase();
+export async function getNotificationFrequency(
+  sponsorId: string,
+  eventType: EventType
+): Promise<NotificationFrequency> {
+  const prefs = await getSponsorPreferences(sponsorId);
   
-  // Get sponsor tier
-  const tier = await getSponsorTier(userId);
-  
-  // Get engagement stats
-  const { data: stats, error } = await supabase
+  // Check if sponsor has unsubscribed from this event type
+  if (prefs.unsubscribed_from?.includes(eventType)) {
+    return 'never';
+  }
+
+  // Check for event-specific preference
+  if (prefs.notification_preferences?.[eventType]) {
+    return prefs.notification_preferences[eventType];
+  }
+
+  // Fall back to global frequency preference
+  if (prefs.email_frequency) {
+    return prefs.email_frequency;
+  }
+
+  // Fall back to tier default
+  const tier = await getSponsorTier(sponsorId);
+  return getTierConfig(tier).defaultFrequency;
+}
+
+/**
+ * Check if sponsor should receive immediate notifications
+ */
+export async function shouldNotifyImmediately(
+  sponsorId: string,
+  eventType: EventType
+): Promise<boolean> {
+  const frequency = await getNotificationFrequency(sponsorId, eventType);
+  return frequency === 'real-time';
+}
+
+/**
+ * Check if notifications should be batched during surge
+ */
+export async function shouldBatchDuringSurge(sponsorId: string): Promise<boolean> {
+  const tier = await getSponsorTier(sponsorId);
+  return getTierConfig(tier).batchDuringSurge;
+}
+
+/**
+ * Check if student matches sponsor's filters
+ */
+export async function matchesSponsorFilters(
+  sponsorId: string,
+  studentData: {
+    major?: string;
+    graduation_year?: number;
+    gpa?: number;
+    skills?: string[];
+    preferred_industry?: string;
+  }
+): Promise<boolean> {
+  const prefs = await getSponsorPreferences(sponsorId);
+  const filters = prefs.student_filters || {};
+
+  // If no filters set, match all
+  if (Object.keys(filters).length === 0) {
+    return true;
+  }
+
+  // Check major filter
+  if (filters.majors?.length > 0 && studentData.major) {
+    if (!filters.majors.includes(studentData.major)) {
+      return false;
+    }
+  }
+
+  // Check graduation year filter
+  if (filters.graduation_years?.length > 0 && studentData.graduation_year) {
+    if (!filters.graduation_years.includes(studentData.graduation_year)) {
+      return false;
+    }
+  }
+
+  // Check GPA filter
+  if (filters.min_gpa && studentData.gpa) {
+    if (studentData.gpa < filters.min_gpa) {
+      return false;
+    }
+  }
+
+  // Check skills filter (any match)
+  if (filters.skills?.length > 0 && studentData.skills?.length) {
+    const hasMatchingSkill = studentData.skills.some((skill: string) => 
+      filters.skills.includes(skill)
+    );
+    if (!hasMatchingSkill) {
+      return false;
+    }
+  }
+
+  // Check industry filter
+  if (filters.industries?.length > 0 && studentData.preferred_industry) {
+    if (!filters.industries.includes(studentData.preferred_industry)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Get sponsor engagement stats
+ */
+export async function getSponsorEngagementStats(sponsorId: string): Promise<any> {
+  const supabase = await createServerSupabase();
+
+  const { data } = await supabase
     .from('sponsor_engagement_stats')
     .select('*')
-    .eq('sponsor_id', userId)
+    .eq('sponsor_id', sponsorId)
     .single();
 
-  if (error || !stats) {
-    // Return default stats if not found
-    return {
-      tier,
-      notifications_sent: 0,
-      notifications_opened: 0,
-      notifications_clicked: 0,
-      resumes_viewed: 0,
-      resumes_downloaded: 0,
-      students_contacted: 0,
-      students_shortlisted: 0,
-      last_login: null,
-    };
+  return data || {
+    notifications_sent: 0,
+    notifications_opened: 0,
+    resumes_viewed: 0,
+    resumes_downloaded: 0,
+    students_contacted: 0,
+    last_login: null,
+  };
+}
+
+/**
+ * Check if sponsor can access a specific feature
+ */
+export async function canAccessFeature(
+  sponsorId: string,
+  feature: string
+): Promise<boolean> {
+  const tier = await getSponsorTier(sponsorId);
+  const config = getTierConfig(tier);
+  return config.features.includes(feature);
+}
+
+/**
+ * Check tier limits
+ */
+export async function checkLimit(
+  sponsorId: string,
+  limitType: 'student_filters' | 'saved_searches' | 'monthly_exports',
+  currentCount: number
+): Promise<{ allowed: boolean; limit: number; remaining: number }> {
+  const tier = await getSponsorTier(sponsorId);
+  const config = getTierConfig(tier);
+
+  let limit: number;
+  switch (limitType) {
+    case 'student_filters':
+      limit = config.maxFilters;
+      break;
+    case 'saved_searches':
+      limit = config.maxSavedSearches;
+      break;
+    case 'monthly_exports':
+      limit = config.maxMonthlyExports;
+      break;
+    default:
+      limit = 0;
+  }
+
+  // -1 means unlimited
+  if (limit === -1) {
+    return { allowed: true, limit: -1, remaining: -1 };
   }
 
   return {
-    tier,
-    notifications_sent: stats.notifications_sent || 0,
-    notifications_opened: stats.notifications_opened || 0,
-    notifications_clicked: stats.notifications_clicked || 0,
-    resumes_viewed: stats.resumes_viewed || 0,
-    resumes_downloaded: stats.resumes_downloaded || 0,
-    students_contacted: stats.students_contacted || 0,
-    students_shortlisted: stats.students_shortlisted || 0,
-    last_login: stats.last_login || null,
+    allowed: currentCount < limit,
+    limit,
+    remaining: Math.max(0, limit - currentCount),
   };
 }
 
@@ -160,170 +371,47 @@ export async function changeSponsorTier(
   newTier: SponsorTier,
   reason?: string,
   changedBy?: string
-): Promise<{ success: boolean; change?: any; error?: string }> {
-  const supabase = createAdminSupabase();
-  
-  // Get current tier
+): Promise<boolean> {
   const currentTier = await getSponsorTier(sponsorId);
   
-  // Update tier
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ sponsor_tier: newTier })
-    .eq('id', sponsorId);
-
-  if (updateError) {
-    return { success: false, error: updateError.message };
+  if (currentTier === newTier) {
+    return true; // No change needed
   }
 
-  // Record tier change history (if table exists)
-  try {
-    const { data: changeRecord } = await supabase
-      .from('sponsor_tier_history')
-      .insert({
-        sponsor_id: sponsorId,
-        old_tier: currentTier,
+  const success = await updateSponsorTier(sponsorId, newTier, reason);
+  
+  if (success) {
+    // Log the tier change for history
+    const supabase = await createServerSupabase();
+    await supabase.from('notification_logs').insert({
+      sponsor_id: sponsorId,
+      notification_type: 'tier_change',
+      event_type: 'profile_update',
+      metadata: {
+        previous_tier: currentTier,
         new_tier: newTier,
-        reason: reason || 'Tier updated',
-        changed_by: changedBy || 'system',
-      })
-      .select()
-      .single();
-
-    return { success: true, change: changeRecord };
-  } catch (err) {
-    // Tier history table might not exist - that's okay
-    return { success: true };
+        reason,
+        changed_by: changedBy,
+      },
+    });
   }
+
+  return success;
 }
 
 /**
  * Get tier change history
  */
-export async function getTierHistory(sponsorId: string) {
-  const supabase = createAdminSupabase();
-  
-  const { data, error } = await supabase
-    .from('sponsor_tier_history')
+export async function getTierHistory(sponsorId: string): Promise<any[]> {
+  const supabase = await createServerSupabase();
+
+  const { data } = await supabase
+    .from('notification_logs')
     .select('*')
     .eq('sponsor_id', sponsorId)
-    .order('changed_at', { ascending: false });
-
-  if (error) {
-    return [];
-  }
+    .eq('notification_type', 'tier_change')
+    .order('sent_at', { ascending: false })
+    .limit(10);
 
   return data || [];
-}
-
-/**
- * Check if sponsor can access a feature
- */
-export async function canAccessFeature(
-  userId: string,
-  feature: string
-): Promise<boolean> {
-  const tier = await getSponsorTier(userId);
-  
-  // Feature access based on tier
-  const featureAccess: Record<SponsorTier, string[]> = {
-    premium: ['resume_search', 'advanced_filters', 'csv_export', 'priority_support', 'unlimited_searches'],
-    standard: ['resume_search', 'basic_filters', 'csv_export'],
-    basic: ['resume_search'],
-  };
-
-  return featureAccess[tier]?.includes(feature) || false;
-}
-
-/**
- * Check if sponsor has reached a limit
- */
-export async function checkLimit(
-  userId: string,
-  limitType: 'student_filters' | 'saved_searches' | 'monthly_exports',
-  currentCount: number
-): Promise<{ withinLimit: boolean; limit: number; remaining: number }> {
-  const tier = await getSponsorTier(userId);
-  
-  const limits: Record<SponsorTier, Record<string, number>> = {
-    premium: {
-      student_filters: 10,
-      saved_searches: 20,
-      monthly_exports: 100,
-    },
-    standard: {
-      student_filters: 5,
-      saved_searches: 10,
-      monthly_exports: 50,
-    },
-    basic: {
-      student_filters: 3,
-      saved_searches: 5,
-      monthly_exports: 10,
-    },
-  };
-
-  const limit = limits[tier]?.[limitType] || 0;
-  const remaining = Math.max(0, limit - currentCount);
-
-  return {
-    withinLimit: currentCount < limit,
-    limit,
-    remaining,
-  };
-}
-
-/**
- * Get tier configuration
- */
-export function getTierConfig(tier: SponsorTier) {
-  const configs = {
-    premium: {
-      name: 'Premium',
-      features: [
-        'Unlimited resume searches',
-        'Advanced filtering options',
-        'Priority support',
-        'Unlimited CSV exports',
-        '20 saved searches',
-      ],
-      limits: {
-        student_filters: 10,
-        saved_searches: 20,
-        monthly_exports: 100,
-      },
-    },
-    standard: {
-      name: 'Standard',
-      features: [
-        'Resume searches',
-        'Basic filtering',
-        'Standard support',
-        '50 CSV exports/month',
-        '10 saved searches',
-      ],
-      limits: {
-        student_filters: 5,
-        saved_searches: 10,
-        monthly_exports: 50,
-      },
-    },
-    basic: {
-      name: 'Basic',
-      features: [
-        'Resume searches',
-        'Basic filtering',
-        'Community support',
-        '10 CSV exports/month',
-        '5 saved searches',
-      ],
-      limits: {
-        student_filters: 3,
-        saved_searches: 5,
-        monthly_exports: 10,
-      },
-    },
-  };
-
-  return configs[tier] || configs.basic;
 }

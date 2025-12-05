@@ -6,6 +6,7 @@ import {
   adminRegistrationNotificationEmail,
   mentorNotificationEmail,
   miniMentorshipRequestNotificationEmail,
+  sponsorNewEventNotificationEmail,
 } from '@/lib/email/templates';
 import {
   missionPublishedEmail,
@@ -161,6 +162,19 @@ export async function POST(request: NextRequest) {
             ? `⚠️ High Priority: New Mini Session Request - ${requestTitle}`
             : `New Mini Session Request - ${requestTitle}`;
         to = data.mentorEmail;
+        break;
+      }
+
+      case 'sponsor_new_event': {
+        const { sponsorName, event, eventId } = data;
+        html = sponsorNewEventNotificationEmail({
+          sponsorName,
+          event,
+          eventId,
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        });
+        subject = data.subject || `🎉 New Event: ${event.title}`;
+        to = data.to;
         break;
       }
 
