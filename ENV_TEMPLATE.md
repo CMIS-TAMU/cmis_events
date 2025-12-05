@@ -36,11 +36,18 @@ UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your_redis_token_here
 
 # ============================================
-# Email Service (Resend)
+# Email Service (Brevo - REQUIRED for email notifications)
 # ============================================
-# Get API key from: https://resend.com/api-keys
-RESEND_API_KEY=re_your_resend_api_key_here
-RESEND_FROM_EMAIL=noreply@yourdomain.com
+# Get SMTP credentials from: https://www.brevo.com/ → Settings → SMTP & API
+BREVO_SMTP_HOST=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_USER=your-brevo-smtp-login@example.com
+BREVO_SMTP_KEY=your-brevo-smtp-password
+BREVO_FROM_EMAIL=your-verified-email@yourdomain.com
+BREVO_FROM_NAME=CMIS Events
+
+# Application URL (REQUIRED for email links)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # ============================================
 # AI Services (Choose one or both)
