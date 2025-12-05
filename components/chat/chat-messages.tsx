@@ -14,7 +14,7 @@ interface ChatMessagesProps {
 
 export function ChatMessages({
   className,
-  welcomeMessage = "Hi there! 👋 I'm CMIS Assistant. How can I help you with events today?",
+  welcomeMessage = "Hi there! 👋 I'm your AI assistant. I can help with CMIS events, answer questions, or just chat. How can I help you today?",
 }: ChatMessagesProps) {
   const { messages, status } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,11 +46,11 @@ export function ChatMessages({
             <MessageSquare className="w-8 h-8 text-emerald-600" />
           </div>
           <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">CMIS Event Assistant</h3>
+            <h3 className="font-semibold text-foreground">AI Assistant</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">{welcomeMessage}</p>
           </div>
           <div className="flex flex-wrap gap-2 justify-center mt-2">
-            {['Upcoming events', 'Registration help', 'Event details'].map((suggestion) => (
+            {['Upcoming events', 'Ask a question', 'How can you help?'].map((suggestion) => (
               <button
                 key={suggestion}
                 className={cn(

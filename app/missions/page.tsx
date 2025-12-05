@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, Trophy, Clock, Users, Target, ArrowRight } from 'lucide-react';
+import { Search, Filter, Trophy, Clock, Users, Target, ArrowRight, Plus } from 'lucide-react';
 import { trpc } from '@/lib/trpc/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 export default function MissionsBrowsePage() {
@@ -16,6 +17,8 @@ export default function MissionsBrowsePage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [userRole, setUserRole] = useState<string>('');
+  const [loadingRole, setLoadingRole] = useState(true);
 
   const { data: missions, isLoading } = trpc.missions.browseMissions.useQuery({
     search: searchTerm || undefined,
@@ -24,6 +27,29 @@ export default function MissionsBrowsePage() {
     limit: 50,
     offset: 0,
   });
+
+  useEffect(() => {
+    async function checkUserRole() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          setUserRole(profile?.role || 'user');
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+      } finally {
+        setLoadingRole(false);
+      }
+    }
+    checkUserRole();
+  }, []);
+
+  const isSponsorOrAdmin = userRole === 'sponsor' || userRole === 'admin';
 
   const getDifficultyBadge = (difficulty: string) => {
     const variants: Record<string, string> = {
@@ -53,11 +79,21 @@ export default function MissionsBrowsePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Technical Missions</h1>
-        <p className="text-muted-foreground">
-          Challenge yourself with technical problems and earn points
-        </p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Technical Missions</h1>
+          <p className="text-muted-foreground">
+            Challenge yourself with technical problems and earn points
+          </p>
+        </div>
+        {!loadingRole && isSponsorOrAdmin && (
+          <Link href="/sponsor/missions/create">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Mission
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filters and Search */}

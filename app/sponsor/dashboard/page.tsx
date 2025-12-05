@@ -121,6 +121,14 @@ export default function SponsorDashboardPage() {
   const tierConfig = stats?.tierConfig;
   const upcomingEvents = stats?.upcomingEvents || [];
 
+  // Format feature names for display
+  const formatFeatureName = (feature: string): string => {
+    return feature
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
@@ -151,7 +159,7 @@ export default function SponsorDashboardPage() {
                 <div>
                   <h3 className="font-semibold text-lg">{tierConfig.name} Tier</h3>
                   <p className="text-sm text-muted-foreground">
-                    {tierConfig.features.join(' • ')}
+                    {tierConfig.features.map(formatFeatureName).join(' • ')}
                   </p>
                 </div>
               </div>

@@ -26,6 +26,26 @@ export interface Event {
   image_url?: string;
 }
 
+export interface Mission {
+  id: string;
+  title: string;
+  description?: string;
+  difficulty: string;
+  category?: string;
+  max_points: number;
+  status: string;
+  published_at?: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  userName?: string;
+  totalPoints: number;
+  averageScore: number;
+  missionsCompleted: number;
+}
+
 export interface ChatResponse {
   message: string;
   cached: boolean;
@@ -43,9 +63,16 @@ export async function generateChatResponse(
     return { message: faqResponse, cached: true };
   }
 
-  // 2. Check if this is an event-related question and look up events
+  // 2. Check if this is a CMIS-related question and look up relevant data
+  // Note: We check for CMIS questions to provide relevant data when asked,
+  // but we don't restrict the chatbot to only answer CMIS questions
   const isEventQuestion = isEventRelatedQuestion(userMessage);
+  const isMissionQuestion = isMissionRelatedQuestion(userMessage);
+  const isLeaderboardQuestion = isLeaderboardRelatedQuestion(userMessage);
+  
   let eventsData: Event[] = [];
+  let missionsData: Mission[] = [];
+  let leaderboardData: LeaderboardEntry[] = [];
   
   if (isEventQuestion) {
     try {
@@ -53,15 +80,34 @@ export async function generateChatResponse(
       console.log(`[Chat Service] Found ${eventsData.length} events for query`);
     } catch (error) {
       console.error('[Chat Service] Error looking up events:', error);
-      // Continue without events data - don't fail the entire request
       eventsData = [];
     }
   }
+  
+  if (isMissionQuestion) {
+    try {
+      missionsData = await lookupMissions(userMessage, context?.userRole);
+      console.log(`[Chat Service] Found ${missionsData.length} missions for query`);
+    } catch (error) {
+      console.error('[Chat Service] Error looking up missions:', error);
+      missionsData = [];
+    }
+  }
+  
+  if (isLeaderboardQuestion) {
+    try {
+      leaderboardData = await lookupLeaderboard(userMessage, context?.userId);
+      console.log(`[Chat Service] Found ${leaderboardData.length} leaderboard entries for query`);
+    } catch (error) {
+      console.error('[Chat Service] Error looking up leaderboard:', error);
+      leaderboardData = [];
+    }
+  }
 
-  // 3. Check cache (but skip if we have fresh event data)
+  // 3. Check cache (but skip if we have fresh data)
   const cacheKey = CACHE_KEYS.chatResponse(hashMessage(userMessage, context?.eventId));
   
-  if (redis && eventsData.length === 0) {
+  if (redis && eventsData.length === 0 && missionsData.length === 0 && leaderboardData.length === 0) {
     try {
       const cached = await redis.get<string>(cacheKey);
       if (cached) return { message: cached, cached: true };
@@ -70,10 +116,10 @@ export async function generateChatResponse(
     }
   }
 
-  // 4. Build system prompt with event data
+  // 4. Build system prompt with CMIS data
   let systemPrompt: string;
   try {
-    systemPrompt = buildSystemPrompt(context, eventsData);
+    systemPrompt = buildSystemPrompt(context, eventsData, missionsData, leaderboardData);
   } catch (error) {
     console.error('[Chat Service] Error building system prompt:', error);
     // Fallback to basic prompt
@@ -106,15 +152,15 @@ export async function generateChatResponse(
     }
   }
 
-  // 6. Cache response (only if no event data was used, as events change frequently)
-  if (redis && aiResponse.message && eventsData.length === 0) {
+  // 6. Cache response (only if no dynamic data was used, as it changes frequently)
+  if (redis && aiResponse.message && eventsData.length === 0 && missionsData.length === 0 && leaderboardData.length === 0) {
     redis.setex(cacheKey, CACHE_TTL.MEDIUM, aiResponse.message).catch(console.error);
   }
 
   return aiResponse;
 }
 
-function buildSystemPrompt(context?: ChatContext, events?: Event[]): string {
+function buildSystemPrompt(context?: ChatContext, events?: Event[], missions?: Mission[], leaderboard?: LeaderboardEntry[]): string {
   let prompt = SYSTEM_PROMPTS.eventAssistant;
 
   if (context?.eventName) {
@@ -128,10 +174,10 @@ When answering questions, prioritize information about this specific event.`;
 
   // Add event data if available
   if (events && events.length > 0) {
-    prompt += `\n\nUPCOMING EVENTS DATA (use this information to answer questions):
+    prompt += `\n\nUPCOMING CMIS EVENTS DATA (use this information ONLY when users ask about events):
 ${formatEventsForPrompt(events)}
 
-IMPORTANT INSTRUCTIONS:
+IMPORTANT INSTRUCTIONS FOR EVENT QUESTIONS:
 - Always use the event data above to answer questions about events
 - If the user asks about a specific event type (e.g., "coffee chat", "workshop", "info session"), filter the events by matching keywords in the title or description
 - Format your response with:
@@ -139,11 +185,41 @@ IMPORTANT INSTRUCTIONS:
   * Date (format: Day, Month Day, Year, e.g., "Tuesday, October 8, 2024")
   * Start and end time (format: "3:00 PM - 4:00 PM")
   * Location (extract from description if available, or mention "Check event details")
-  * Registration link: https://cmis.tamu.edu/events/{event_id}#register (replace {event_id} with the actual event ID)
+  * Registration link: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/events/{event_id}#register (replace {event_id} with the actual event ID)
 - If there are multiple matching events, show the next one first, then list others briefly
 - If no events match, clearly say so and suggest checking the full calendar
 - Never tell users to check the calendar when you have the required information from the events data above`;
   }
+
+  // Add missions data if available
+  if (missions && missions.length > 0) {
+    prompt += `\n\nCMIS TECHNICAL MISSIONS DATA (use this information when users ask about missions):
+${formatMissionsForPrompt(missions)}
+
+IMPORTANT INSTRUCTIONS FOR MISSION QUESTIONS:
+- Technical Missions are coding challenges created by sponsors
+- Students can browse missions, submit solutions, and earn points
+- Missions have difficulty levels: beginner, intermediate, advanced, expert
+- Points are awarded based on score, difficulty, and completion time
+- Use the missions data above to answer questions about available missions
+- Registration link: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/missions/{mission_id} (replace {mission_id} with the actual mission ID)
+- To register for a mission, students go to the mission detail page and click "Start Mission"`;
+  }
+
+  // Add leaderboard data if available
+  if (leaderboard && leaderboard.length > 0) {
+    prompt += `\n\nCMIS LEADERBOARD DATA (use this information when users ask about leaderboard):
+${formatLeaderboardForPrompt(leaderboard)}
+
+IMPORTANT INSTRUCTIONS FOR LEADERBOARD QUESTIONS:
+- The leaderboard ranks students by total points earned from completing technical missions
+- Rankings are based on: total points (primary), average score (tiebreaker), missions completed (tiebreaker)
+- Use the leaderboard data above to answer questions about top performers
+- Leaderboard page: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/leaderboard
+- If asked "who is on top" or "top of leaderboard", provide the #1 ranked student from the data above`;
+  }
+
+  prompt += `\n\nREMEMBER: If the user asks about something unrelated to CMIS features (homework, general knowledge, etc.), answer their question directly without redirecting to CMIS topics.`;
 
   return prompt;
 }
@@ -212,6 +288,28 @@ function isEventRelatedQuestion(message: string): boolean {
   ];
   
   return eventKeywords.some(keyword => lower.includes(keyword));
+}
+
+function isMissionRelatedQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  const missionKeywords = [
+    'mission', 'missions', 'technical mission', 'challenge', 'challenges',
+    'coding challenge', 'submit mission', 'mission submission', 'start mission',
+    'register for mission', 'how to register for mission', 'mission registration'
+  ];
+  
+  return missionKeywords.some(keyword => lower.includes(keyword));
+}
+
+function isLeaderboardRelatedQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  const leaderboardKeywords = [
+    'leaderboard', 'top', 'ranking', 'rankings', 'who is on top',
+    'top of leaderboard', 'best performer', 'highest score', 'most points',
+    'top student', 'top students', 'leaderboard position', 'my rank'
+  ];
+  
+  return leaderboardKeywords.some(keyword => lower.includes(keyword));
 }
 
 async function lookupEvents(userMessage: string, userRole?: string): Promise<Event[]> {
@@ -283,6 +381,152 @@ async function lookupEvents(userMessage: string, userRole?: string): Promise<Eve
     // Return empty array instead of throwing - this allows the chat to continue
     return [];
   }
+}
+
+async function lookupMissions(userMessage: string, userRole?: string): Promise<Mission[]> {
+  try {
+    let supabase;
+    try {
+      supabase = createAdminSupabase();
+    } catch (supabaseError) {
+      console.error('[lookupMissions] Failed to create Supabase client:', supabaseError);
+      return [];
+    }
+    
+    if (!supabase) {
+      console.error('[lookupMissions] Supabase client is null');
+      return [];
+    }
+    
+    // Get active/published missions
+    let query = supabase
+      .from('missions')
+      .select('id, title, description, difficulty, category, max_points, status, published_at')
+      .eq('status', 'active')
+      .not('published_at', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(20); // Get up to 20 active missions
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('[lookupMissions] Supabase query error:', error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('[lookupMissions] No active missions found');
+      return [];
+    }
+    
+    // Filter by difficulty or category if mentioned
+    const lowerMessage = userMessage.toLowerCase();
+    let filteredMissions = data as Mission[];
+    
+    if (lowerMessage.includes('beginner')) {
+      filteredMissions = filteredMissions.filter(m => m.difficulty === 'beginner');
+    } else if (lowerMessage.includes('intermediate')) {
+      filteredMissions = filteredMissions.filter(m => m.difficulty === 'intermediate');
+    } else if (lowerMessage.includes('advanced')) {
+      filteredMissions = filteredMissions.filter(m => m.difficulty === 'advanced');
+    } else if (lowerMessage.includes('expert')) {
+      filteredMissions = filteredMissions.filter(m => m.difficulty === 'expert');
+    }
+    
+    console.log(`[lookupMissions] Returning ${filteredMissions.length} filtered missions`);
+    return filteredMissions;
+  } catch (error) {
+    console.error('[lookupMissions] Unexpected error:', error);
+    return [];
+  }
+}
+
+async function lookupLeaderboard(userMessage: string, userId?: string): Promise<LeaderboardEntry[]> {
+  try {
+    let supabase;
+    try {
+      supabase = createAdminSupabase();
+    } catch (supabaseError) {
+      console.error('[lookupLeaderboard] Failed to create Supabase client:', supabaseError);
+      return [];
+    }
+    
+    if (!supabase) {
+      console.error('[lookupLeaderboard] Supabase client is null');
+      return [];
+    }
+    
+    // Get top leaderboard entries
+    const limit = 10; // Top 10 by default
+    const { data, error } = await supabase
+      .from('student_points')
+      .select('user_id, total_points, average_score, missions_completed, users:user_id(full_name, email)')
+      .order('total_points', { ascending: false })
+      .order('average_score', { ascending: false })
+      .order('missions_completed', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.error('[lookupLeaderboard] Supabase query error:', error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('[lookupLeaderboard] No leaderboard data found');
+      return [];
+    }
+    
+    // Format leaderboard entries
+    const leaderboard: LeaderboardEntry[] = data.map((entry, index) => {
+      const user = entry.users as any;
+      return {
+        rank: index + 1,
+        userId: entry.user_id,
+        userName: user?.full_name || user?.email || 'Anonymous',
+        totalPoints: entry.total_points || 0,
+        averageScore: entry.average_score || 0,
+        missionsCompleted: entry.missions_completed || 0,
+      };
+    });
+    
+    console.log(`[lookupLeaderboard] Returning ${leaderboard.length} leaderboard entries`);
+    return leaderboard;
+  } catch (error) {
+    console.error('[lookupLeaderboard] Unexpected error:', error);
+    return [];
+  }
+}
+
+function formatMissionsForPrompt(missions: Mission[]): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
+  return missions.map((mission, index) => {
+    const publishedDate = mission.published_at 
+      ? new Date(mission.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : 'Recently';
+    
+    return `Mission ${index + 1}:
+- ID: ${mission.id}
+- Title: ${mission.title}
+- Difficulty: ${mission.difficulty}
+- Category: ${mission.category || 'General'}
+- Points: ${mission.max_points} points
+- Published: ${publishedDate}
+- Description: ${mission.description || 'No description'}
+- Mission Link: ${appUrl}/missions/${mission.id}`;
+  }).join('\n\n');
+}
+
+function formatLeaderboardForPrompt(leaderboard: LeaderboardEntry[]): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
+  return leaderboard.map((entry) => {
+    return `Rank #${entry.rank}:
+- Name: ${entry.userName}
+- Total Points: ${entry.totalPoints}
+- Average Score: ${entry.averageScore.toFixed(1)}%
+- Missions Completed: ${entry.missionsCompleted}`;
+  }).join('\n\n') + `\n\nFull Leaderboard: ${appUrl}/leaderboard`;
 }
 
 async function callAIProvider(
@@ -443,13 +687,16 @@ What specific event information do you need?`,
   }
 
   return {
-    message: `Thanks for your message! I'm the CMIS Event Assistant. I can help you with:
+    message: `Thanks for your message! I'm your AI assistant. I can help you with:
 
-• Upcoming events and schedules
+• CMIS events and schedules
 • Registration process
 • Event locations
 • Resume uploads
 • General CMIS questions
+• Academic questions
+• General knowledge questions
+• And much more!
 
 How can I assist you today?`,
     cached: false,

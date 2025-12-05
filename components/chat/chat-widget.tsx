@@ -22,7 +22,7 @@ export function ChatWidget({
   className,
 }: ChatWidgetProps) {
   const {
-    placeholder = 'Ask about events...',
+    placeholder = 'Ask me anything...',
     welcomeMessage,
     position = 'bottom-right',
   } = config;
@@ -130,7 +130,7 @@ export function ChatWidget({
               <MessageCircle className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h2 className="font-semibold text-sm text-foreground">CMIS Assistant</h2>
+              <h2 className="font-semibold text-sm text-foreground">AI Assistant</h2>
               <p className="text-xs text-muted-foreground">
                 {status === 'loading' || status === 'streaming' ? 'Typing...' : 'Online'}
               </p>

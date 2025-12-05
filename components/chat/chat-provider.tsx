@@ -12,8 +12,8 @@ interface ChatProviderProps {
 export function ChatProvider({
   context,
   config = {
-    placeholder: 'Ask about CMIS events...',
-    welcomeMessage: "Hi! 👋 I'm the CMIS Assistant. How can I help you today?",
+    placeholder: 'Ask me anything...',
+    welcomeMessage: "Hi! 👋 I'm your AI assistant. I can help with CMIS events, answer questions, or just chat. How can I help you today?",
     position: 'bottom-right',
   },
   enabled = true,

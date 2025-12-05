@@ -63,7 +63,7 @@ export const communicationsRouter = router({
   // TEMPLATES
   // ============================================================================
 
-  templates: {
+  templates: router({
     // Get all templates (admins see all, others see active only)
     getAll: publicProcedure
       .input(
@@ -225,13 +225,13 @@ export const communicationsRouter = router({
 
         return data as CommunicationTemplate;
       }),
-  },
+  }),
 
   // ============================================================================
   // SCHEDULES
   // ============================================================================
 
-  schedules: {
+  schedules: router({
     // Get all schedules (admin only)
     getAll: adminProcedure
       .input(
@@ -364,15 +364,15 @@ export const communicationsRouter = router({
         throw new Error(`Failed to delete schedule: ${error.message}`);
       }
 
-      return { success: true };
-    }),
-  },
+        return { success: true };
+      }),
+  }),
 
   // ============================================================================
   // QUEUE
   // ============================================================================
 
-  queue: {
+  queue: router({
     // Get queue items (admin only)
     getAll: adminProcedure
       .input(
@@ -477,13 +477,13 @@ export const communicationsRouter = router({
 
         return data as CommunicationQueue[];
       }),
-  },
+  }),
 
   // ============================================================================
   // LOGS
   // ============================================================================
 
-  logs: {
+  logs: router({
     // Get all logs (admin only)
     getAll: adminProcedure
       .input(
@@ -608,13 +608,13 @@ export const communicationsRouter = router({
 
         return stats;
       }),
-  },
+  }),
 
   // ============================================================================
   // PREFERENCES
   // ============================================================================
 
-  preferences: {
+  preferences: router({
     // Get user preferences
     get: protectedProcedure.query(async ({ ctx }) => {
       const { data, error } = await supabaseAdmin
@@ -699,13 +699,13 @@ export const communicationsRouter = router({
 
         return data as CommunicationPreference;
       }),
-  },
+  }),
 
   // ============================================================================
   // TEMPLATE VARIATIONS
   // ============================================================================
 
-  variations: {
+  variations: router({
     // Get variations for template
     getByTemplate: publicProcedure
       .input(z.string().uuid())
@@ -789,15 +789,15 @@ export const communicationsRouter = router({
         throw new Error(`Failed to delete variation: ${error.message}`);
       }
 
-      return { success: true };
-    }),
-  },
+        return { success: true };
+      }),
+  }),
 
   // ============================================================================
   // SURGE MODE CONFIG
   // ============================================================================
 
-  surgeMode: {
+  surgeMode: router({
     // Get surge mode config (admin only)
     get: adminProcedure.query(async () => {
       const { data, error } = await supabaseAdmin
@@ -877,6 +877,6 @@ export const communicationsRouter = router({
 
         return result as SurgeModeConfig;
       }),
-  },
+  }),
 });
 
