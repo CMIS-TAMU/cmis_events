@@ -14,7 +14,8 @@ export interface ErrorMessageProps {
  * Links to form fields via aria-describedby
  */
 export function ErrorMessage({ id, error, className }: ErrorMessageProps) {
-  const errorId = id || React.useId();
+  const generatedId = React.useId();
+  const errorId = id || generatedId;
   
   if (!error) return null;
 
