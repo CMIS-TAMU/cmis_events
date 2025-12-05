@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function FacultyDashboardPage() {
+export default function MentorDashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function FacultyDashboardPage() {
 
       setUser(user);
 
-      // Get user role and verify faculty access
+      // Get user role and verify mentor access
       const { data: userProfile } = await supabase
         .from('users')
         .select('role')
@@ -99,7 +99,7 @@ export default function FacultyDashboardPage() {
               <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium mb-2">Access Restricted</p>
               <p className="text-muted-foreground">
-                This dashboard is only available to faculty members.
+                This dashboard is only available to mentors.
               </p>
               <Link href="/dashboard" className="mt-4 inline-block">
                 <Button variant="outline">Go to Dashboard</Button>
@@ -110,7 +110,7 @@ export default function FacultyDashboardPage() {
       >
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Faculty Dashboard</h1>
+            <h1 className="text-4xl font-bold mb-2">Mentor Dashboard</h1>
             <p className="text-muted-foreground">
               Welcome back{profile?.profile?.full_name ? `, ${profile.profile.full_name}` : ''}! Manage your teaching and mentoring activities.
             </p>
@@ -122,7 +122,7 @@ export default function FacultyDashboardPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="h-5 w-5" />
-                  Faculty Resources
+                  Mentor Resources
                 </CardTitle>
                 <CardDescription>Your teaching and mentoring hub</CardDescription>
               </CardHeader>
@@ -131,7 +131,7 @@ export default function FacultyDashboardPage() {
                   <span className="font-medium">Email:</span> {user?.email}
                 </p>
                 <p className="text-sm">
-                  <span className="font-medium">Role:</span> {role || 'faculty'}
+                  <span className="font-medium">Role:</span> {role || 'mentor'}
                 </p>
               </CardContent>
             </Card>
