@@ -141,46 +141,62 @@ async function sendNotificationNow(
   payload: NotificationPayload
 ): Promise<boolean> {
   try {
-    // Get sponsor details
+    // Get user details including role
     const supabase = await createServerSupabase();
-    const { data: sponsor } = await supabase
+    const { data: user } = await supabase
       .from('users')
-      .select('full_name, email')
+      .select('full_name, email, role')
       .eq('id', sponsorId)
       .single();
 
-    // Build email based on event type
-    const emailData = buildEmailData(sponsor, payload);
+    if (!user) {
+      console.error(`User not found: ${sponsorId}`);
+      return false;
+    }
+
+    // Build email based on event type and user role
+    const emailData = buildEmailData(user, payload);
     
     // Send email via API route
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send`, {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${appUrl}/api/email/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(emailData),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Email API returned error: ${response.status} - ${errorText}`);
+      return false;
+    }
+
     const result = await response.json();
     
-    // Log the notification
-    await supabase
-      .from('notification_logs')
-      .insert({
-        sponsor_id: sponsorId,
-        notification_type: 'email',
-        event_type: payload.eventType,
-        email_subject: emailData.subject,
-        email_to: sponsorEmail,
-        delivery_status: result.success ? 'sent' : 'failed',
-        metadata: {
-          event_data: payload.eventData,
-        },
-      });
+    // Log the notification (only for sponsors)
+    if (user.role === 'sponsor') {
+      await supabase
+        .from('notification_logs')
+        .insert({
+          sponsor_id: sponsorId,
+          notification_type: 'email',
+          event_type: payload.eventType,
+          email_subject: emailData.subject,
+          email_to: sponsorEmail,
+          delivery_status: result.success ? 'sent' : 'failed',
+          metadata: {
+            event_data: payload.eventData,
+          },
+        });
+    }
 
-    // Update engagement stats
-    await supabase.rpc('increment_sponsor_stat', {
-      p_sponsor_id: sponsorId,
-      p_stat_name: 'notifications_sent',
-    });
+    // Update engagement stats (only for sponsors)
+    if (user.role === 'sponsor') {
+      await supabase.rpc('increment_sponsor_stat', {
+        p_sponsor_id: sponsorId,
+        p_stat_name: 'notifications_sent',
+      });
+    }
 
     return result.success;
   } catch (error) {
@@ -190,18 +206,20 @@ async function sendNotificationNow(
 }
 
 /**
- * Build email data based on event type
+ * Build email data based on event type and user role
  */
-function buildEmailData(sponsor: any, payload: NotificationPayload): any {
+function buildEmailData(user: any, payload: NotificationPayload): any {
   const { eventType, eventData, studentData } = payload;
+  const userRole = user.role || 'user';
+  const userName = user.full_name || 'User';
   
   switch (eventType) {
     case 'resume_upload':
       return {
         type: 'sponsor_notification',
-        to: sponsor.email,
+        to: user.email,
         subject: 'New Resume Available',
-        sponsorName: sponsor.full_name || 'Sponsor',
+        sponsorName: userName,
         eventType: 'resume_upload',
         studentName: eventData.student_name,
         studentEmail: eventData.student_email,
@@ -213,9 +231,9 @@ function buildEmailData(sponsor: any, payload: NotificationPayload): any {
     case 'new_student':
       return {
         type: 'sponsor_notification',
-        to: sponsor.email,
+        to: user.email,
         subject: 'New Student Registered',
-        sponsorName: sponsor.full_name || 'Sponsor',
+        sponsorName: userName,
         eventType: 'new_student',
         studentName: eventData.student_name,
         studentEmail: eventData.student_email,
@@ -226,8 +244,8 @@ function buildEmailData(sponsor: any, payload: NotificationPayload): any {
     case 'mission_submission':
       return {
         type: 'submission_received',
-        sponsorName: sponsor.full_name || 'Sponsor',
-        sponsorEmail: sponsor.email,
+        sponsorName: userName,
+        sponsorEmail: user.email,
         mission: {
           id: eventData.mission_id,
           title: eventData.mission_title,
@@ -240,27 +258,76 @@ function buildEmailData(sponsor: any, payload: NotificationPayload): any {
       };
 
     case 'new_event':
-      return {
-        type: 'sponsor_new_event',
-        to: sponsor.email,
-        subject: `🎉 New Event: ${eventData.title}`,
-        sponsorName: sponsor.full_name || 'Sponsor',
-        event: {
-          title: eventData.title,
-          description: eventData.description,
-          starts_at: eventData.starts_at,
-          ends_at: eventData.ends_at,
-          capacity: eventData.capacity,
-        },
-        eventId: eventData.id,
-      };
+      // Use role-specific email type
+      if (userRole === 'sponsor') {
+        return {
+          type: 'sponsor_new_event',
+          to: user.email,
+          subject: `🎉 New Event: ${eventData.title}`,
+          sponsorName: userName,
+          event: {
+            title: eventData.title,
+            description: eventData.description,
+            starts_at: eventData.starts_at,
+            ends_at: eventData.ends_at,
+            capacity: eventData.capacity,
+          },
+          eventId: eventData.id,
+        };
+      } else if (userRole === 'student') {
+        return {
+          type: 'student_new_event',
+          to: user.email,
+          subject: `🎉 New Event: ${eventData.title}`,
+          studentName: userName,
+          event: {
+            title: eventData.title,
+            description: eventData.description,
+            starts_at: eventData.starts_at,
+            ends_at: eventData.ends_at,
+            capacity: eventData.capacity,
+          },
+          eventId: eventData.id,
+        };
+      } else if (userRole === 'mentor') {
+        return {
+          type: 'mentor_new_event',
+          to: user.email,
+          subject: `🎉 New Event: ${eventData.title}`,
+          mentorName: userName,
+          event: {
+            title: eventData.title,
+            description: eventData.description,
+            starts_at: eventData.starts_at,
+            ends_at: eventData.ends_at,
+            capacity: eventData.capacity,
+          },
+          eventId: eventData.id,
+        };
+      } else {
+        // Fallback for other roles (admin, etc.) - use sponsor template
+        return {
+          type: 'sponsor_new_event',
+          to: user.email,
+          subject: `🎉 New Event: ${eventData.title}`,
+          sponsorName: userName,
+          event: {
+            title: eventData.title,
+            description: eventData.description,
+            starts_at: eventData.starts_at,
+            ends_at: eventData.ends_at,
+            capacity: eventData.capacity,
+          },
+          eventId: eventData.id,
+        };
+      }
       
     default:
       return {
         type: 'sponsor_notification',
-        to: sponsor.email,
+        to: user.email,
         subject: `New ${eventType} Notification`,
-        sponsorName: sponsor.full_name || 'Sponsor',
+        sponsorName: userName,
         eventType,
         ...eventData,
       };
@@ -270,6 +337,69 @@ function buildEmailData(sponsor: any, payload: NotificationPayload): any {
 // ============================================================================
 // MAIN DISPATCHER
 // ============================================================================
+
+/**
+ * Dispatch notification to all users (sponsors, students, mentors) about new events
+ * Handles role-specific email templates
+ */
+export async function dispatchToAllUsers(
+  payload: NotificationPayload
+): Promise<NotificationResult> {
+  const supabase = await createServerSupabase();
+  
+  // Get all users (sponsors, students, mentors) - exclude admins
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('id, email, role, full_name')
+    .in('role', ['sponsor', 'student', 'mentor']);
+
+  if (error) {
+    console.error('Error fetching users:', error);
+    return { sent: 0, queued: 0, filtered: 0, errors: 0 };
+  }
+
+  if (!users || users.length === 0) {
+    console.warn('No users found in database. No notifications will be sent.');
+    return { sent: 0, queued: 0, filtered: 0, errors: 0 };
+  }
+
+  const roleCounts = users.reduce((acc, user) => {
+    acc[user.role] = (acc[user.role] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  console.log(`Found ${users.length} user(s) to notify about ${payload.eventType}:`, roleCounts);
+
+  const result: NotificationResult = {
+    sent: 0,
+    queued: 0,
+    filtered: 0,
+    errors: 0,
+  };
+
+  // Process each user
+  await Promise.all(
+    users.map(async (user) => {
+      try {
+        // For new_event, always send immediately regardless of preferences
+        console.log(`Sending immediate notification to ${user.role} ${user.id} (${user.email})`);
+        const success = await sendNotificationNow(user.id, user.email, payload);
+        if (success) {
+          result.sent++;
+          console.log(`✓ Notification sent to ${user.email} (${user.role})`);
+        } else {
+          result.errors++;
+          console.error(`✗ Failed to send notification to ${user.email} (${user.role})`);
+        }
+      } catch (error) {
+        console.error(`Error processing ${user.role} ${user.id}:`, error);
+        result.errors++;
+      }
+    })
+  );
+
+  return result;
+}
 
 /**
  * Dispatch notification to all relevant sponsors
@@ -286,10 +416,17 @@ export async function dispatchToSponsors(
     .select('id, email, sponsor_tier')
     .eq('role', 'sponsor');
 
-  if (error || !sponsors) {
+  if (error) {
     console.error('Error fetching sponsors:', error);
     return { sent: 0, queued: 0, filtered: 0, errors: 0 };
   }
+
+  if (!sponsors || sponsors.length === 0) {
+    console.warn('No sponsors found in database. No notifications will be sent.');
+    return { sent: 0, queued: 0, filtered: 0, errors: 0 };
+  }
+
+  console.log(`Found ${sponsors.length} sponsor(s) to notify about ${payload.eventType}`);
 
   const result: NotificationResult = {
     sent: 0,
@@ -329,14 +466,18 @@ export async function dispatchToSponsors(
 
         if (shouldSendNow && !shouldBatch) {
           // Send immediately
+          console.log(`Sending immediate notification to sponsor ${sponsor.id} (${sponsor.email})`);
           const success = await sendNotificationNow(sponsor.id, sponsor.email, payload);
           if (success) {
             result.sent++;
+            console.log(`✓ Notification sent to ${sponsor.email}`);
           } else {
             result.errors++;
+            console.error(`✗ Failed to send notification to ${sponsor.email}`);
           }
         } else {
           // Queue for later
+          console.log(`Queuing notification for sponsor ${sponsor.id} (frequency: ${frequency})`);
           await queueNotification(sponsor.id, payload, frequency);
           result.queued++;
         }

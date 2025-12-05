@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
 import { createClient } from '@supabase/supabase-js';
-import { dispatchToSponsors } from '@/lib/communications/notification-dispatcher';
+import { dispatchToSponsors, dispatchToAllUsers } from '@/lib/communications/notification-dispatcher';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -117,9 +117,9 @@ export const eventsRouter = router({
         });
       }
 
-      // 🔔 Auto-notify sponsors about the new event
+      // 🔔 Auto-notify all users (sponsors, students, mentors) about the new event
       try {
-        const notificationResult = await dispatchToSponsors({
+        const notificationResult = await dispatchToAllUsers({
           eventType: 'new_event',
           eventData: {
             id: data.id,
@@ -131,10 +131,10 @@ export const eventsRouter = router({
           },
         });
         
-        console.log(`📧 New event notification sent to sponsors:`, notificationResult);
+        console.log(`📧 New event notification sent to all users:`, notificationResult);
       } catch (notifyError) {
         // Don't fail event creation if notification fails
-        console.error('Failed to notify sponsors about new event:', notifyError);
+        console.error('Failed to notify users about new event:', notifyError);
       }
 
       return data;
