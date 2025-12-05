@@ -38,9 +38,7 @@ export async function POST(request: NextRequest) {
           qrCodeToken,
           appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         });
-        subject = isWaitlisted
-          ? `Waitlist Confirmation: ${event.title}`
-          : `Registration Confirmed: ${event.title}`;
+        subject = `Registration Confirmed: ${event.title}`;
         to = data.userEmail;
         break;
       }

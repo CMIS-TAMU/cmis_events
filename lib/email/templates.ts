@@ -288,6 +288,9 @@ export function registrationConfirmationEmail({
 }: RegistrationConfirmationEmailProps): string {
   const startDate = new Date(event.starts_at);
   const endDate = event.ends_at ? new Date(event.ends_at) : null;
+  
+  // Extract first name for personalization
+  const firstName = userName?.split(' ')[0] || userName || 'there';
 
   if (isWaitlisted) {
     return `
@@ -296,7 +299,7 @@ export function registrationConfirmationEmail({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Waitlist Confirmation</title>
+  <title>Registration Confirmation</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
@@ -304,13 +307,13 @@ export function registrationConfirmationEmail({
   </div>
   
   <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
-    <h2 style="color: #333; margin-top: 0;">Waitlist Confirmation</h2>
+    <h2 style="color: #333; margin-top: 0;">Registration Confirmed!</h2>
     
-    <p>Hello ${userName},</p>
+    <p>Hi ${firstName},</p>
     
-    <p>Thank you for your interest in <strong>${event.title}</strong>.</p>
+    <p>Thank you for registering for <strong>${event.title}</strong>!</p>
     
-    <p>The event is currently at capacity, but we've added you to the waitlist. Your position is <strong>#${waitlistPosition}</strong>.</p>
+    <p>We've received your registration and added you to our waitlist. You're currently in position <strong>#${waitlistPosition}</strong>. We'll notify you immediately via email as soon as a spot becomes available.</p>
     
     <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea;">
       <h3 style="margin-top: 0; color: #667eea;">Event Details</h3>
@@ -318,9 +321,15 @@ export function registrationConfirmationEmail({
       <p><strong>Date:</strong> ${format(startDate, 'EEEE, MMMM d, yyyy')}</p>
       <p><strong>Time:</strong> ${format(startDate, 'h:mm a')}${endDate ? ` - ${format(endDate, 'h:mm a')}` : ''}</p>
       ${event.description ? `<p><strong>Description:</strong> ${event.description}</p>` : ''}
+      <p><strong>Waitlist Position:</strong> #${waitlistPosition}</p>
+      <p><strong>Registration ID:</strong> ${registrationId}</p>
     </div>
     
-    <p>If a spot becomes available, we'll notify you immediately via email.</p>
+    <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+      <p style="margin: 0;"><strong>💡 Good News:</strong> We'll keep you updated if a spot opens up. Make sure to check your email regularly!</p>
+    </div>
+    
+    <p>We appreciate your interest and look forward to potentially seeing you at the event, ${firstName}!</p>
     
     <p style="margin-top: 30px;">Best regards,<br>CMIS Event Management Team</p>
   </div>
@@ -345,9 +354,9 @@ export function registrationConfirmationEmail({
   <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
     <h2 style="color: #333; margin-top: 0;">Registration Confirmed!</h2>
     
-    <p>Hello ${userName},</p>
+    <p>Hi ${firstName},</p>
     
-    <p>Your registration for <strong>${event.title}</strong> has been confirmed.</p>
+    <p>Great news! Your registration for <strong>${event.title}</strong> has been confirmed. We're excited to have you join us!</p>
     
     <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #10b981;">
       <h3 style="margin-top: 0; color: #10b981;">Event Details</h3>
@@ -369,7 +378,7 @@ export function registrationConfirmationEmail({
     </div>
     ` : ''}
     
-    <p>We look forward to seeing you at the event!</p>
+    <p>We look forward to seeing you at the event, ${firstName}! Don't forget to bring your QR code for easy check-in.</p>
     
     <p style="margin-top: 30px;">Best regards,<br>CMIS Event Management Team</p>
   </div>
@@ -386,6 +395,9 @@ interface CancellationEmailProps {
 export function cancellationEmail({ userName, event }: CancellationEmailProps): string {
   const startDate = new Date(event.starts_at);
   const endDate = event.ends_at ? new Date(event.ends_at) : null;
+  
+  // Extract first name for personalization
+  const firstName = userName?.split(' ')[0] || userName || 'there';
 
   return `
 <!DOCTYPE html>
@@ -403,9 +415,9 @@ export function cancellationEmail({ userName, event }: CancellationEmailProps): 
   <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0;">
     <h2 style="color: #333; margin-top: 0;">Registration Cancelled</h2>
     
-    <p>Hello ${userName},</p>
+    <p>Hi ${firstName},</p>
     
-    <p>Your registration for <strong>${event.title}</strong> has been cancelled.</p>
+    <p>Your registration for <strong>${event.title}</strong> has been cancelled as requested.</p>
     
     <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ef4444;">
       <h3 style="margin-top: 0; color: #ef4444;">Event Details</h3>

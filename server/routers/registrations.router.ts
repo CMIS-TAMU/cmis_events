@@ -88,13 +88,52 @@ export const registrationsRouter = router({
             qrToken = regData?.qr_code_token || null;
           }
 
+          // Extract proper user name - avoid generic role names
+          let userName = userProfile.full_name;
+          const genericNames = ['Student', 'User', 'Admin', 'student', 'user', 'admin', 'Guest', ''];
+          
+          // First, try to use full_name if it's valid and not generic
+          if (userName && !genericNames.includes(userName?.trim() || '')) {
+            // Extract just the first name
+            userName = userName.split(' ')[0];
+          } else {
+            // Fallback to email username - extract first part and clean it
+            let emailName = ctx.user.email?.split('@')[0] || '';
+            let firstName = emailName.split(/[._-]/)[0];
+            
+            // Remove trailing numbers (e.g., "prasannasalunkhe5" -> "prasannasalunkhe")
+            firstName = firstName.replace(/\d+$/, '');
+            
+            // If it's a long concatenated name (likely firstname+lastname), extract reasonable first name
+            // Try to find natural break points first
+            if (firstName && firstName.length > 8) {
+              // Try camelCase: "prasannaSalunkhe" -> "prasanna"
+              const camelCaseMatch = firstName.match(/^([a-z]+)([A-Z][a-z]+)/);
+              if (camelCaseMatch && camelCaseMatch[1].length >= 4) {
+                firstName = camelCaseMatch[1];
+              } else {
+                // No natural break - use first 8 characters as reasonable first name length
+                // Common first names are 4-8 characters, so 8 chars should cover most
+                firstName = firstName.substring(0, 8);
+              }
+            }
+            
+            // If we have something that looks reasonable, use it
+            if (firstName && firstName.length >= 2) {
+              userName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+            } else {
+              // Last resort: generic greeting
+              userName = 'there';
+            }
+          }
+
           // Send email in background (don't await)
           fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               type: 'registration_confirmation',
-              userName: userProfile.full_name || ctx.user.email?.split('@')[0] || 'User',
+              userName: userName,
               userEmail: userProfile.email || ctx.user.email || '',
               event: {
                 title: eventData.title,
@@ -161,13 +200,52 @@ export const registrationsRouter = router({
         .single();
 
       if (eventData && userProfile) {
+        // Extract proper user name - avoid generic role names
+        let userName = userProfile.full_name;
+        const genericNames = ['Student', 'User', 'Admin', 'student', 'user', 'admin', 'Guest', ''];
+        
+        // First, try to use full_name if it's valid and not generic
+        if (userName && !genericNames.includes(userName?.trim() || '')) {
+          // Extract just the first name
+          userName = userName.split(' ')[0];
+        } else {
+          // Fallback to email username - extract first part and clean it
+          let emailName = ctx.user.email?.split('@')[0] || '';
+          let firstName = emailName.split(/[._-]/)[0];
+          
+          // Remove trailing numbers (e.g., "prasannasalunkhe5" -> "prasannasalunkhe")
+          firstName = firstName.replace(/\d+$/, '');
+          
+          // If it's a long concatenated name (likely firstname+lastname), extract reasonable first name
+          // Try to find natural break points first
+          if (firstName && firstName.length > 8) {
+            // Try camelCase: "prasannaSalunkhe" -> "prasanna"
+            const camelCaseMatch = firstName.match(/^([a-z]+)([A-Z][a-z]+)/);
+            if (camelCaseMatch && camelCaseMatch[1].length >= 4) {
+              firstName = camelCaseMatch[1];
+            } else {
+              // No natural break - use first 8 characters as reasonable first name length
+              // Common first names are 4-8 characters, so 8 chars should cover most
+              firstName = firstName.substring(0, 8);
+            }
+          }
+          
+          // If we have something that looks reasonable, use it
+          if (firstName && firstName.length >= 2) {
+            userName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+          } else {
+            // Last resort: generic greeting
+            userName = 'there';
+          }
+        }
+
         // Send email in background (don't await)
         fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'cancellation',
-            userName: userProfile.full_name || ctx.user.email?.split('@')[0] || 'User',
+            userName: userName,
             userEmail: userProfile.email || ctx.user.email || '',
             event: {
               title: eventData.title,
