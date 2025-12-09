@@ -303,25 +303,25 @@ export default function SponsorPreferencesPage() {
             <div>
               <h4 className="font-semibold mb-2">Your Benefits:</h4>
               <ul className="space-y-1 text-sm">
-                {config?.features.immediateNotifications && (
+                {tier === 'premium' && (
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     Real-time notifications
                   </li>
                 )}
-                {config?.features.customFilters && (
+                {config?.features.includes('advanced_filters') && (
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     Custom student filters
                   </li>
                 )}
-                {config?.features.detailedAnalytics && (
+                {config?.features.includes('analytics') && (
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     Detailed analytics
                   </li>
                 )}
-                {config?.features.bulkExport && (
+                {tier === 'premium' && (
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     Bulk export
@@ -374,10 +374,10 @@ export default function SponsorPreferencesPage() {
                     <SelectItem 
                       key={option.value} 
                       value={option.value}
-                      disabled={!config?.features.immediateNotifications && option.value === 'real-time'}
+                      disabled={tier !== 'premium' && option.value === 'real-time'}
                     >
                       {option.label}
-                      {!config?.features.immediateNotifications && option.value === 'real-time' && (
+                      {tier !== 'premium' && option.value === 'real-time' && (
                         <span className="text-xs text-muted-foreground ml-2">(Premium only)</span>
                       )}
                     </SelectItem>
@@ -396,7 +396,7 @@ export default function SponsorPreferencesPage() {
       </Card>
 
       {/* Event-Specific Preferences */}
-      {config?.notificationRules.canCustomizeByEventType && (
+      {tier !== 'basic' && (
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export default function SponsorPreferencesPage() {
                           <SelectItem
                             key={option.value}
                             value={option.value}
-                            disabled={!config?.features.immediateNotifications && option.value === 'real-time'}
+                            disabled={tier !== 'premium' && option.value === 'real-time'}
                           >
                             {option.label}
                           </SelectItem>
@@ -449,7 +449,7 @@ export default function SponsorPreferencesPage() {
       )}
 
       {/* Student Filters */}
-      {config?.features.customFilters && (
+      {config?.features.includes('advanced_filters') && (
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center gap-2">
