@@ -10,7 +10,7 @@ import { missionsRouter } from './missions.router';
 import { feedbackRouter } from './feedback.router';
 import { analyticsRouter } from './analytics.router';
 import { mentorshipRouter } from './mentorship.router';
-import { miniMentorshipRouter } from './miniMentorship.router';
+import { miniMentorshipRouter } from './mini-mentorship.router';
 import { seatingRouter } from './seating.router';
 import { newsletterRouter } from './newsletter.router';
 import { communicationsRouter } from './communications.router';
