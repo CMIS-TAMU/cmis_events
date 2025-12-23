@@ -30,9 +30,11 @@ export async function middleware(request: NextRequest) {
   );
 
   // Refresh session if expired - required for Server Components
+  // Use getSession instead of getUser for middleware compatibility
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/dashboard', '/admin', '/profile'];
