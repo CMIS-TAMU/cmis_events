@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Wrap everything in try-catch to prevent middleware from crashing
   try {
     // Skip middleware for static files and API routes (except protected ones)
@@ -143,6 +143,8 @@ export async function middleware(request: NextRequest) {
   }
 }
 
+// Matcher configuration for proxy
+// Match all request paths except for static files
 export const config = {
   matcher: [
     /*
