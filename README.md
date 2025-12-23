@@ -74,6 +74,7 @@ The CMIS Event Management System is a modern, full-stack web application designe
 - PDF resume upload and storage
 - Resume versioning
 - Sponsor resume search and filtering
+- **AI-powered resume matching** - Semantic similarity matching with job descriptions
 - Resume analytics (views, downloads)
 - Bulk resume export
 
@@ -96,6 +97,7 @@ The CMIS Event Management System is a modern, full-stack web application designe
 - Automated mentor recommendations
 - Smart event suggestions
 - Natural language query processing
+- **Vector embeddings & semantic search** - Resume-to-job matching, content discovery
 
 ### 📧 Communication System
 - Automated email workflows
@@ -128,6 +130,7 @@ The CMIS Event Management System is a modern, full-stack web application designe
 - **Runtime**: Node.js 20+
 - **API Framework**: tRPC (Type-safe APIs)
 - **Database**: PostgreSQL (via [Supabase](https://supabase.com/))
+- **Vector Database**: pgvector extension for semantic search
 - **Authentication**: Supabase Auth
 - **File Storage**: Supabase Storage
 - **Caching**: [Upstash Redis](https://upstash.com/)
@@ -135,9 +138,10 @@ The CMIS Event Management System is a modern, full-stack web application designe
 ### Infrastructure & Services
 - **Hosting**: [Vercel](https://vercel.com/)
 - **Database & Auth**: [Supabase](https://supabase.com/)
+- **Vector Search**: pgvector (PostgreSQL extension) for semantic search
 - **Email Service**: [Resend](https://resend.com/)
 - **Error Tracking**: [Sentry](https://sentry.io/)
-- **AI Services**: OpenAI / Google Gemini
+- **AI Services**: OpenAI / Google Gemini (Chat & Embeddings)
 
 ### Development Tools
 - **Package Manager**: [pnpm](https://pnpm.io/)
@@ -162,7 +166,8 @@ cmis_events/
 │   │   └── faculty/         # Faculty dashboard
 │   ├── api/                 # API routes
 │   │   ├── cron/            # Scheduled jobs
-│   │   └── email/           # Email endpoints
+│   │   ├── email/           # Email endpoints
+│   │   └── embeddings/      # Vector embeddings API (generate, store, search)
 │   └── layout.tsx           # Root layout
 ├── components/              # React components
 │   ├── ui/                  # Reusable UI components (shadcn)
@@ -171,6 +176,8 @@ cmis_events/
 ├── lib/                     # Utilities and configurations
 │   ├── supabase/           # Supabase client setup
 │   ├── trpc/               # tRPC configuration
+│   ├── ai/                 # AI services (chat, embeddings)
+│   ├── services/           # Business logic services (resume matching, content search)
 │   ├── communications/     # Email and notification services
 │   └── utils/              # Helper functions
 ├── server/                  # Server-side code
@@ -188,7 +195,8 @@ cmis_events/
 2. **Server Components**: Leveraging Next.js App Router for optimal performance
 3. **Role-Based Access Control**: Middleware-based RBAC for security
 4. **Database-First**: PostgreSQL with Supabase for reliability and scalability
-5. **Component-Driven**: Reusable UI components for consistency
+5. **Vector Search**: pgvector extension enables semantic search with cosine similarity
+6. **Component-Driven**: Reusable UI components for consistency
 
 ---
 
@@ -246,6 +254,8 @@ cmis_events/
 
 4. **Set up the database:**
    - Run migrations from `database/migrations/` in Supabase SQL Editor
+   - **Required**: Run `001_enable_pgvector.sql` to enable vector search
+   - **Required**: Run `002_create_embeddings_table.sql` for semantic search
    - Create storage buckets: `resumes` (private) and `event-images` (public)
 
 5. **Start the development server:**
@@ -386,6 +396,7 @@ Run migrations in Supabase SQL Editor before deploying:
 ### Essential Documentation
 
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)**: Complete installation and configuration guide
+- **[VECTOR_EMBEDDINGS_GUIDE.md](./VECTOR_EMBEDDINGS_GUIDE.md)**: Vector embeddings and semantic search guide
 - **[DEVELOPMENT_ROADMAP.md](./DEVELOPMENT_ROADMAP.md)**: Project timeline and milestones
 - **[COMPLETE_FEATURES_DOCUMENTATION.md](./COMPLETE_FEATURES_DOCUMENTATION.md)**: Comprehensive feature list and improvements
 - **[DEMO_PRESENTATION_SCRIPT.md](./DEMO_PRESENTATION_SCRIPT.md)**: Demo presentation guide
@@ -520,6 +531,8 @@ This project is proprietary software for Texas A&M University Center for Managem
 - ✅ Event Management System
 - ✅ Registration & Waitlist
 - ✅ Resume Management
+- ✅ **Vector Embeddings & Semantic Search**
+- ✅ **AI-Powered Resume Matching**
 - ✅ Mentorship System
 - ✅ Sponsor Portal
 - ✅ AI Chatbot

@@ -220,6 +220,13 @@ The CMIS Event Management System is a comprehensive, modern platform that has **
   - View tracking
   - Download resumes
 
+- ✅ **AI-Powered Resume Matching** ⭐ NEW
+  - Semantic similarity matching with job descriptions
+  - Vector embeddings for intelligent candidate discovery
+  - Cosine similarity scoring (0-1 scale)
+  - Natural language job description queries
+  - Match threshold customization
+
 **Pages:**
 - `/profile/resume` - Resume management
 - `/sponsor/resumes` - Resume search (sponsors only)
@@ -909,7 +916,19 @@ The CMIS Event Management System is a comprehensive, modern platform that has **
 
 ---
 
-### 🔍 **17. AI Chatbot Assistant**
+### 🔍 **17. Vector Embeddings & Semantic Search** ⭐ NEW
+
+#### Features:
+- ✅ **Embedding Generation & Storage**
+- ✅ **Semantic Search Engine**
+- ✅ **Resume-to-Job Matching**
+- ✅ **Content Discovery**
+
+*See detailed documentation in [Vector Embeddings Guide](./VECTOR_EMBEDDINGS_GUIDE.md)*
+
+----
+
+### 🤖 **18. AI Chatbot Assistant**
 
 #### Features:
 - ✅ **Context-Aware Chat**
@@ -1078,7 +1097,8 @@ The CMIS Event Management System is a comprehensive, modern platform that has **
 14. Mentorship System
 15. Mini Mentorship System
 16. Intelligent Mentor Recommendations
-17. AI Chatbot Assistant
+17. Vector Embeddings & Semantic Search ⭐ NEW
+18. AI Chatbot Assistant
 
 ### **Communication Features (Phase 5)**
 18. Communication System
@@ -1131,6 +1151,8 @@ The CMIS Event Management System is a comprehensive, modern platform that has **
 |-----------|---------|
 | Manual mentor-student matching | Intelligent automatic matching |
 | No resume search | Advanced resume search with filters |
+| Keyword-only search | Semantic search with vector embeddings |
+| Manual resume-to-job matching | AI-powered semantic matching |
 | No recommendations | AI-powered recommendations |
 | No chatbot | 24/7 AI chatbot support |
 | No analytics | Comprehensive analytics dashboard |

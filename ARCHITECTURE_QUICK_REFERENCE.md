@@ -10,6 +10,7 @@
 │                                                               │
 │  Features: Events | Registrations | Resumes | Missions      │
 │            Competitions | Mentorship | Analytics | Email     │
+│            Vector Search | Semantic Matching                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -25,11 +26,13 @@
 - tRPC (Type-safe API)
 - Node.js
 - Supabase (Database + Auth + Storage)
+- pgvector (Vector embeddings & semantic search)
 
 **Services:**
 - Resend (Email)
 - Upstash (Redis Cache)
-- OpenAI/Gemini (AI Chat)
+- OpenAI/Gemini (AI Chat & Embeddings)
+- pgvector (Semantic search with cosine similarity)
 
 ## Architecture Layers
 
@@ -51,7 +54,7 @@
                │
 ┌──────────────▼──────────────────────┐
 │   Data Layer                        │
-│   (PostgreSQL + RLS Policies)      │
+│   (PostgreSQL + pgvector + RLS)    │
 └─────────────────────────────────────┘
 ```
 
@@ -59,8 +62,9 @@
 
 - **15 tRPC Routers** with **150+ endpoints**
 - **30+ Database Tables** with **50+ RLS Policies**
+- **Vector Embeddings Table** with HNSW indexing for semantic search
 - **50+ Pages** and **100+ Components**
-- **8 Major Feature Modules** fully implemented
+- **9 Major Feature Modules** fully implemented
 
 ## Security Architecture
 
@@ -93,11 +97,12 @@ User Action → Frontend → tRPC API → Database
 1. **Event Management** - Create, manage, and track events
 2. **Registration System** - Event registration with waitlist
 3. **Resume Management** - Upload, search, and analytics
-4. **Case Competitions** - Competition management and judging
-5. **Technical Missions** - Coding challenges with leaderboard
-6. **Mentorship System** - AI-powered mentor matching
-7. **Email System** - Automated notifications and templates
-8. **Analytics** - Comprehensive dashboards and reports
+4. **Vector Embeddings & Semantic Search** - AI-powered content matching and discovery
+5. **Case Competitions** - Competition management and judging
+6. **Technical Missions** - Coding challenges with leaderboard
+7. **Mentorship System** - AI-powered mentor matching
+8. **Email System** - Automated notifications and templates
+9. **Analytics** - Comprehensive dashboards and reports
 
 ## Deployment
 
@@ -110,6 +115,7 @@ User Action → Frontend → tRPC API → Database
 ✅ **Type-Safe:** End-to-end type safety with tRPC  
 ✅ **Secure:** Row-Level Security at database level  
 ✅ **Scalable:** Serverless architecture with auto-scaling  
+✅ **Intelligent:** Vector embeddings for semantic search and matching  
 ✅ **Modern:** Latest technologies and best practices  
 ✅ **Complete:** All features implemented and tested
 
