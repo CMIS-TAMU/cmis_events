@@ -170,8 +170,8 @@ export async function proxy(request: NextRequest) {
 }
 
 // Matcher configuration for proxy
-// Match all request paths except for static files
-// IMPORTANT: The root path "/" MUST be included to allow homepage access
+// Match all request paths except for static files and public routes
+// IMPORTANT: We match all routes but then immediately allow public routes through
 export const config = {
   matcher: [
     /*
@@ -180,7 +180,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * Note: This pattern INCLUDES the root path "/"
+     * Note: Root path "/" is matched but immediately allowed through in the function
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
