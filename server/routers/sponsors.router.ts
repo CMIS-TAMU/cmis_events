@@ -95,11 +95,13 @@ export const sponsorsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const result = await updateSponsorPreferences(ctx.user.id, input);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update preferences');
+      if (!result) {
+        throw new Error('Failed to update preferences');
       }
 
-      return result.data;
+      // Return updated preferences
+      const preferences = await getSponsorPreferences(ctx.user.id);
+      return preferences;
     }),
 
   /**
@@ -217,6 +219,241 @@ export const sponsorsRouter = router({
     .query(async ({ ctx, input }) => {
       const result = await checkLimit(ctx.user.id, input.limitType, input.currentCount);
       return result;
+    }),
+
+  /**
+   * Get current sponsor's shortlist
+   */
+  getShortlist: protectedProcedure.query(async ({ ctx }) => {
+    const supabase = await createServerSupabase();
+    
+    // Verify user is a sponsor
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', ctx.user.id)
+      .single();
+
+    if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+      throw new Error('Access denied. Sponsor role required.');
+    }
+
+    const { data: shortlist, error } = await supabase
+      .from('sponsor_shortlist')
+      .select(`
+        id,
+        user_id,
+        created_at,
+        users:user_id (
+          id,
+          email,
+          full_name,
+          major,
+          gpa,
+          skills,
+          graduation_year,
+          resume_filename
+        )
+      `)
+      .eq('sponsor_id', ctx.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch shortlist: ${error.message}`);
+    }
+
+    // Transform to match what the page expects
+    return (shortlist || []).map((item: any) => ({
+      id: item.users?.id || item.user_id, // Use user id as the id for the page
+      user_id: item.user_id,
+      created_at: item.created_at,
+      ...item.users,
+    }));
+  }),
+
+  /**
+   * Search resumes (for sponsors)
+   */
+  searchResumes: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        major: z.string().optional(),
+        skills: z.array(z.string()).optional(),
+        minGpa: z.number().optional(),
+        maxGpa: z.number().optional(),
+        graduationYear: z.number().optional(),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const supabase = await createServerSupabase();
+      
+      // Verify user is a sponsor
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+        throw new Error('Access denied. Sponsor role required.');
+      }
+
+      let query = supabase
+        .from('users')
+        .select('id, email, full_name, major, gpa, skills, graduation_year, resume_filename, resume_uploaded_at')
+        .eq('role', 'student')
+        .not('resume_filename', 'is', null)
+        .order('resume_uploaded_at', { ascending: false });
+
+      if (input.search) {
+        query = query.or(`full_name.ilike.%${input.search}%,email.ilike.%${input.search}%,major.ilike.%${input.search}%`);
+      }
+
+      if (input.major) {
+        query = query.eq('major', input.major);
+      }
+
+      if (input.skills && input.skills.length > 0) {
+        query = query.contains('skills', input.skills);
+      }
+
+      if (input.minGpa !== undefined) {
+        query = query.gte('gpa', input.minGpa);
+      }
+
+      if (input.maxGpa !== undefined) {
+        query = query.lte('gpa', input.maxGpa);
+      }
+
+      if (input.graduationYear) {
+        query = query.eq('graduation_year', input.graduationYear);
+      }
+
+      query = query.range(input.offset, input.offset + input.limit - 1);
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Failed to search resumes: ${error.message}`);
+      }
+
+      return data || [];
+    }),
+
+  /**
+   * Add candidate to shortlist
+   */
+  addToShortlist: protectedProcedure
+    .input(z.object({ userId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const supabase = await createServerSupabase();
+      
+      // Verify user is a sponsor
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+        throw new Error('Access denied. Sponsor role required.');
+      }
+
+      // Check if already in shortlist
+      const { data: existing } = await supabase
+        .from('sponsor_shortlist')
+        .select('id')
+        .eq('sponsor_id', ctx.user.id)
+        .eq('user_id', input.userId)
+        .single();
+
+      if (existing) {
+        return { success: true, message: 'Already in shortlist' };
+      }
+
+      const { data, error } = await supabase
+        .from('sponsor_shortlist')
+        .insert({
+          sponsor_id: ctx.user.id,
+          user_id: input.userId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to add to shortlist: ${error.message}`);
+      }
+
+      return { success: true, data };
+    }),
+
+  /**
+   * Remove candidate from shortlist
+   */
+  removeFromShortlist: protectedProcedure
+    .input(z.object({ userId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const supabase = await createServerSupabase();
+      
+      // Verify user is a sponsor
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+        throw new Error('Access denied. Sponsor role required.');
+      }
+
+      const { error } = await supabase
+        .from('sponsor_shortlist')
+        .delete()
+        .eq('sponsor_id', ctx.user.id)
+        .eq('user_id', input.userId);
+
+      if (error) {
+        throw new Error(`Failed to remove from shortlist: ${error.message}`);
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Track resume view
+   */
+  trackResumeView: protectedProcedure
+    .input(z.object({ userId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const supabase = await createServerSupabase();
+      
+      // Verify user is a sponsor
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+        throw new Error('Access denied. Sponsor role required.');
+      }
+
+      const { error } = await supabase.from('resume_views').insert({
+        user_id: input.userId,
+        viewed_by: ctx.user.id,
+        event_id: null,
+      });
+
+      if (error) {
+        // Don't throw error for tracking - just log it
+        console.error('Failed to track resume view:', error);
+        return { success: false };
+      }
+
+      return { success: true };
     }),
 
   // ========== ADMIN-ONLY ENDPOINTS ==========
@@ -353,11 +590,14 @@ export const sponsorsRouter = router({
         ctx.user.id
       );
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update sponsor tier');
+      if (!result) {
+        throw new Error('Failed to update sponsor tier');
       }
 
-      return result.change;
+      // Return the updated tier information
+      const tier = await getSponsorTier(input.sponsorId);
+      const tierConfig = getTierConfig(tier);
+      return { tier, config: tierConfig };
     }),
 
   /**
@@ -368,17 +608,25 @@ export const sponsorsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const results = await Promise.all(
         input.sponsorIds.map(async (sponsorId) => {
-          const result = await changeSponsorTier(
-            sponsorId,
-            input.tier,
-            input.reason,
-            ctx.user.id
-          );
-          return {
-            sponsorId,
-            success: result.success,
-            error: result.error,
-          };
+          try {
+            const result = await changeSponsorTier(
+              sponsorId,
+              input.tier,
+              input.reason,
+              ctx.user.id
+            );
+            return {
+              sponsorId,
+              success: result,
+              error: result ? undefined : 'Failed to update tier',
+            };
+          } catch (error: any) {
+            return {
+              sponsorId,
+              success: false,
+              error: error.message || 'Failed to update tier',
+            };
+          }
         })
       );
 

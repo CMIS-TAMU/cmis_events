@@ -230,10 +230,10 @@ export const authRouter = router({
         if (significantFieldsChanged) {
           // Generate recommendations asynchronously (fire and forget)
           // We'll call the database function directly to avoid circular dependencies
-          supabaseAdmin
+          Promise.resolve(supabaseAdmin
             .rpc('generate_mentor_recommendations', {
               p_student_id: userId,
-            })
+            }))
             .then(({ error: recError }) => {
               if (recError) {
                 console.warn('Failed to generate recommendations after profile update:', recError);

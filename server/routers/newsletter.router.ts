@@ -184,12 +184,12 @@ export const newsletterRouter = router({
 
     const stats = {
       total: data?.length || 0,
-      active: data?.filter((s) => s.is_active).length || 0,
+      active: data?.filter((s: any) => s.is_active).length || 0,
       by_role: {
-        student: data?.filter((s) => s.role === 'student' && s.is_active).length || 0,
-        mentor: data?.filter((s) => s.role === 'mentor' && s.is_active).length || 0,
-        sponsor: data?.filter((s) => s.role === 'sponsor' && s.is_active).length || 0,
-        general: data?.filter((s) => s.role === 'general' && s.is_active).length || 0,
+        student: data?.filter((s: any) => s.role === 'student' && s.is_active).length || 0,
+        mentor: data?.filter((s: any) => s.role === 'mentor' && s.is_active).length || 0,
+        sponsor: data?.filter((s: any) => s.role === 'sponsor' && s.is_active).length || 0,
+        general: data?.filter((s: any) => s.role === 'general' && s.is_active).length || 0,
       },
     };
 

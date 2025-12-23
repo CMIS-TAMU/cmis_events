@@ -11,7 +11,6 @@ import {
   deleteEmbedding,
 } from '@/lib/ai/embeddings';
 import { createAdminSupabase } from '@/lib/supabase/server';
-import pdfParse from 'pdf-parse';
 
 export interface ResumeMatch {
   resumeId: string;
@@ -28,6 +27,10 @@ export async function extractResumeText(
   pdfBuffer: Buffer
 ): Promise<string> {
   try {
+    // Dynamic import to handle CommonJS module
+    const pdfParseModule = await import('pdf-parse');
+    // @ts-expect-error - pdf-parse module structure doesn't match TypeScript types
+    const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = pdfParseModule.default || pdfParseModule;
     const data = await pdfParse(pdfBuffer);
     return data.text;
   } catch (error) {
