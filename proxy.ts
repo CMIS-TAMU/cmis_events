@@ -16,9 +16,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // ALWAYS allow homepage and public routes - don't block them
+    // CRITICAL: ALWAYS allow homepage and public routes FIRST - before any other logic
+    // This ensures homepage is never blocked
     const publicPaths = [
-      '/',
+      '/',  // Homepage - MUST be first
       '/events',
       '/competitions', 
       '/leaderboard',
@@ -29,13 +30,14 @@ export async function proxy(request: NextRequest) {
       '/reset-password'
     ];
     
-    // If it's a public path, allow it through immediately
+    // If it's a public path (including homepage), allow it through immediately - no checks
     if (
       publicPaths.includes(pathname) ||
       pathname.startsWith('/events/') ||
       pathname.startsWith('/competitions/') ||
       pathname.startsWith('/reset-password/')
     ) {
+      // Return immediately - don't run any auth checks or Supabase initialization
       return NextResponse.next();
     }
 
@@ -175,6 +177,7 @@ export async function proxy(request: NextRequest) {
 
 // Matcher configuration for proxy
 // Match all request paths except for static files
+// IMPORTANT: The root path "/" MUST be included to allow homepage access
 export const config = {
   matcher: [
     /*
@@ -183,6 +186,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * Note: This pattern INCLUDES the root path "/"
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
