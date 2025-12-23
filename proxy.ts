@@ -75,9 +75,27 @@ export async function proxy(request: NextRequest) {
       user = null;
     }
 
+    // Public routes that should always be accessible (no auth required)
+    const publicPaths = [
+      '/',
+      '/events',
+      '/competitions', 
+      '/leaderboard',
+      '/be-a-mentor',
+      '/be-a-sponsor',
+      '/login',
+      '/signup',
+      '/reset-password'
+    ];
+    const isPublicPath = publicPaths.includes(pathname) || 
+                         pathname.startsWith('/events/') || 
+                         pathname.startsWith('/competitions/') ||
+                         pathname.startsWith('/reset-password/');
+    
     // Protected routes - redirect to login if not authenticated
+    // Only protect these specific paths, allow everything else to be public
     const protectedPaths = ['/dashboard', '/admin', '/profile'];
-    const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
+    const isProtectedPath = !isPublicPath && protectedPaths.some((path) => pathname.startsWith(path));
 
     if (isProtectedPath && !user) {
       try {
