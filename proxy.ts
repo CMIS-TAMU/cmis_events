@@ -4,9 +4,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function proxy(request: NextRequest) {
   // Wrap everything in try-catch to prevent middleware from crashing
   try {
-    // Skip middleware for static files and API routes (except protected ones)
     const pathname = request.nextUrl.pathname;
-    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/trpc')) {
+    
+    // Skip proxy for static files, API routes, and Next.js internals
+    if (
+      pathname.startsWith('/_next/') ||
+      pathname.startsWith('/api/') ||
+      pathname.startsWith('/favicon.ico') ||
+      pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)
+    ) {
       return NextResponse.next();
     }
 
