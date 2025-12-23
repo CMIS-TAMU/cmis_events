@@ -2,109 +2,145 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  // Skip middleware for static files and API routes (except protected ones)
-  const pathname = request.nextUrl.pathname;
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/trpc')) {
-    return response;
-  }
-
-  let user = null;
-  let supabase: ReturnType<typeof createServerClient> | null = null;
-  
+  // Wrap everything in try-catch to prevent middleware from crashing
   try {
-    supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
+    // Skip middleware for static files and API routes (except protected ones)
+    const pathname = request.nextUrl.pathname;
+    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/trpc')) {
+      return NextResponse.next();
+    }
+
+    let response = NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+
+    let user = null;
+    let supabase: ReturnType<typeof createServerClient> | null = null;
+    
+    try {
+      // Validate environment variables before creating client
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        // Missing env vars - skip auth checks but continue
+        return response;
+      }
+
+      supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
           getAll() {
-            return request.cookies.getAll();
+            try {
+              return request.cookies.getAll();
+            } catch {
+              return [];
+            }
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-            response = NextResponse.next({
-              request,
-            });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                try {
+                  request.cookies.set(name, value);
+                } catch {
+                  // Ignore request cookie setting errors
+                }
+                try {
+                  response.cookies.set(name, value, options || {});
+                } catch {
+                  // Ignore response cookie setting errors
+                }
+              });
+            } catch {
+              // Ignore cookie setting errors
+            }
           },
         },
+      });
+
+      // Get user from session - use getUser() which works in Edge Runtime with @supabase/ssr
+      try {
+        const authResponse = await (supabase.auth as any).getUser();
+        
+        if (authResponse && !authResponse.error && authResponse.data?.user) {
+          user = authResponse.data.user;
+        }
+      } catch (authError) {
+        // Auth error - continue without user
+        user = null;
       }
-    );
-
-    // Get user from session - use getUser() which works in Edge Runtime with @supabase/ssr
-    // The Supabase SSR client supports getUser() in middleware, TypeScript types just need help
-    const authResponse = await (supabase.auth as any).getUser();
-    
-    if (authResponse?.error || !authResponse?.data?.user) {
-      // If there's an error getting user, continue without user
+    } catch (error) {
+      // If anything fails, continue without user (unauthenticated)
       user = null;
-    } else {
-      user = authResponse.data.user;
     }
-  } catch (error) {
-    // If session retrieval fails completely, continue without user (unauthenticated)
-    // Don't log in production to avoid noise
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Middleware: Failed to get session:', error);
+
+    // Protected routes - redirect to login if not authenticated
+    const protectedPaths = ['/dashboard', '/admin', '/profile'];
+    const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
+
+    if (isProtectedPath && !user) {
+      try {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = '/login';
+        redirectUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(redirectUrl);
+      } catch {
+        // If redirect fails, just continue
+        return response;
+      }
     }
-    user = null;
-  }
 
-  // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ['/dashboard', '/admin', '/profile'];
-  const isProtectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+    // Admin routes - redirect if not admin
+    const adminPaths = ['/admin'];
+    const isAdminPath = adminPaths.some((path) => pathname.startsWith(path));
 
-  if (isProtectedPath && !user) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
+    if (isAdminPath && user && supabase) {
+      try {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-  // Admin routes - redirect if not admin
-  const adminPaths = ['/admin'];
-  const isAdminPath = adminPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+        if (profile?.role !== 'admin') {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = '/dashboard';
+          return NextResponse.redirect(redirectUrl);
+        }
+      } catch (error) {
+        // If we can't check admin status, redirect to dashboard for safety
+        try {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = '/dashboard';
+          return NextResponse.redirect(redirectUrl);
+        } catch {
+          // If redirect fails, just continue
+          return response;
+        }
+      }
+    }
 
-  if (isAdminPath && user && supabase) {
-    try {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+    // Auth routes - redirect to dashboard if already logged in
+    const authPaths = ['/login', '/signup'];
+    const isAuthPath = authPaths.some((path) => pathname.startsWith(path));
 
-      if (profile?.role !== 'admin') {
+    if (isAuthPath && user) {
+      try {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = '/dashboard';
         return NextResponse.redirect(redirectUrl);
+      } catch {
+        // If redirect fails, just continue
+        return response;
       }
-    } catch (error) {
-      // If we can't check admin status, redirect to dashboard for safety
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/dashboard';
-      return NextResponse.redirect(redirectUrl);
     }
+
+    return response;
+  } catch (error) {
+    // If middleware completely fails, return a basic response to prevent crash
+    return NextResponse.next();
   }
-
-  // Auth routes - redirect to dashboard if already logged in
-  const authPaths = ['/login', '/signup'];
-  const isAuthPath = authPaths.some((path) => request.nextUrl.pathname.startsWith(path));
-
-  if (isAuthPath && user) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/dashboard';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  return response;
 }
 
 export const config = {
