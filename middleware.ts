@@ -8,33 +8,58 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  // Skip middleware for static files and API routes (except protected ones)
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/trpc')) {
+    return response;
+  }
 
-  // Refresh session if expired - required for Server Components
-  // Use getSession instead of getUser for middleware compatibility
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  let user = null;
+  let supabase: ReturnType<typeof createServerClient> | null = null;
+  
+  try {
+    supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+            response = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    // Refresh session if expired - required for Server Components
+    // Use getSession instead of getUser for middleware compatibility
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+    
+    if (error) {
+      // If there's an error getting session, continue without user
+      user = null;
+    } else {
+      user = session?.user ?? null;
+    }
+  } catch (error) {
+    // If session retrieval fails completely, continue without user (unauthenticated)
+    // Don't log in production to avoid noise
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Middleware: Failed to get session:', error);
+    }
+    user = null;
+  }
 
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/dashboard', '/admin', '/profile'];
@@ -51,14 +76,21 @@ export async function middleware(request: NextRequest) {
   const adminPaths = ['/admin'];
   const isAdminPath = adminPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  if (isAdminPath && user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+  if (isAdminPath && user && supabase) {
+    try {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-    if (profile?.role !== 'admin') {
+      if (profile?.role !== 'admin') {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = '/dashboard';
+        return NextResponse.redirect(redirectUrl);
+      }
+    } catch (error) {
+      // If we can't check admin status, redirect to dashboard for safety
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = '/dashboard';
       return NextResponse.redirect(redirectUrl);
