@@ -246,6 +246,72 @@ The CMIS Event Management System is a comprehensive, modern platform that has **
 - ✅ **Now:** Structured metadata for intelligent matching
 - ❌ **Before:** No tracking of resume views or downloads
 - ✅ **Now:** Complete analytics on sponsor engagement
+- ❌ **Before:** Manual resume-to-job matching, keyword-only search
+- ✅ **Now:** AI-powered semantic matching using vector embeddings
+
+---
+
+### 🔍 **4.5. Vector Embeddings & Semantic Search** ⭐ NEW
+
+#### Features:
+- ✅ **Vector Embedding Generation**
+  - OpenAI/Gemini API integration
+  - 1536-dimensional embeddings (text-embedding-3-small)
+  - Automatic text normalization
+  - Batch processing support
+
+- ✅ **Embedding Storage & Management**
+  - PostgreSQL pgvector extension
+  - HNSW indexing for fast similarity search
+  - Content type categorization (resume, event, mission, job_description)
+  - Automatic embedding updates on content changes
+  - Metadata support for rich context
+
+- ✅ **Semantic Search Engine**
+  - Cosine similarity search (0-1 scale)
+  - Configurable similarity thresholds
+  - Content type filtering
+  - Fast approximate nearest neighbor search
+  - Natural language query processing
+
+- ✅ **Resume-to-Job Matching**
+  - Job description embedding generation
+  - Automatic candidate ranking by similarity
+  - Skill and metadata filtering
+  - Match score explanation
+  - Batch matching capabilities
+
+- ✅ **Content Discovery**
+  - Event semantic search
+  - Mission discovery by description
+  - Cross-content type search
+  - Relevance-based ranking
+
+**API Endpoints:**
+- `/api/embeddings/generate` - Generate embedding from text
+- `/api/embeddings/store` - Store embedding in database
+- `/api/embeddings/search` - Search similar content
+- `/api/embeddings/generate-and-store` - Generate and store in one operation
+
+**Use Cases:**
+- Sponsors find candidates matching job descriptions semantically
+- Students discover relevant events using natural language
+- Event organizers find similar events for reference
+- System matches resumes to opportunities automatically
+
+**Technical Implementation:**
+- Database: pgvector extension with HNSW indexing
+- Embedding Model: OpenAI text-embedding-3-small (1536 dimensions)
+- Similarity Metric: Cosine similarity (1 - cosine distance)
+- Search Performance: Sub-millisecond queries with HNSW index
+
+**Improvements Over Previous System:**
+- ❌ **Before:** Keyword-only search, missed semantic matches
+- ✅ **Now:** Semantic understanding of content meaning
+- ❌ **Before:** Manual resume-to-job matching required
+- ✅ **Now:** Automated intelligent matching with similarity scores
+- ❌ **Before:** Limited search capabilities
+- ✅ **Now:** Natural language queries with semantic relevance
 
 ---
 
