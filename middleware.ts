@@ -39,18 +39,15 @@ export async function middleware(request: NextRequest) {
       }
     );
 
-    // Refresh session if expired - required for Server Components
-    // Use getSession instead of getUser for middleware compatibility
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
+    // Get user from session - use getUser() which works in Edge Runtime with @supabase/ssr
+    // The Supabase SSR client supports getUser() in middleware, TypeScript types just need help
+    const authResponse = await (supabase.auth as any).getUser();
     
-    if (error) {
-      // If there's an error getting session, continue without user
+    if (authResponse?.error || !authResponse?.data?.user) {
+      // If there's an error getting user, continue without user
       user = null;
     } else {
-      user = session?.user ?? null;
+      user = authResponse.data.user;
     }
   } catch (error) {
     // If session retrieval fails completely, continue without user (unauthenticated)
