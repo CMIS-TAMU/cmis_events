@@ -2,44 +2,38 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
-  // Wrap everything in try-catch to prevent middleware from crashing
-  try {
-    const pathname = request.nextUrl.pathname;
-    
-    // Skip proxy entirely for static files, API routes, and Next.js internals
-    if (
-      pathname.startsWith('/_next/') ||
-      pathname.startsWith('/api/') ||
-      pathname.startsWith('/favicon.ico') ||
-      pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)
-    ) {
-      return NextResponse.next();
-    }
-
-    // CRITICAL: ALWAYS allow homepage and public routes FIRST - before any other logic
-    // This ensures homepage is never blocked
-    const publicPaths = [
-      '/',  // Homepage - MUST be first
-      '/events',
-      '/competitions', 
-      '/leaderboard',
-      '/be-a-mentor',
-      '/be-a-sponsor',
-      '/login',
-      '/signup',
-      '/reset-password'
-    ];
-    
-    // If it's a public path (including homepage), allow it through immediately - no checks
-    if (
-      publicPaths.includes(pathname) ||
+  const pathname = request.nextUrl.pathname;
+  
+  // CRITICAL: Check homepage and public routes FIRST - before ANY other processing
+  // This must be the absolute first check to ensure homepage is never blocked
+  if (pathname === '/' || 
+      pathname === '/events' ||
+      pathname === '/competitions' ||
+      pathname === '/leaderboard' ||
+      pathname === '/be-a-mentor' ||
+      pathname === '/be-a-sponsor' ||
+      pathname === '/login' ||
+      pathname === '/signup' ||
+      pathname === '/reset-password' ||
       pathname.startsWith('/events/') ||
       pathname.startsWith('/competitions/') ||
-      pathname.startsWith('/reset-password/')
-    ) {
-      // Return immediately - don't run any auth checks or Supabase initialization
-      return NextResponse.next();
-    }
+      pathname.startsWith('/reset-password/')) {
+    // Immediate return - no processing, no checks, just allow through
+    return NextResponse.next();
+  }
+  
+  // Skip proxy for static files, API routes, and Next.js internals
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Wrap rest in try-catch to prevent middleware from crashing
+  try {
 
     let response = NextResponse.next({
       request: {
