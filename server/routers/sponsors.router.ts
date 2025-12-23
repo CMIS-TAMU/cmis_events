@@ -223,6 +223,7 @@ export const sponsorsRouter = router({
 
   /**
    * Get current sponsor's shortlist
+   * Returns list of shortlisted candidates for the current sponsor
    */
   getShortlist: protectedProcedure.query(async ({ ctx }) => {
     const supabase = await createServerSupabase();
