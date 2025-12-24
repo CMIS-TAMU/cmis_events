@@ -7,7 +7,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
 [![AI](https://img.shields.io/badge/AI-Powered-6366f1?style=flat-square)](https://openai.com)
 
-A full-stack event platform for Texas A&M's Center for Management Information Systems—featuring intelligent resume matching, automated mentorship, and real-time analytics.
+A full-stack event platform for Texas A&M's Council for the Management of Information Systems—featuring intelligent resume matching, automated mentorship, and real-time analytics.
 
 ```bash
 pnpm install && pnpm dev

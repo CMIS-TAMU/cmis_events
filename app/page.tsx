@@ -77,14 +77,11 @@ export default function Home() {
             {/* Main Title */}
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-tight">
               CMIS
-              <span className="block text-3xl md:text-4xl lg:text-5xl font-medium text-white/90 mt-2">
-                Event Management System
-              </span>
             </h1>
 
             {/* Tagline */}
             <p className="text-xl md:text-2xl text-white/80 mb-4 max-w-3xl mx-auto font-light">
-              Center for Management & Information Systems
+              Council for the Management of Information Systems
             </p>
             <p className="text-lg text-white/70 mb-10 max-w-2xl mx-auto">
               Connect with industry leaders, develop your skills, and build your future in the world of business technology.

@@ -21,7 +21,7 @@
 
 ## 🎯 Executive Summary
 
-The CMIS Event Management System is a comprehensive, modern platform that has **completely transformed** event management for the Center for Management Information Systems at Texas A&M University. Built from the ground up with cutting-edge technology, it replaces manual processes with intelligent automation, providing a seamless experience for students, faculty, sponsors, and administrators.
+The CMIS Event Management System is a comprehensive, modern platform that has **completely transformed** event management for the Council for the Management of Information Systems at Texas A&M University. Built from the ground up with cutting-edge technology, it replaces manual processes with intelligent automation, providing a seamless experience for students, faculty, sponsors, and administrators.
 
 ### Key Highlights
 

@@ -25,7 +25,7 @@
 ### **SECTION 1: INTRODUCTION** (1 minute)
 
 **Opening:**
-> "Good [morning/afternoon], everyone. Thank you for being here today. I'm excited to present the CMIS Event Management System - a comprehensive platform we've built to transform how we manage events, connect students with mentors, and engage with sponsors at the Center for Management Information Systems.
+> "Good [morning/afternoon], everyone. Thank you for being here today. I'm excited to present the CMIS Event Management System - a comprehensive platform we've built to transform how we manage events, connect students with mentors, and engage with sponsors at the Council for the Management of Information Systems.
 >
 > In the next 15 minutes, I'll walk you through the challenges we've been facing, how our new system solves them, and give you a live demonstration of the key features.
 >

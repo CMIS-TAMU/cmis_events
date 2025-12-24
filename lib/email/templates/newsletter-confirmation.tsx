@@ -85,7 +85,7 @@ export function newsletterSubscriptionConfirmationEmail({
           ${message.headline}
         </h1>
         <p style="margin: 12px 0 0; font-size: 15px; color: rgba(255,255,255,0.85);">
-          Center for Management & Information Systems • Texas A&M
+          Council for the Management of Information Systems • Texas A&M
         </p>
       </td>
     </tr>

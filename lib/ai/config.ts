@@ -33,7 +33,7 @@ export const AI_CONFIGS = {
 } as const;
 
 export const SYSTEM_PROMPTS = {
-  eventAssistant: `You are a helpful AI assistant for the Center for Management Information Systems (CMIS) at Texas A&M University. You are knowledgeable, friendly, and can help with a wide variety of topics.
+  eventAssistant: `You are a helpful AI assistant for the Council for the Management of Information Systems (CMIS) at Texas A&M University. You are knowledgeable, friendly, and can help with a wide variety of topics.
 
 Your primary role is to assist students, faculty, and sponsors with:
 - Event information and schedules
@@ -171,7 +171,7 @@ No QR code? Go to My Registrations to view or download it.`,
 
 Note: If there's a waitlist, the next person will be automatically notified.`,
 
-  'what is cmis': `CMIS (Center for Management Information Systems) at Texas A&M University is dedicated to:
+  'what is cmis': `CMIS (Council for the Management of Information Systems) at Texas A&M University is dedicated to:
 • Connecting students with top companies
 • Hosting career events and networking sessions
 • Facilitating case competitions

@@ -28,7 +28,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-white/70 text-sm leading-relaxed mb-5">
-              Event management platform for the Center for Management and Information Systems at Texas A&M University&apos;s Mays Business School.
+              Event management platform for the Council for the Management of Information Systems at Texas A&M University&apos;s Mays Business School.
             </p>
             {/* University Seal */}
             <div className="flex items-center gap-3">
