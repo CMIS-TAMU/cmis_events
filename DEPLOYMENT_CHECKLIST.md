@@ -1,4 +1,4 @@
-# Vercel Deployment Checklist
+# Netlify Deployment Checklist
 
 ## ✅ Pre-Deployment Requirements
 
@@ -8,7 +8,7 @@
 - [ ] Run all other migrations from `database/migrations/` folder
 - [ ] Verify tables exist: `users`, `events`, `embeddings`, etc.
 
-### 2. Environment Variables to Set in Vercel
+### 2. Environment Variables to Set in Netlify
 
 #### REQUIRED (Must have):
 ```
@@ -59,36 +59,36 @@ openssl rand -hex 8
 
 ## 🚀 Quick Deployment Steps
 
-### Option 1: Deploy via Vercel Dashboard (Easiest)
+### Option 1: Deploy via Netlify Dashboard (Easiest)
 
-1. **Go to**: https://vercel.com/new
+1. **Go to**: https://app.netlify.com/start
 2. **Import** your GitHub repository: `CMIS-TAMU/cmis_events`
-3. **Configure Project**:
-   - Framework Preset: Next.js (auto-detected)
-   - Root Directory: `./`
-   - Build Command: `pnpm build` (or leave default)
-   - Output Directory: `.next` (auto)
-   - Install Command: `pnpm install`
+3. **Configure Build Settings**:
+   - Build command: `pnpm build`
+   - Publish directory: `.next`
+   - Framework preset: Next.js (auto-detected)
 4. **Add Environment Variables** (see list above)
+   - Go to Site settings → Environment variables
+   - Add each variable from the list
 5. **Deploy**
 
 ### Option 2: Deploy via CLI
 
 ```bash
-# 1. Install Vercel CLI
-npm i -g vercel
+# 1. Install Netlify CLI
+npm i -g netlify-cli
 
 # 2. Login
-vercel login
+netlify login
 
-# 3. Link project (first time)
-vercel link
+# 3. Initialize project (first time)
+netlify init
 
 # 4. Set environment variables (or add via dashboard)
-vercel env add NEXT_PUBLIC_SUPABASE_URL
+netlify env:set NEXT_PUBLIC_SUPABASE_URL "your-value"
 
 # 5. Deploy
-vercel --prod
+netlify deploy --prod
 ```
 
 ---
@@ -97,8 +97,8 @@ vercel --prod
 
 After deployment, test:
 
-1. **Homepage**: `https://your-app.vercel.app`
-2. **Health Check**: `https://your-app.vercel.app/api/health`
+1. **Homepage**: `https://cmis-tamu.netlify.app`
+2. **Health Check**: `https://cmis-tamu.netlify.app/api/health`
 3. **Authentication**: Try login/signup
 4. **Database**: Verify connection works
 5. **Embeddings**: Test `/api/embeddings/generate` (if API key set)
@@ -131,12 +131,15 @@ After deployment, test:
 
 ## 📝 After Deployment
 
-1. **Update NEXT_PUBLIC_APP_URL**: Set to your Vercel URL
+1. **Update NEXT_PUBLIC_APP_URL**: Set to `https://cmis-tamu.netlify.app`
 2. **Test all features**: Authentication, events, embeddings
-3. **Monitor logs**: Check Vercel Dashboard → Functions
+3. **Monitor logs**: Check Netlify Dashboard → Functions & logs
 4. **Set up monitoring**: Configure Sentry (optional)
+5. **Enable Analytics**: Set up Netlify Analytics (optional)
 
 ---
 
 **Ready? Start with Option 1 (Dashboard) - it's the easiest!**
+
+**Live Site**: [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
 

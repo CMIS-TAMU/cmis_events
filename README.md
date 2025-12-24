@@ -84,7 +84,7 @@ tRPC • PostgreSQL • Supabase • pgvector • Upstash Redis
 OpenAI API • Google Gemini • Vector embeddings • Semantic search
 
 **Infrastructure**  
-Vercel • Supabase • Resend • Sentry
+Netlify • Supabase • Resend • Sentry
 
 ---
 
@@ -155,8 +155,8 @@ TypeScript strict mode • ESLint 9 flat config • Prettier • Conventional co
 
 ## Deployment
 
-**Staging**: Auto-deploy from `develop` → Vercel Preview  
-**Production**: Merge to `main` → Vercel Production
+**Production**: Auto-deploy from `main` → Netlify  
+**Live Site**: [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
 
 **Required Environment Variables**
 ```env
@@ -222,7 +222,7 @@ Proprietary © 2025 CMIS-TAMU
 
 **Repository**: [github.com/CMIS-TAMU/cmis_events](https://github.com/CMIS-TAMU/cmis_events)  
 **Organization**: [github.com/CMIS-TAMU](https://github.com/CMIS-TAMU)  
-**Production**: [cmis-events.vercel.app](https://cmis-events.vercel.app)
+**Production**: [cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
 
 ---
 

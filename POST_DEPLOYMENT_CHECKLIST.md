@@ -3,8 +3,8 @@
 ## ✅ Immediate Checks
 
 ### 1. Get Your Deployment URL
-- Check Vercel Dashboard: https://vercel.com/dashboard
-- Your app should be at: `https://your-project-name.vercel.app`
+- Check Netlify Dashboard: https://app.netlify.com/
+- Your app should be at: `https://cmis-tamu.netlify.app`
 - Or a custom domain if configured
 
 ### 2. Test Homepage
@@ -15,7 +15,7 @@ Visit your deployment URL and verify:
 - [ ] Images load properly
 
 ### 3. Test API Health Check
-Visit: `https://your-app.vercel.app/api/health`
+Visit: `https://cmis-tamu.netlify.app/api/health`
 
 Should return JSON:
 ```json
@@ -26,7 +26,7 @@ Should return JSON:
 ```
 
 ### 4. Check Environment Variables
-In Vercel Dashboard → Settings → Environment Variables, verify you have:
+In Netlify Dashboard → Site settings → Environment variables, verify you have:
 
 #### Required:
 - [ ] `NEXT_PUBLIC_SUPABASE_URL`
@@ -34,7 +34,7 @@ In Vercel Dashboard → Settings → Environment Variables, verify you have:
 - [ ] `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] `RESEND_API_KEY`
 - [ ] `RESEND_FROM_EMAIL`
-- [ ] `NEXT_PUBLIC_APP_URL` (set to your Vercel URL)
+- [ ] `NEXT_PUBLIC_APP_URL` (set to `https://cmis-tamu.netlify.app`)
 
 #### Recommended:
 - [ ] `OPENAI_API_KEY` or `GOOGLE_AI_API_KEY`
@@ -103,9 +103,9 @@ In Vercel Dashboard → Settings → Environment Variables, verify you have:
 ## 📊 Next Steps
 
 ### 1. Update NEXT_PUBLIC_APP_URL
-If not already set, update this to your Vercel URL:
+If not already set, update this to your Netlify URL:
 ```
-NEXT_PUBLIC_APP_URL=https://your-project.vercel.app
+NEXT_PUBLIC_APP_URL=https://cmis-tamu.netlify.app
 ```
 This will trigger a new deployment.
 
@@ -117,9 +117,9 @@ If not done already:
 - Run other migrations as needed
 
 ### 3. Set Up Monitoring (Optional)
-- Enable Vercel Analytics
+- Enable Netlify Analytics
 - Set up Sentry (if configured)
-- Monitor function logs
+- Monitor function logs in Netlify Dashboard
 
 ### 4. Test Critical Features
 - [ ] User registration/login
@@ -141,12 +141,12 @@ Your deployment is successful if:
 
 ### Test Health Endpoint:
 ```bash
-curl https://your-app.vercel.app/api/health
+curl https://cmis-tamu.netlify.app/api/health
 ```
 
 ### Test Embeddings (if API key set):
 ```bash
-curl -X POST https://your-app.vercel.app/api/embeddings/generate \
+curl -X POST https://cmis-tamu.netlify.app/api/embeddings/generate \
   -H "Content-Type: application/json" \
   -d '{"text":"test embedding"}'
 ```
@@ -154,9 +154,9 @@ curl -X POST https://your-app.vercel.app/api/embeddings/generate \
 ## 🆘 Need Help?
 
 If something isn't working:
-1. Check Vercel Dashboard → Functions tab for logs
+1. Check Netlify Dashboard → Deploys → Logs for build errors
 2. Check browser console for client-side errors
-3. Verify environment variables are set correctly
+3. Verify environment variables are set correctly in Netlify
 4. Ensure database migrations ran successfully
 5. Check Supabase dashboard for connection issues
 

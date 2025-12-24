@@ -6,7 +6,7 @@ This guide explains how to demonstrate the semantic search feature in the CMIS E
 
 **URL:** `/demo/semantic-search`
 
-Access the demo page at: `https://cmisevents.vercel.app/demo/semantic-search` (or your local URL)
+Access the demo page at: `https://cmis-tamu.netlify.app/demo/semantic-search` (or your local URL)
 
 ## 🚀 Quick Start Demo
 

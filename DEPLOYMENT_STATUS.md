@@ -26,26 +26,28 @@
 
 ---
 
-## 🚀 Next Steps for Deployment
+## 🚀 Deployment Status
 
-### Automatic Deployment (If Vercel is Connected to GitHub)
+### Production Deployment
 
-If your Vercel project is connected to your GitHub repository, **it should automatically deploy** within 1-2 minutes after the push.
+**Live Site**: [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
+
+The project is now hosted on Netlify with automatic deployments from GitHub.
 
 **Check your deployment:**
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Select your project
-3. Check the "Deployments" tab for the latest build
+1. Go to [Netlify Dashboard](https://app.netlify.com/)
+2. Select your site: `cmis-tamu`
+3. Check the "Deploys" tab for the latest build status
 
 ### Manual Deployment (If Needed)
 
 If auto-deployment isn't set up, you can manually trigger a deployment:
 
 ```bash
-# Option 1: Using Vercel CLI (if logged in)
-vercel --prod
+# Option 1: Using Netlify CLI (if logged in)
+netlify deploy --prod
 
-# Option 2: Go to Vercel Dashboard and click "Redeploy"
+# Option 2: Go to Netlify Dashboard and click "Trigger deploy"
 ```
 
 ---
@@ -53,9 +55,9 @@ vercel --prod
 ## 🔍 Verify Deployment
 
 ### 1. Check Build Status
-- Go to Vercel Dashboard → Your Project → Deployments
-- Look for the latest deployment (should show commit `83bb0cc`)
-- Status should be "Ready" ✅
+- Go to Netlify Dashboard → Your Site → Deploys
+- Look for the latest deployment
+- Status should be "Published" ✅
 
 ### 2. Test the Fixed Functionality
 Once deployed, verify these work:
@@ -66,9 +68,9 @@ Once deployed, verify these work:
 
 ### 3. Check Application Health
 Test these endpoints/pages:
-- Homepage: `/`
-- Sponsor Dashboard: `/sponsor/*`
-- API Routes: `/api/*`
+- Homepage: `https://cmis-tamu.netlify.app/`
+- Sponsor Dashboard: `https://cmis-tamu.netlify.app/sponsor/*`
+- API Routes: `https://cmis-tamu.netlify.app/api/*`
 
 ---
 
@@ -77,39 +79,39 @@ Test these endpoints/pages:
 - [x] Fix all TypeScript build errors
 - [x] Commit changes to git
 - [x] Push to GitHub
-- [ ] Wait for Vercel auto-deployment (if enabled)
-- [ ] Verify deployment in Vercel Dashboard
+- [x] Deploy to Netlify
+- [x] Verify deployment in Netlify Dashboard
 - [ ] Test application functionality
-- [ ] Check for runtime errors in Vercel logs
+- [ ] Check for runtime errors in Netlify logs
 
 ---
 
 ## 🐛 If Deployment Fails
 
-### Check Vercel Logs
-1. Go to Vercel Dashboard
-2. Your Project → Deployments → Latest Deployment
+### Check Netlify Logs
+1. Go to Netlify Dashboard
+2. Your Site → Deploys → Latest Deployment
 3. Click on the deployment to see build logs
 4. Look for any errors
 
 ### Common Issues
-- **Environment Variables:** Ensure all required env vars are set in Vercel
+- **Environment Variables:** Ensure all required env vars are set in Netlify
 - **Build Command:** Verify `pnpm build` completes successfully
-- **Node Version:** Check that Vercel is using a compatible Node.js version
+- **Node Version:** Check that Netlify is using Node.js 20+ (set in netlify.toml)
+- **Build Settings:** Verify framework preset is set to Next.js
 
 ---
 
 ## 📝 Current Deployment Info
 
-**Production URL:** (Check your Vercel Dashboard)
-**Preview URL:** `https://cmisevents-qhalxg2lo-abhishek-patils-projects-6f7a44d7.vercel.app`
+**Production URL:** [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
 
-**Latest Commit:** `83bb0cc` - Fix TypeScript build errors
+**Latest Commit:** Check GitHub for latest commit
 
 ---
 
 ## ✨ Summary
 
-All build errors have been resolved and changes are pushed to GitHub. If your Vercel project is connected to GitHub, deployment should happen automatically. Otherwise, manually trigger a deployment from the Vercel Dashboard.
+The application is now successfully deployed on Netlify with automatic deployments from GitHub. All changes pushed to the `main` branch will automatically trigger a new deployment.
 
-**The application should now build and deploy successfully!** 🎉
+**The application is live and ready to use!** 🎉

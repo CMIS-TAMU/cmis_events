@@ -1,0 +1,19 @@
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "9"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Next.js configuration for Netlify
+[nextjs]
+  # Enable ISR (Incremental Static Regeneration)
+  # Netlify automatically handles Next.js API routes as serverless functions
+

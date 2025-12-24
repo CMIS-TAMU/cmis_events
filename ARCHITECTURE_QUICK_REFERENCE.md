@@ -107,8 +107,7 @@ User Action → Frontend → tRPC API → Database
 ## Deployment
 
 - **Development:** Local (localhost:3000)
-- **Staging:** Vercel Preview (auto-deploy from `develop`)
-- **Production:** Vercel Production (auto-deploy from `main`)
+- **Production:** Netlify (auto-deploy from `main`) - [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
 
 ## Key Architectural Highlights
 
