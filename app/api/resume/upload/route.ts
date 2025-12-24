@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase/server';
+import { indexResume, extractResumeText } from '@/lib/services/resume-matching';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,6 +156,26 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Resume Upload] Update successful!');
+
+    // Index resume for semantic search (async, don't block response)
+    try {
+      console.log('[Resume Upload] Starting resume indexing...');
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const resumeText = await extractResumeText(fileBuffer);
+      
+      await indexResume(user.id, resumeText, user.id, {
+        fileName: file.name,
+        uploadedAt: new Date().toISOString(),
+        skills: skills || [],
+        major: major || undefined,
+        gpa: gpa || undefined,
+      });
+      
+      console.log('[Resume Upload] Resume indexed successfully');
+    } catch (indexError: any) {
+      // Log error but don't fail the upload
+      console.error('[Resume Upload] Failed to index resume (non-critical):', indexError);
+    }
 
     return NextResponse.json({
       success: true,

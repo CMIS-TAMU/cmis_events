@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "index-events": "tsx scripts/index-all-events.ts",
+    "index-resumes": "tsx scripts/index-all-resumes.ts",
+    "index-mentorship-profiles": "tsx scripts/index-all-mentorship-profiles.ts",
+    "check-api-keys": "tsx scripts/check-api-keys.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -75,11 +79,13 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "dotenv": "^17.2.3",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.0.7",
     "postcss": "^8",
     "prettier": "^3.7.3",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

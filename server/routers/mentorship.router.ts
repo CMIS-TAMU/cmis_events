@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email/client';
 import { mentorNotificationEmail } from '@/lib/email/templates';
+import { findMatchingMentors, findMatchingStudents, searchMentorsByQuery, indexStudentProfile, indexMentorProfile, updateStudentProfileIndex, updateMentorProfileIndex } from '@/lib/services/mentor-matching';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -95,6 +96,48 @@ export const mentorshipRouter = router({
         throw new Error(`Failed to create profile: ${error.message}`);
       }
 
+      // Index profile for semantic matching (async, don't block response)
+      try {
+        if (profile_type === 'student') {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('major, skills, gpa, graduation_year')
+            .eq('id', ctx.user.id)
+            .single();
+
+          await indexStudentProfile(ctx.user.id, {
+            goals: input.career_goals,
+            interests: Array.isArray(input.research_interests) 
+              ? input.research_interests.join(', ')
+              : input.research_interests,
+            careerPath: input.career_goals,
+            skills: input.technical_skills || (userData?.skills as string[]) || [],
+            major: input.major || userData?.major,
+            graduationYear: input.graduation_year || userData?.graduation_year,
+            preferredMentorTraits: [],
+            areasOfFocus: [],
+          });
+        } else if (profile_type === 'mentor') {
+          await indexMentorProfile(ctx.user.id, {
+            expertise: Array.isArray(input.areas_of_expertise)
+              ? input.areas_of_expertise.join(', ')
+              : input.areas_of_expertise,
+            experience: input.bio,
+            specialization: Array.isArray(input.areas_of_expertise)
+              ? input.areas_of_expertise.join(', ')
+              : input.areas_of_expertise,
+            industry: input.industry,
+            skills: input.technical_skills || [],
+            background: input.bio,
+            mentoringStyle: input.meeting_frequency,
+            availability: input.availability_status,
+          });
+        }
+      } catch (indexError: any) {
+        // Log error but don't fail profile creation
+        console.error('Failed to index profile (non-critical):', indexError);
+      }
+
       return data;
     }),
 
@@ -159,6 +202,46 @@ export const mentorshipRouter = router({
 
       if (error) {
         throw new Error(`Failed to update profile: ${error.message}`);
+      }
+
+      // Update profile index for semantic matching (async, don't block response)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('major, skills, gpa, graduation_year')
+          .eq('id', user.id)
+          .single();
+
+        if (existing.profile_type === 'student') {
+          await updateStudentProfileIndex(user.id, {
+            goals: input.career_goals,
+            interests: Array.isArray(input.research_interests) 
+              ? input.research_interests.join(', ')
+              : input.research_interests,
+            careerPath: input.career_goals,
+            skills: input.technical_skills || (userData?.skills as string[]) || [],
+            major: input.major || userData?.major,
+            graduationYear: input.graduation_year || userData?.graduation_year,
+          });
+        } else if (existing.profile_type === 'mentor') {
+          await updateMentorProfileIndex(user.id, {
+            expertise: Array.isArray(input.areas_of_expertise)
+              ? input.areas_of_expertise.join(', ')
+              : input.areas_of_expertise,
+            experience: input.bio,
+            specialization: Array.isArray(input.areas_of_expertise)
+              ? input.areas_of_expertise.join(', ')
+              : input.areas_of_expertise,
+            industry: input.industry,
+            skills: input.technical_skills || [],
+            background: input.bio,
+            mentoringStyle: input.meeting_frequency,
+            availability: input.availability_status,
+          });
+        }
+      } catch (indexError: any) {
+        // Log error but don't fail profile update
+        console.error('Failed to update profile index (non-critical):', indexError);
       }
 
       return data;
@@ -1631,6 +1714,186 @@ export const mentorshipRouter = router({
       }
 
       return { success: true };
+    }),
+
+  // ========================================================================
+  // SEMANTIC MATCHING (AI-POWERED)
+  // ========================================================================
+
+  /**
+   * Find matching mentors for current student using semantic search
+   */
+  findMatchingMentorsSemantic: protectedProcedure
+    .input(
+      z.object({
+        threshold: z.number().min(0).max(1).optional().default(0.6),
+        limit: z.number().min(1).max(20).optional().default(10),
+        industry: z.string().optional(),
+        specialization: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const matches = await findMatchingMentors(ctx.user.id, {
+        threshold: input.threshold,
+        limit: input.limit,
+        industry: input.industry,
+        specialization: input.specialization,
+      });
+
+      // Fetch full mentor profile data
+      const mentorIds = matches.map(m => m.userId).filter(Boolean);
+      if (mentorIds.length === 0) {
+        return [];
+      }
+
+      const supabase = createAdminSupabase();
+      const { data: mentors, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          metadata,
+          mentorship_profiles!inner(*)
+        `)
+        .in('id', mentorIds);
+
+      if (error) {
+        throw new Error(`Failed to fetch mentors: ${error.message}`);
+      }
+
+      // Combine match data with mentor data
+      return matches.map(match => {
+        const mentor = mentors?.find(m => m.id === match.userId);
+        return {
+          ...mentor,
+          similarity: match.similarity,
+          matchScore: Math.round(match.similarity * 100),
+          matchReasoning: match.metadata,
+        };
+      }).filter(m => m.id).sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+    }),
+
+  /**
+   * Search mentors using natural language query (semantic search)
+   */
+  searchMentorsSemantic: protectedProcedure
+    .input(
+      z.object({
+        query: z.string().min(1, 'Query is required'),
+        threshold: z.number().min(0).max(1).optional().default(0.6),
+        limit: z.number().min(1).max(20).optional().default(10),
+        industry: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const matches = await searchMentorsByQuery(input.query, {
+        threshold: input.threshold,
+        limit: input.limit,
+        industry: input.industry,
+      });
+
+      // Fetch full mentor profile data
+      const mentorIds = matches.map(m => m.userId).filter(Boolean);
+      if (mentorIds.length === 0) {
+        return [];
+      }
+
+      const supabase = createAdminSupabase();
+      const { data: mentors, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          metadata,
+          mentorship_profiles!inner(*)
+        `)
+        .in('id', mentorIds);
+
+      if (error) {
+        throw new Error(`Failed to fetch mentors: ${error.message}`);
+      }
+
+      // Combine match data with mentor data
+      return matches.map(match => {
+        const mentor = mentors?.find(m => m.id === match.userId);
+        return {
+          ...mentor,
+          similarity: match.similarity,
+          matchScore: Math.round(match.similarity * 100),
+          matchReasoning: match.metadata,
+        };
+      }).filter(m => m.id).sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+    }),
+
+  /**
+   * Find matching students for current mentor using semantic search
+   */
+  findMatchingStudentsSemantic: protectedProcedure
+    .input(
+      z.object({
+        threshold: z.number().min(0).max(1).optional().default(0.6),
+        limit: z.number().min(1).max(20).optional().default(10),
+        major: z.string().optional(),
+        careerPath: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const matches = await findMatchingStudents(ctx.user.id, {
+        threshold: input.threshold,
+        limit: input.limit,
+        major: input.major,
+        careerPath: input.careerPath,
+      });
+
+      // Fetch full student data
+      const studentIds = matches.map(m => m.userId).filter(Boolean);
+      if (studentIds.length === 0) {
+        return [];
+      }
+
+      const supabase = createAdminSupabase();
+      const { data: students, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          major,
+          skills,
+          gpa,
+          graduation_year,
+          metadata
+        `)
+        .in('id', studentIds);
+
+      if (error) {
+        throw new Error(`Failed to fetch students: ${error.message}`);
+      }
+
+      // Combine match data with student data
+      return matches.map(match => {
+        const student = students?.find(s => s.id === match.userId);
+        return {
+          ...student,
+          similarity: match.similarity,
+          matchScore: Math.round(match.similarity * 100),
+          matchReasoning: match.metadata,
+        };
+      }).filter(s => s.id).sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
     }),
 });
 

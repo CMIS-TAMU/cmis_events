@@ -21,6 +21,7 @@ import {
   type NotificationFrequency,
   type EventType,
 } from '@/lib/communications/sponsor-tiers';
+import { matchResumesToJob, indexJobDescription } from '@/lib/services/resume-matching';
 
 // ============================================================================
 // INPUT SCHEMAS
@@ -342,6 +343,72 @@ export const sponsorsRouter = router({
       }
 
       return data || [];
+    }),
+
+  /**
+   * Semantic search for resumes using AI (job description matching)
+   */
+  searchResumesSemantic: protectedProcedure
+    .input(
+      z.object({
+        jobDescription: z.string().min(1, 'Job description is required'),
+        threshold: z.number().min(0).max(1).optional().default(0.6),
+        limit: z.number().min(1).max(50).optional().default(20),
+        skills: z.array(z.string()).optional(),
+        major: z.string().optional(),
+        minGpa: z.number().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const supabase = await createServerSupabase();
+      
+      // Verify user is a sponsor
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', ctx.user.id)
+        .single();
+
+      if (userProfile?.role !== 'sponsor' && userProfile?.role !== 'admin') {
+        throw new Error('Access denied. Sponsor role required.');
+      }
+
+      // Use semantic search to match resumes
+      const matches = await matchResumesToJob(input.jobDescription, {
+        threshold: input.threshold,
+        limit: input.limit,
+        skills: input.skills,
+        major: input.major,
+        minGPA: input.minGpa,
+      });
+
+      // Fetch full user data for matched resumes
+      const userIds = matches.map(m => m.userId).filter(Boolean);
+      if (userIds.length === 0) {
+        return [];
+      }
+
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, major, gpa, skills, graduation_year, resume_filename, resume_uploaded_at')
+        .in('id', userIds);
+
+      if (error) {
+        throw new Error(`Failed to fetch matched users: ${error.message}`);
+      }
+
+      // Combine match data with user data
+      const results = matches.map(match => {
+        const user = users?.find(u => u.id === match.userId);
+        return {
+          ...user,
+          similarity: match.similarity,
+          matchScore: Math.round(match.similarity * 100),
+        };
+      }).filter(r => r.id); // Only include results with user data
+
+      // Sort by similarity (highest first)
+      return results.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
     }),
 
   /**

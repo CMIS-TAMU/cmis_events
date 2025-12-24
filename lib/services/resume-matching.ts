@@ -27,15 +27,38 @@ export async function extractResumeText(
   pdfBuffer: Buffer
 ): Promise<string> {
   try {
-    // Dynamic import to handle CommonJS module
-    const pdfParseModule = await import('pdf-parse');
-    // @ts-expect-error - pdf-parse module structure doesn't match TypeScript types
-    const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = pdfParseModule.default || pdfParseModule;
-    const data = await pdfParse(pdfBuffer);
-    return data.text;
+    // pdf-parse v2.4.5 changed API: PDFParse is now a class that must be instantiated
+    // We need to create an instance and call getText() method
+    let PDFParseClass: any;
+    
+    try {
+      // Try ES6 import first
+      const pdfParseModule = await import('pdf-parse');
+      PDFParseClass = (pdfParseModule as any).PDFParse;
+    } catch (importError) {
+      // Fallback to require for Node.js (works better with CommonJS)
+      const pdfModule = require('pdf-parse');
+      PDFParseClass = pdfModule.PDFParse;
+    }
+    
+    if (!PDFParseClass || typeof PDFParseClass !== 'function') {
+      throw new Error('PDFParse class not found in pdf-parse module');
+    }
+    
+    // Create instance with the buffer
+    const parser = new PDFParseClass({ data: pdfBuffer });
+    
+    // Extract text using getText() method
+    const result = await parser.getText();
+    
+    // Clean up
+    await parser.destroy();
+    
+    // result.text contains the full text, result.pages contains per-page text
+    return result.text || '';
   } catch (error) {
     console.error('[Resume Matching] PDF parse error:', error);
-    throw new Error('Failed to extract text from PDF resume');
+    throw new Error(`Failed to extract text from PDF resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

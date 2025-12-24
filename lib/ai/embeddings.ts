@@ -29,29 +29,45 @@ export async function generateEmbedding(
   const config = AI_CONFIGS.embedding;
   const model = options?.model || config.model;
 
-  // Try OpenAI first (preferred for embeddings)
+  // Check which API keys are available
   const openAIKey = process.env.OPENAI_API_KEY;
-  if (openAIKey && openAIKey.length > 10) {
-    try {
-      return await generateOpenAIEmbedding(text, model, options?.dimensions);
-    } catch (error) {
-      console.error('[Embeddings] OpenAI embedding failed, trying Gemini:', error);
-      // Fall through to try Gemini
-    }
-  }
-
-  // Try Gemini as fallback
   const geminiKey = process.env.GOOGLE_AI_API_KEY;
-  if (geminiKey && geminiKey.length > 10) {
+  
+  const hasOpenAI = openAIKey && openAIKey.length > 10 && !openAIKey.includes('your_') && !openAIKey.includes('YOUR_');
+  const hasGemini = geminiKey && geminiKey.length > 10 && !geminiKey.includes('your_') && !geminiKey.includes('YOUR_');
+
+  // If only Gemini is available, use it directly (more efficient)
+  if (!hasOpenAI && hasGemini) {
     try {
       return await generateGeminiEmbedding(text, model);
     } catch (error) {
       console.error('[Embeddings] Gemini embedding failed:', error);
-      throw new Error('Failed to generate embeddings: No API keys available or API error');
+      throw new Error('Failed to generate embeddings with Gemini API. Please check your GOOGLE_AI_API_KEY and ensure it is valid.');
     }
   }
 
-  throw new Error('No embedding API keys found. Please set OPENAI_API_KEY or GOOGLE_AI_API_KEY');
+  // If both are available, prefer OpenAI (backward compatibility)
+  // If only OpenAI is available, use it
+  if (hasOpenAI) {
+    try {
+      return await generateOpenAIEmbedding(text, model, options?.dimensions);
+    } catch (error) {
+      console.error('[Embeddings] OpenAI embedding failed', hasGemini ? ', trying Gemini:' : ':', error);
+      // Fall through to try Gemini if available
+      if (hasGemini) {
+        try {
+          return await generateGeminiEmbedding(text, model);
+        } catch (geminiError) {
+          console.error('[Embeddings] Gemini embedding also failed:', geminiError);
+          throw new Error('Failed to generate embeddings: Both OpenAI and Gemini APIs failed. Please check your API keys.');
+        }
+      }
+      throw error; // Re-throw OpenAI error if Gemini not available
+    }
+  }
+
+  // No valid API keys found
+  throw new Error('No embedding API keys found. Please set OPENAI_API_KEY or GOOGLE_AI_API_KEY in your .env.local file.');
 }
 
 /**
@@ -101,9 +117,24 @@ async function generateOpenAIEmbedding(
     throw new Error('Invalid embedding response from OpenAI');
   }
 
+  // OpenAI embeddings are already 1536 dimensions (or as specified in options)
+  // Ensure they match the expected database dimension (1536)
+  let finalEmbedding = embedding;
+  const targetDimensions = dimensions || 1536;
+  
+  if (embedding.length !== targetDimensions) {
+    if (embedding.length < targetDimensions) {
+      // Pad if smaller (shouldn't happen but handle gracefully)
+      finalEmbedding = [...embedding, ...new Array(targetDimensions - embedding.length).fill(0)];
+    } else {
+      // Truncate if larger
+      finalEmbedding = embedding.slice(0, targetDimensions);
+    }
+  }
+
   return {
-    embedding,
-    dimensions: embedding.length,
+    embedding: finalEmbedding,
+    dimensions: finalEmbedding.length,
     model: data.model || model,
   };
 }
@@ -151,9 +182,23 @@ async function generateGeminiEmbedding(
     throw new Error('Invalid embedding response from Gemini');
   }
 
+  // Pad Gemini embeddings (768 dims) to 1536 dimensions to match OpenAI
+  // This ensures compatibility with the database schema which expects vector(1536)
+  // We pad with zeros which doesn't affect cosine similarity when normalized
+  let paddedEmbedding = embedding;
+  const targetDimensions = 1536;
+  
+  if (embedding.length < targetDimensions) {
+    // Pad with zeros to reach 1536 dimensions
+    paddedEmbedding = [...embedding, ...new Array(targetDimensions - embedding.length).fill(0)];
+  } else if (embedding.length > targetDimensions) {
+    // Truncate if somehow larger (shouldn't happen with Gemini)
+    paddedEmbedding = embedding.slice(0, targetDimensions);
+  }
+
   return {
-    embedding,
-    dimensions: embedding.length,
+    embedding: paddedEmbedding,
+    dimensions: paddedEmbedding.length, // Return padded dimension for consistency
     model,
   };
 }

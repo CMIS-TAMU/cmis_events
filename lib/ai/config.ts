@@ -18,8 +18,15 @@ export const AI_CONFIGS = {
   } satisfies AIConfig,
   
   embedding: {
-    provider: 'openai' as AIProvider,
-    model: 'text-embedding-3-small',
+    // Default to OpenAI, but will use Gemini if only GOOGLE_AI_API_KEY is available
+    provider: (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('your_')) 
+      ? 'openai' 
+      : (process.env.GOOGLE_AI_API_KEY && !process.env.GOOGLE_AI_API_KEY.includes('your_')) 
+        ? 'gemini' 
+        : 'openai' as AIProvider,
+    model: (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('your_'))
+      ? 'text-embedding-3-small'
+      : 'text-embedding-004', // Gemini model
     maxTokens: 8191,
     temperature: 0,
   } satisfies AIConfig,
