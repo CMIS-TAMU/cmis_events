@@ -156,7 +156,7 @@ TypeScript strict mode • ESLint 9 flat config • Prettier • Conventional co
 ## Deployment
 
 **Production**: Auto-deploy from `main` → Netlify  
-**Live Site**: [https://cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
+**Live Site**: [https://abhishekp1703-cmis-tamu.netlify.app/)
 
 **Required Environment Variables**
 ```env
@@ -222,7 +222,7 @@ Proprietary © 2025 CMIS-TAMU
 
 **Repository**: [github.com/CMIS-TAMU/cmis_events](https://github.com/CMIS-TAMU/cmis_events)  
 **Organization**: [github.com/CMIS-TAMU](https://github.com/CMIS-TAMU)  
-**Production**: [cmis-tamu.netlify.app](https://cmis-tamu.netlify.app)
+**Production**: [cmis-tamu.netlify.app](https://abhishekp1703-cmis-tamu.netlify.app/)
 
 ---
 
